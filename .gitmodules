@@ -1,0 +1,3 @@
+[submodule "ros_ws/src/amr-ros-config"]
+	path = ros_ws/src/amr-ros-config
+	url = https://github.com/MobileRobots/amr-ros-config.git

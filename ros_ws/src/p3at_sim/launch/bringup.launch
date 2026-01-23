@@ -1,0 +1,33 @@
+<launch>
+  <!-- Robot namespace -->
+  <arg name="ns" default="sim_p3at"/>
+  <arg name="x" default="0.0"/>
+  <arg name="y" default="0.0"/>
+  <arg name="z" default="0.2"/>
+
+  <param name="/use_sim_time" value="true"/>
+
+  <!-- Start Gazebo with empty world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find p3at_sim)/worlds/empty.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+  </include>
+
+  <!-- Load robot description from official P3-AT xacro -->
+  <param name="robot_description"
+         command="xacro --inorder $(find amr_robots_description)/urdf/pioneer3at.urdf.xacro"/>
+
+  <!-- Spawn robot into Gazebo under namespace -->
+  <group ns="$(arg ns)">
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_p3at"
+          args="-urdf -param /robot_description -model $(arg ns)
+                -x $(arg x) -y $(arg y) -z $(arg z)"/>
+  </group>
+
+  <!-- Publish TF from URDF -->
+  <node pkg="robot_state_publisher"
+        type="robot_state_publisher"
+        name="robot_state_publisher"/>
+</launch>
