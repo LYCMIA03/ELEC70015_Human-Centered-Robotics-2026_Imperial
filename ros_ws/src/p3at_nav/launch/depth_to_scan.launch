@@ -1,0 +1,15 @@
+<launch>
+  <node pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" name="depth_to_scan" output="screen">
+    <!-- Correct remaps to your Gazebo depth camera plugin topics -->
+    <remap from="image"       to="/sim_p3at/depth_camera/depth/image_raw"/>
+    <remap from="camera_info" to="/sim_p3at/depth_camera/depth/camera_info"/>
+
+    <!-- LaserScan frame -->
+    <param name="output_frame_id" value="depth_camera_link"/>
+
+    <!-- Reasonable defaults -->
+    <param name="scan_time" value="0.033"/>
+    <param name="range_min" value="0.2"/>
+    <param name="range_max" value="5.0"/>
+  </node>
+</launch>

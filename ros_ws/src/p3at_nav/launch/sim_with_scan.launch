@@ -1,0 +1,24 @@
+<launch>
+  <param name="/use_sim_time" value="true"/>
+
+  <!-- Force master/host to local (safe for WSL single-machine) -->
+  <env name="ROS_MASTER_URI" value="http://localhost:11311"/>
+  <env name="ROS_HOSTNAME" value="localhost"/>
+
+  <!-- 1) Gazebo + P3AT with depth -->
+  <include file="$(find p3at_sim)/launch/bringup_depth.launch"/>
+
+  <!-- 2) Depth -> LaserScan -->
+  <node pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" name="depth_to_scan" output="screen">
+    <remap from="image"       to="/sim_p3at/depth_camera/depth/image_raw"/>
+    <remap from="camera_info" to="/sim_p3at/depth_camera/depth/camera_info"/>
+    <remap from="scan"        to="/scan"/>
+
+    <param name="output_frame_id" value="depth_camera_link"/>
+    <param name="scan_time" value="0.033"/>
+    <param name="range_min" value="0.2"/>
+    <param name="range_max" value="5.0"/>
+    <param name="scan_height" value="10"/>
+    <param name="queue_size" value="10"/>
+  </node>
+</launch>

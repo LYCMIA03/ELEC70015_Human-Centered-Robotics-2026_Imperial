@@ -1,0 +1,31 @@
+<launch>
+  <!--
+    Workaround for Gazebo depth camera not publishing camera_info:
+    - Publish a synthetic CameraInfo message whose header.stamp matches the depth image header.stamp.
+    - Run depthimage_to_laserscan to convert depth image to a 2D LaserScan on /scan.
+  -->
+
+  <!-- CameraInfo publisher (timestamp aligned with depth image) -->
+  <node pkg="p3at_nav" type="camera_info_from_image_stamp.py" name="camera_info_from_image_stamp" output="screen">
+    <param name="in_image_topic" value="/sim_p3at/depth_camera/depth/image_raw"/>
+    <param name="out_info_topic" value="/sim_p3at/depth_camera/depth/camera_info"/>
+    <param name="frame_id" value="depth_camera_link"/>
+
+    <!-- Match the URDF/xacro camera settings -->
+    <param name="width" value="640"/>
+    <param name="height" value="480"/>
+    <param name="horizontal_fov" value="1.047"/>
+  </node>
+
+  <!-- Depth image to LaserScan -->
+  <node pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" name="depthimage_to_laserscan" output="screen">
+    <remap from="image"       to="/sim_p3at/depth_camera/depth/image_raw"/>
+    <remap from="camera_info" to="/sim_p3at/depth_camera/depth/camera_info"/>
+    <remap from="scan"        to="/scan"/>
+
+    <param name="output_frame_id" value="depth_camera_link"/>
+    <param name="range_min" value="0.2"/>
+    <param name="range_max" value="5.0"/>
+    <param name="scan_time" value="0.033"/>
+  </node>
+</launch>
