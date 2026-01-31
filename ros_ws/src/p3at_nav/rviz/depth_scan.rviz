@@ -1,0 +1,49 @@
+Panels:
+  - Class: rviz/Displays
+
+Visualization Manager:
+  Displays:
+    - Class: rviz/Grid
+      Name: Grid
+      Enabled: true
+      
+    - Class: rviz/TF
+      Name: TF
+      Enabled: true
+      Show Axes: true
+      Show Names: true
+      
+    - Class: rviz/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Robot Description: robot_description
+      
+    - Class: rviz/LaserScan
+      Name: LaserScan
+      Topic: /scan
+      Color: 0; 255; 0
+      Size (m): 0.15
+      Style: Flat Squares
+      Enabled: true
+      
+    - Class: rviz/PointCloud2
+      Name: PointCloud2
+      Topic: /sim_p3at/camera/depth/points
+      Size (Pixels): 3
+      Style: Flat Squares
+      Color Transformer: AxisColor
+      Enabled: true
+      
+  Global Options:
+    Fixed Frame: base_link
+    
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 4.0
+      Focal Point:
+        X: 0.5
+        Y: 0
+        Z: 0.3
+      Pitch: 0.5
+      Yaw: 0.785

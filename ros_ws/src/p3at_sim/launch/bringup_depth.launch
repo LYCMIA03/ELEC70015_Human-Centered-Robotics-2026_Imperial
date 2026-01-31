@@ -1,27 +1,30 @@
+<?xml version="1.0"?>
 <launch>
-  <arg name="ns" default="sim_p3at"/>
-  <arg name="x" default="0.0"/>
-  <arg name="y" default="0.0"/>
-  <arg name="z" default="0.2"/>
-
-  <param name="/use_sim_time" value="true"/>
-
+  <!-- 启动 Gazebo 空世界 -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find p3at_sim)/worlds/empty.world"/>
+    <arg name="world_name" value="$(find p3at_sim)/worlds/simple_world.world"/>
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
   </include>
 
-  <!-- Use wrapper xacro with depth camera -->
-  <param name="robot_description"
-         command="xacro --inorder $(find p3at_sim)/urdf/p3at_with_depth.urdf.xacro"/>
+  <!-- 加载机器人描述到参数服务器 -->
+  <param name="robot_description" 
+         command="$(find xacro)/xacro '$(find p3at_sim)/urdf/p3at_with_depth_camera.urdf.xacro'" />
 
-  <group ns="$(arg ns)">
-    <node pkg="gazebo_ros" type="spawn_model" name="spawn_p3at"
-          args="-urdf -param /robot_description -model $(arg ns)
-                -x $(arg x) -y $(arg y) -z $(arg z)"/>
-  </group>
+  <!-- 发布机器人状态(TF变换) -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+    <param name="publish_frequency" value="50.0"/>
+  </node>
 
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
+  <!-- 发布关节状态 -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" output="screen">
+    <param name="use_gui" value="false"/>
+  </node>
+
+  <!-- Spawn 机器人模型到 Gazebo -->
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="screen"
+        args="-param robot_description -urdf -model sim_p3at -x 0 -y 0 -z 0.1" />
 </launch>
