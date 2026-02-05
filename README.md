@@ -53,6 +53,7 @@ pip install numpy>=1.24.4
 pip install matplotlib>=3.1.2
 pip install opencv-python>=4.13.0
 pip install opencv-contrib-python>=4.13.0
+pip install defusedxml  # Required for xacro URDF processing
 
 # SLAM and image processing
 pip install scipy>=1.10.1
@@ -92,6 +93,7 @@ git submodule update --init --recursive
 
 ```bash
 # Core packages
+sudo apt update
 sudo apt install ros-noetic-desktop-full \
                  ros-noetic-navigation \
                  ros-noetic-gmapping \
@@ -102,7 +104,11 @@ sudo apt install ros-noetic-desktop-full \
                  ros-noetic-robot-state-publisher \
                  ros-noetic-joint-state-publisher \
                  ros-noetic-map-server \
-                 ros-noetic-teleop-twist-keyboard
+                 ros-noetic-teleop-twist-keyboard \
+                 ros-noetic-realsense2-description
+
+# If realsense2-description is not found, install the full RealSense ROS package
+sudo apt install ros-noetic-realsense2-camera
 
 # Install workspace dependencies
 cd ros_ws
