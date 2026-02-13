@@ -11,37 +11,30 @@ from typing import List, Optional, Tuple, Union
 from src.utils.nlu_intent import Intent, IntentClassifier
 from src.utils.speech_to_text import load_model, recognize_from_wav
 
-ROBOT_PROMPT_INITIAL_WAV = "voice_data/robot_voice_library_prompt_throw_rubbish_*.wav"
-ROBOT_PROMPT_CLARIFICATION_WAV = "voice_data/robot_voice_library_prompt_throw_rubbish_*.wav"
-ROBOT_ACTION_PROCEED_WAV = "voice_data/robot_voice_library_answer_affirmative_*.wav"
-ROBOT_ACTION_DECLINE_WAV = "voice_data/robot_voice_library_answer_negative_*.wav"
+ROBOT_PROMPT_INITIAL_WAV = "voice_data/robot_prompt_*.wav"
+ROBOT_PROMPT_CLARIFICATION_WAV = "voice_data/robot_prompt_*.wav"
+ROBOT_ACTION_PROCEED_WAV = "voice_data/robot_proceed_*.wav"
+ROBOT_ACTION_DECLINE_WAV = "voice_data/robot_leave_*.wav"
+
+# No hardcoded local model path.
+STT_MODEL_NAME = "vosk-model-small-en-us-0.15"
+STT_LANG = "en-us"
 
 
 class DecisionOutcome(str, Enum):
-    """Final interaction outcomes."""
-
     PROCEED = "proceed"
     DECLINE = "decline"
     TERMINATE = "terminate"
 
 
 def _resolve_wav_candidates(wav_spec: Union[str, Path]) -> List[Path]:
-    """Resolve a wav spec into candidate files.
-
-    Supports:
-    - exact file path
-    - glob pattern like voice_data/robot_leave_*.wav
-    """
     spec = str(wav_spec)
-    base = Path(spec)
     if "*" not in spec and "?" not in spec and "[" not in spec:
-        return [base]
-
+        return [Path(spec)]
     return [Path(p) for p in sorted(glob.glob(spec)) if Path(p).is_file()]
 
 
 def sample_wav(wav_spec: Union[str, Path]) -> Path:
-    """Sample one WAV file from path or glob pattern."""
     candidates = _resolve_wav_candidates(wav_spec)
     if not candidates:
         raise FileNotFoundError(f"No WAV file matched: {wav_spec}")
@@ -49,11 +42,7 @@ def sample_wav(wav_spec: Union[str, Path]) -> Path:
 
 
 def play_wav(wav_path: Union[str, Path]) -> None:
-    """Play a wav file with available system player."""
     wav = sample_wav(wav_path)
-    if not wav.exists():
-        raise FileNotFoundError(f"WAV file not found: {wav}")
-
     players = (["aplay", str(wav)], ["ffplay", "-autoexit", "-nodisp", str(wav)])
     last_error: Optional[Exception] = None
     for cmd in players:
@@ -64,19 +53,13 @@ def play_wav(wav_path: Union[str, Path]) -> None:
             last_error = e
         except subprocess.CalledProcessError as e:
             last_error = e
-
     raise RuntimeError("No available WAV player found. Install `aplay` or `ffplay`.") from last_error
 
 
-def transcribe_wav(
-    wav_path: Union[str, Path],
-    stt_model_path: Optional[str],
-    stt_model_name: str,
-    stt_lang: str,
-) -> str:
-    """Run STT on a WAV file and return recognized text."""
+def transcribe_wav(wav_path: Union[str, Path]) -> str:
     selected_wav = sample_wav(wav_path)
-    model = load_model(model_path=stt_model_path, model_name=stt_model_name, lang=stt_lang)
+    # If local cache is missing, Vosk will auto-download this model.
+    model = load_model(model_path=None, model_name=STT_MODEL_NAME, lang=STT_LANG)
     return recognize_from_wav(str(selected_wav), model).strip()
 
 
@@ -84,20 +67,11 @@ def ask_and_classify(
     prompt_wav: Union[str, Path],
     user_wav: Union[str, Path],
     classifier: IntentClassifier,
-    stt_model_path: Optional[str],
-    stt_model_name: str,
-    stt_lang: str,
     play_audio: bool,
 ) -> Tuple[Intent, float, str]:
-    """Play prompt, transcribe user reply, and classify intent."""
     if play_audio:
         play_wav(prompt_wav)
-    text = transcribe_wav(
-        wav_path=user_wav,
-        stt_model_path=stt_model_path,
-        stt_model_name=stt_model_name,
-        stt_lang=stt_lang,
-    )
+    text = transcribe_wav(user_wav)
     if not text:
         return Intent.OTHER, 0.0, ""
     intent, confidence = classifier.predict(text)
@@ -108,19 +82,12 @@ def decide_two_rounds(
     classifier: IntentClassifier,
     first_user_wav: Union[str, Path],
     second_user_wav: Union[str, Path],
-    stt_model_path: Optional[str],
-    stt_model_name: str,
-    stt_lang: str,
     play_audio: bool,
 ) -> DecisionOutcome:
-    """Apply the 2-round rule-based decision policy."""
     intent1, score1, text1 = ask_and_classify(
         prompt_wav=ROBOT_PROMPT_INITIAL_WAV,
         user_wav=first_user_wav,
         classifier=classifier,
-        stt_model_path=stt_model_path,
-        stt_model_name=stt_model_name,
-        stt_lang=stt_lang,
         play_audio=play_audio,
     )
     print(f"[Round 1] text='{text1}' | intent={intent1.value} | confidence={score1:.4f}")
@@ -141,9 +108,6 @@ def decide_two_rounds(
         prompt_wav=ROBOT_PROMPT_CLARIFICATION_WAV,
         user_wav=second_user_wav,
         classifier=classifier,
-        stt_model_path=stt_model_path,
-        stt_model_name=stt_model_name,
-        stt_lang=stt_lang,
         play_audio=play_audio,
     )
     print(f"[Round 2] text='{text2}' | intent={intent2.value} | confidence={score2:.4f}")
@@ -171,9 +135,6 @@ def parse_args() -> argparse.Namespace:
         default=str(project_root / "models" / "nlu_intent.bin"),
         help="Path to trained NLU model.",
     )
-    parser.add_argument("--stt-model", type=str, default=None, help="Optional local Vosk model directory.")
-    parser.add_argument("--stt-model-name", type=str, default="vosk-model-small-en-us-0.15")
-    parser.add_argument("--stt-lang", type=str, default="en-us")
     parser.add_argument("--no-play", action="store_true", help="Skip playing prompt WAV files.")
     return parser.parse_args()
 
@@ -185,9 +146,6 @@ def main() -> None:
         classifier=classifier,
         first_user_wav=args.first_user_wav,
         second_user_wav=args.second_user_wav,
-        stt_model_path=args.stt_model,
-        stt_model_name=args.stt_model_name,
-        stt_lang=args.stt_lang,
         play_audio=not args.no_play,
     )
     print(f"[Final] outcome={outcome.value}")

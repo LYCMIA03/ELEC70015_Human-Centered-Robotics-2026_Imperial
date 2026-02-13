@@ -103,10 +103,20 @@ def load_model(
     model_name: str = "vosk-model-small-en-us-0.15",
     lang: str = "en-us",
 ) -> Model:
-    """Load a Vosk model from path or by language code."""
+    """Load a Vosk model.
+
+    Priority:
+    1) If `model_path` exists, use it.
+    2) Otherwise use (`model_name`, `lang`) and let Vosk auto-download/cache.
+    """
     if model_path and Path(model_path).exists():
         return Model(model_path=model_path)
-    return Model(model_name=model_name, lang=lang)
+    try:
+        return Model(model_name=model_name, lang=lang)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to load/download Vosk model '{model_name}' (lang={lang})."
+        ) from exc
 
 
 def parse_args() -> argparse.Namespace:

@@ -1,11 +1,48 @@
 """Generate speech audio from text using Piper TTS."""
 
 import argparse
+import urllib.request
 import wave
 from pathlib import Path
 
-from piper.config import SynthesisConfig
-from piper.voice import PiperVoice
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+MODELS_DIR = PROJECT_ROOT / "models"
+DEFAULT_TTS_MODEL_NAME = "en_GB-southern_english_female-low"
+DEFAULT_TTS_ONNX_PATH = MODELS_DIR / f"{DEFAULT_TTS_MODEL_NAME}.onnx"
+DEFAULT_TTS_JSON_PATH = MODELS_DIR / f"{DEFAULT_TTS_MODEL_NAME}.onnx.json"
+DEFAULT_TTS_ONNX_URL = (
+    "https://huggingface.co/rhasspy/piper-voices/resolve/main/"
+    "en/en_GB/southern_english_female/low/en_GB-southern_english_female-low.onnx"
+)
+DEFAULT_TTS_JSON_URL = (
+    "https://huggingface.co/rhasspy/piper-voices/resolve/main/"
+    "en/en_GB/southern_english_female/low/en_GB-southern_english_female-low.onnx.json"
+)
+
+
+def _download_to(url: str, dst: Path) -> None:
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    with urllib.request.urlopen(url) as resp, open(dst, "wb") as f:
+        f.write(resp.read())
+
+
+def ensure_tts_model(model_ref: str) -> Path:
+    """Ensure default TTS model files exist in models/ and return onnx path."""
+    allowed_refs = {
+        DEFAULT_TTS_MODEL_NAME,
+        DEFAULT_TTS_ONNX_PATH.name,
+        str(DEFAULT_TTS_ONNX_PATH),
+    }
+    if model_ref not in allowed_refs:
+        raise ValueError(
+            f"Only '{DEFAULT_TTS_MODEL_NAME}' is supported. Got: {model_ref}"
+        )
+
+    if not DEFAULT_TTS_ONNX_PATH.exists():
+        _download_to(DEFAULT_TTS_ONNX_URL, DEFAULT_TTS_ONNX_PATH)
+    if not DEFAULT_TTS_JSON_PATH.exists():
+        _download_to(DEFAULT_TTS_JSON_URL, DEFAULT_TTS_JSON_PATH)
+    return DEFAULT_TTS_ONNX_PATH
 
 
 def parse_args() -> argparse.Namespace:
@@ -36,9 +73,10 @@ def generate(
     use_cuda: bool = False,
 ) -> Path:
     """Synthesize text to a WAV file and return the output path."""
-    model_file = Path(model_path)
-    if not model_file.exists():
-        raise FileNotFoundError(f"Voice model not found: {model_file}")
+    from piper.config import SynthesisConfig
+    from piper.voice import PiperVoice
+
+    model_file = ensure_tts_model(model_path)
 
     voice = PiperVoice.load(str(model_file), use_cuda=use_cuda)
 
@@ -61,9 +99,9 @@ def generate(
 def main() -> None:
     # You can edit these defaults directly for quick local generation.
     config = {
-        "model_path": "models/en_GB-southern_english_female-low.onnx",
-        "text": "Have a nice day, Mr. robot.",
-        "output_path": "voice_data/sim_user_answer_other_a.wav",
+        "model_path": "en_GB-southern_english_female-low",
+        "text": "You are so stupid!",
+        "output_path": "voice_data/sim_user_answer_other_b.wav",
         "volume": 1.0,
         "speed": 1.33,
         "noise_scale": 0.667,
