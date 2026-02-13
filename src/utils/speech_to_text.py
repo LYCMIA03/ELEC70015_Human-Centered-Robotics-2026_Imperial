@@ -52,8 +52,9 @@ def recognize_from_mic(
     model: Model,
     device: Optional[int] = None,
     sample_rate: Optional[int] = None,
-) -> None:
-    """Recognize speech from microphone in real-time."""
+    single_utterance: bool = False,
+) -> Optional[str]:
+    """Recognize speech from microphone in real-time or one utterance."""
     import sounddevice as sd
 
     q: queue.Queue[bytes] = queue.Queue()
@@ -70,7 +71,10 @@ def recognize_from_mic(
     rec = KaldiRecognizer(model, sample_rate)
 
     print("=" * 60)
-    print("Listening... (Press Ctrl+C to stop)")
+    if single_utterance:
+        print("Listening for one utterance...")
+    else:
+        print("Listening... (Press Ctrl+C to stop)")
     print("=" * 60)
 
     try:
@@ -86,8 +90,10 @@ def recognize_from_mic(
                 data = q.get()
                 if rec.AcceptWaveform(data):
                     result = json.loads(rec.Result())
-                    text = result.get("text", "")
+                    text = result.get("text", "").strip()
                     if text:
+                        if single_utterance:
+                            return text
                         print(f">> {text}")
                 else:
                     partial = json.loads(rec.PartialResult())
@@ -96,7 +102,7 @@ def recognize_from_mic(
                         print(f"   ... {partial_text}", end="\r")
     except KeyboardInterrupt:
         print("\nStopped.")
-
+    return None
 
 def load_model(
     model_path: Optional[str] = None,
