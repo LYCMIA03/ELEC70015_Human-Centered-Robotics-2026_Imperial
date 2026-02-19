@@ -15,6 +15,8 @@ The LMS200 lidar handles **all** mapping, localization, path planning, and local
   - [Mapping (gmapping)](#1-mapping-gmapping)
   - [Navigation on a Saved Map (AMCL)](#2-navigation-on-a-saved-map-amcl)
   - [Target Following](#3-target-following)
+- [Verifying the System](#verifying-the-system)
+- [Troubleshooting](#troubleshooting)
 - [Usage: Real Robot](#usage-real-robot)
   - [Multi-Machine Setup](#multi-machine-setup)
   - [Step 1 - Start Base Driver (Raspberry Pi)](#step-1---start-base-driver-raspberry-pi)
@@ -152,66 +154,162 @@ sudo apt install -y ros-noetic-teleop-twist-keyboard
 ## Build
 
 ```bash
-cd catkin_ws
+cd ~/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws
 catkin_make
 source devel/setup.bash    # or setup.zsh for zsh users
 ```
 
+> You must `source devel/setup.bash` (or `.zsh`) in every new terminal before running any `roslaunch` or `rostopic` commands.
+
+---
+
 ## Usage: Gazebo Simulation
 
-All simulation launch files start Gazebo, spawn the robot, and open RViz automatically.
+All simulation launch files start Gazebo, spawn the robot, and open RViz automatically. Each step below runs in a separate terminal. Source the workspace at the start of each terminal:
+
+```bash
+source ~/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.zsh
+```
 
 ### 1. Mapping (gmapping)
 
-Launch Gazebo with gmapping SLAM, move_base, and target following:
+**Terminal 1** — Launch Gazebo + gmapping + move_base + RViz:
 
 ```bash
 roslaunch p3at_lms_navigation mapping.launch
 ```
 
 This starts:
-- Gazebo with P3-AT robot and two box obstacles
-- `slam_gmapping` for real-time map building
-- `move_base` with NavfnROS global planner + DWA local planner
+- Gazebo with the P3-AT robot and two box obstacles
+- `slam_gmapping` building a 2D occupancy grid map in real time
+- `move_base` (NavfnROS global planner + DWA local planner)
 - `target_follower` tracking a Gazebo model named "target"
-- RViz for visualization
+- RViz showing the live map, robot pose, and laser scan
 
-**Drive the robot** by moving the "target" model in Gazebo (select it in the left panel, use the translate tool to drag). The robot will follow automatically.
+**Drive the robot** (two options):
 
-**Alternatively**, use keyboard teleop in a separate terminal:
+Option A — Move the Gazebo "target" model (robot follows automatically):
+1. In Gazebo, click the model named **"target"** in the left panel
+2. Select the **Translate** tool (T key)
+3. Drag the target to a new position; the robot will navigate toward it
+
+Option B — Keyboard teleop in a new terminal:
 ```bash
 rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 ```
+Key bindings:
+```
+u  i  o        move forward + turn
+j  k  l        turn left / stop / turn right
+m  ,  .        move backward + turn
 
-**Save the map** once you are satisfied with the coverage:
+q / z  : increase / decrease max linear speed
+w / x  : increase / decrease max angular speed
+```
+
+**Save the map** once coverage is complete (new terminal):
 ```bash
 rosrun map_server map_saver -f $(rospack find p3at_lms_navigation)/maps/my_map
 ```
 
-This creates `my_map.pgm` and `my_map.yaml` in the maps directory.
+This creates `my_map.pgm` and `my_map.yaml` in `p3at_lms_navigation/maps/`.
 
 ### 2. Navigation on a Saved Map (AMCL)
 
-Load a previously saved map and use AMCL for localization:
+**Terminal 1** — Launch Gazebo + AMCL + move_base + RViz:
 
 ```bash
-roslaunch p3at_lms_navigation nav.launch map_file:=/absolute/path/to/my_map.yaml
+roslaunch p3at_lms_navigation nav.launch \
+  map_file:=$(rospack find p3at_lms_navigation)/maps/my_map.yaml
 ```
 
-In RViz:
-- Use **2D Pose Estimate** to set the robot's initial pose on the map
-- Use **2D Nav Goal** to send navigation goals (when using `use_rviz_goal_relay:=true`)
+#### Initialize robot pose in RViz
+
+AMCL needs an approximate starting pose before it can localize.
+
+1. In RViz, click **"2D Pose Estimate"** in the top toolbar
+2. Click on the map at the robot's **actual current position**
+3. Hold and drag to set the **heading direction**, then release
+4. The green particle cloud should converge around the robot — localization is active
+
+If the particle cloud does not converge, drive the robot a short distance and repeat.
+
+#### Send a navigation goal in RViz
+
+1. In RViz, click **"2D Nav Goal"** in the top toolbar
+2. Click on the map at the **desired destination**
+3. Hold and drag to set the **goal heading**, then release
+4. Observe:
+   - A green global path appears in RViz
+   - The robot starts moving in Gazebo
+   - The path updates as the robot progresses
+
+To send a goal from the command line instead:
+```bash
+rostopic pub /target_pose geometry_msgs/PoseStamped "
+header:
+  frame_id: 'map'
+pose:
+  position:
+    x: 2.0
+    y: 1.0
+    z: 0.0
+  orientation:
+    w: 1.0" -1
+```
 
 ### 3. Target Following
 
-**Gazebo model tracking** (default): The `gazebo_target_publisher` node reads the "target" model pose from Gazebo and publishes it as `/target_pose`. The `target_follower` node sends this as a `MoveBaseGoal`.
+**Gazebo model tracking** (default in `mapping.launch`): The `gazebo_target_publisher` reads the Gazebo "target" model pose and publishes it as `/target_pose`. The `target_follower` node converts this into a continuous stream of `MoveBaseGoal` actions.
 
-**RViz goal relay** (manual target): Use RViz "2D Nav Goal" as the target source:
+**RViz 2D Nav Goal relay**: Use RViz to set the target instead of a Gazebo model:
 ```bash
-roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=false use_rviz_goal_relay:=true
+roslaunch p3at_lms_navigation mapping.launch \
+  use_gazebo_target:=false use_rviz_goal_relay:=true
+```
+Now every "2D Nav Goal" click in RViz is forwarded to `/target_pose` and triggers the follower.
+
+**Programmatic target** (e.g., from a YOLO detector): Publish to `/target_pose` from any node. The pose can be in `map`, `odom`, or `base_link` frame -- `target_follower` handles the TF transform automatically.
+
+---
+
+## Verifying the System
+
+Use these commands in any sourced terminal to check that everything is running correctly.
+
+```bash
+# List all active topics
+rostopic list
+
+# Check lidar data rate (should be ~10 Hz in simulation)
+rostopic hz /scan
+
+# Check odometry rate
+rostopic hz /odom
+
+# View the current robot pose estimate from AMCL
+rostopic echo /amcl_pose
+
+# Check move_base goal status
+rostopic echo /move_base/status
+
+# Print the full TF tree to a PDF
+rosrun tf2_tools view_frames.py && evince frames.pdf
 ```
 
-**Custom target source**: Publish a `geometry_msgs/PoseStamped` to `/target_pose` from any node (e.g., your YOLO detector). The pose can be in `map`, `odom`, or `base_link` frame -- `target_follower` handles the TF transform.
+---
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| RViz shows no map | `map_server` not running, or wrong `map_file` path | Check the `map_file` argument; ensure the `.yaml` and `.pgm` files exist |
+| Robot does not move after nav goal | AMCL not yet localized | Use "2D Pose Estimate" in RViz first, then resend the goal |
+| Navigation goal immediately aborted | Target is inside an obstacle or too close to a wall | Choose a goal in open space; increase `inflation_radius` if needed |
+| Robot spins in place indefinitely | DWA planner cannot find a feasible velocity | Lower `max_vel_theta` or increase `sim_time` in `move_base.yaml` |
+| `roslaunch` reports package not found | Workspace not sourced | Run `source devel/setup.zsh` in that terminal |
+| Gazebo opens but robot falls through floor | Mesh collision geometry issue | Restart Gazebo; this is intermittent with complex STL meshes |
+| `catkin_make` fails with missing package | ROS dependency not installed | Run `rosdep install --from-paths src --ignore-src -r -y` |
 
 ---
 
