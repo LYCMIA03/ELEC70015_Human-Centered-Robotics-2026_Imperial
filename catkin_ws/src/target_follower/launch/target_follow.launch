@@ -9,8 +9,8 @@
       <param name="model_name" value="target"/>
       <!-- Publish target pose relative to the robot so the frame exists in TF -->
       <param name="robot_model_name" value="$(arg robot_model_name)"/>
-      <param name="reference_frame" value="$(arg robot_model_name)::base_link"/>
-      <param name="out_frame" value="base_link"/>
+      <param name="reference_frame" value="$(arg robot_model_name)::base_footprint"/>
+      <param name="out_frame" value="base_footprint"/>
       <param name="topic" value="/target_pose"/>
       <param name="rate_hz" value="10.0"/>
     </node>

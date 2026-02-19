@@ -1,0 +1,56 @@
+<launch>
+  <!--
+    P3-AT 底盘驱动（运行在 Raspberry Pi 上）
+    
+    前提：
+      1. 树莓派已安装 ros-noetic-rosaria 或从源码编译 rosaria
+      2. P3-AT 通过串口连接到树莓派 (通常 /dev/ttyS0 或 /dev/ttyUSB0)
+      3. ROS_MASTER_URI 指向 Jetson Orin Nano（source raspi_env.sh）
+    
+    启动：
+      source ~/catkin_ws/raspi_env.sh
+      roslaunch p3at_base base.launch
+    
+    或指定串口：
+      roslaunch p3at_base base.launch serial_port:=/dev/ttyUSB0
+  -->
+
+  <arg name="serial_port" default="/dev/ttyS0"/>
+
+  <!-- ========== RosAria 底盘驱动 ========== -->
+  <!--
+    RosAria 会：
+    - 从 P3-AT 编码器读取里程计数据
+    - 发布 /RosAria/pose (nav_msgs/Odometry)
+    - 订阅 /RosAria/cmd_vel (geometry_msgs/Twist)
+    - 发布 odom -> base_link TF（如果 publish_aria_tf=true）
+  -->
+  <node pkg="rosaria" type="RosAria" name="RosAria" output="screen">
+    <param name="port" value="$(arg serial_port)"/>
+
+    <!-- P3-AT 运动参数 -->
+    <param name="trans_accel" value="0.3"/>   <!-- m/s^2 -->
+    <param name="trans_decel" value="0.3"/>
+    <param name="rot_accel"   value="0.5"/>   <!-- rad/s^2 -->
+    <param name="rot_decel"   value="0.5"/>
+
+    <!-- 让 RosAria 自己发布 TF: odom -> base_link -->
+    <param name="publish_aria_tf" value="true"/>
+
+    <!-- 话题重映射 -->
+    <remap from="/RosAria/cmd_vel" to="/cmd_vel"/>
+  </node>
+
+  <!-- ========== 里程计重映射 ========== -->
+  <!--
+    将 RosAria 的 /RosAria/pose 重新发布为标准 /odom 话题
+    如果 RosAria 已经将 publish_aria_tf 设为 true，则 TF 已由 RosAria 发布
+  -->
+  <node pkg="p3at_base" type="odom_republisher.py" name="odom_republisher"
+        output="screen">
+    <param name="input_topic"  value="/RosAria/pose"/>
+    <param name="output_topic" value="/odom"/>
+    <!-- 如果 publish_aria_tf=true，则不需要再次发布 TF -->
+    <param name="publish_tf"   value="false"/>
+  </node>
+</launch>
