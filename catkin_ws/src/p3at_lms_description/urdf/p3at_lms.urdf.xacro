@@ -1,147 +1,408 @@
 <?xml version="1.0"?>
+<!--
+  P3-AT robot with SICK LMS200 lidar.
+  Uses official Pioneer 3-AT mesh files from amr-ros-config for accurate visual geometry.
+  Adds base_footprint frame, LMS200 lidar link, and Gazebo simulation plugins.
+-->
 <robot name="p3at_lms" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- Parameters -->
-  <xacro:property name="PI_CONST" value="3.1415926535897931"/>
+  <xacro:property name="PI" value="3.1415926535897931"/>
 
-  <!-- Basic dimensions (rough, tweak as needed) -->
-  <xacro:property name="base_length" value="0.60"/>
-  <xacro:property name="base_width"  value="0.50"/>
-  <xacro:property name="base_height" value="0.20"/>
+  <!-- Mesh package path prefix -->
+  <xacro:property name="mesh_prefix" value="package://p3at_lms_description/meshes/p3at_meshes"/>
 
-  <xacro:property name="wheel_radius" value="0.095"/>
-  <xacro:property name="wheel_width"  value="0.05"/>
-  <xacro:property name="wheel_x"      value="0.22"/>
-  <xacro:property name="wheel_y"      value="0.25"/>
-  <xacro:property name="wheel_z"      value="0.05"/>
-
-  <!-- Lidar mount -->
-  <xacro:property name="laser_x" value="0.20"/>
-  <xacro:property name="laser_y" value="0.0"/>
-  <xacro:property name="laser_z" value="0.25"/>
-
-  <!-- Base link -->
-  <link name="base_link">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="35.0"/>
-      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
-    </inertial>
-    <visual>
-      <origin xyz="0 0 ${base_height/2}" rpy="0 0 0"/>
-      <geometry>
-        <box size="${base_length} ${base_width} ${base_height}"/>
-      </geometry>
-      <material name="Gray">
-        <color rgba="0.55 0.55 0.55 1.0"/>
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 ${base_height/2}" rpy="0 0 0"/>
-      <geometry>
-        <box size="${base_length} ${base_width} ${base_height}"/>
-      </geometry>
-    </collision>
-  </link>
-
-  <!-- Optional base_footprint -->
+  <!-- ======================== base_footprint ======================== -->
   <link name="base_footprint"/>
+
   <joint name="base_footprint_joint" type="fixed">
     <parent link="base_footprint"/>
     <child link="base_link"/>
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
 
-  <!-- Wheels -->
-  <xacro:macro name="wheel" params="name x y">
-    <link name="${name}_link">
-      <inertial>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <mass value="2.0"/>
-        <inertia ixx="0.02" ixy="0.0" ixz="0.0" iyy="0.02" iyz="0.0" izz="0.02"/>
-      </inertial>
-      <visual>
-        <origin xyz="0 0 0" rpy="${PI_CONST/2} 0 0"/>
-        <geometry>
-          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
-        </geometry>
-        <material name="Black">
-          <color rgba="0.1 0.1 0.1 1.0"/>
-        </material>
-      </visual>
-      <collision>
-        <origin xyz="0 0 0" rpy="${PI_CONST/2} 0 0"/>
-        <geometry>
-          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
-        </geometry>
-      </collision>
-    </link>
-
-    <joint name="${name}_joint" type="continuous">
-      <parent link="base_link"/>
-      <child link="${name}_link"/>
-      <origin xyz="${x} ${y} ${wheel_z}" rpy="0 0 0"/>
-      <axis xyz="0 1 0"/>
-      <limit effort="30.0" velocity="50.0"/>
-      <dynamics damping="0.1" friction="0.1"/>
-    </joint>
-  </xacro:macro>
-
-  <xacro:wheel name="front_left_wheel"  x="${ wheel_x}" y="${ wheel_y}"/>
-  <xacro:wheel name="rear_left_wheel"   x="${-wheel_x}" y="${ wheel_y}"/>
-  <xacro:wheel name="front_right_wheel" x="${ wheel_x}" y="${-wheel_y}"/>
-  <xacro:wheel name="rear_right_wheel"  x="${-wheel_x}" y="${-wheel_y}"/>
-
-  <!-- Lidar link -->
-  <link name="laser">
+  <!-- ======================== Chassis (base_link) ======================== -->
+  <link name="base_link">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="1.0"/>
-      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+      <mass value="21.5"/>
+      <origin xyz="-0.1 0 0.177"/>
+      <inertia ixx="0.3338" ixy="0.0" ixz="0.0"
+               iyy="0.4783" iyz="0.0"
+               izz="0.3338"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.177" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_prefix}/chassis.stl"/>
+      </geometry>
+      <material name="ChassisRed">
+        <color rgba="0.851 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.177" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.50 0.40 0.20"/>
+      </geometry>
+    </collision>
+  </link>
+  <gazebo reference="base_link">
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <!-- ======================== Top plate ======================== -->
+  <link name="top_plate">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="-0.025 0 -0.223"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0"
+               izz="0.001"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <cylinder radius="0.04" length="0.08"/>
+        <mesh filename="${mesh_prefix}/top.stl"/>
       </geometry>
-      <material name="Blue">
-        <color rgba="0.2 0.2 0.8 1.0"/>
+      <material name="TopBlack">
+        <color rgba="0.038 0.038 0.038 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <gazebo reference="top_plate">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <joint name="base_top_joint" type="fixed">
+    <origin xyz="0.003 0 0.274" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="top_plate"/>
+  </joint>
+
+  <!-- ======================== Front sonar ======================== -->
+  <link name="front_sonar">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0"
+               izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_prefix}/front_sonar.stl"/>
+      </geometry>
+      <material name="SonarYellow">
+        <color rgba="0.715 0.583 0.210 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <gazebo reference="front_sonar">
+    <material>Gazebo/Yellow</material>
+  </gazebo>
+
+  <joint name="base_front_joint" type="fixed">
+    <origin xyz="0.193 0 0.25" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="front_sonar"/>
+  </joint>
+
+  <!-- ======================== Back sonar ======================== -->
+  <link name="back_sonar">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0"
+               izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_prefix}/back_sonar.stl"/>
+      </geometry>
+      <material name="SonarYellow">
+        <color rgba="0.715 0.583 0.210 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <gazebo reference="back_sonar">
+    <material>Gazebo/Yellow</material>
+  </gazebo>
+
+  <joint name="base_back_joint" type="fixed">
+    <origin xyz="-0.187 0 0.247" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="back_sonar"/>
+  </joint>
+
+  <!-- ======================== Drive side macro ======================== -->
+  <xacro:macro name="p3at_drive_side" params="side reflect">
+
+    <!-- Front axle -->
+    <link name="p3at_front_${side}_axle">
+      <inertial>
+        <mass value="0.1"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0"
+                 izz="0.001"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/axle.stl"/>
+        </geometry>
+        <material name="AxleGrey">
+          <color rgba="0.5 0.5 0.5 1"/>
+        </material>
+      </visual>
+    </link>
+    <gazebo reference="p3at_front_${side}_axle">
+      <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <joint name="base_front_${side}_axle_joint" type="fixed">
+      <origin xyz="0.135 ${reflect*0.156} 0.111" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="p3at_front_${side}_axle"/>
+    </joint>
+
+    <!-- Front hub -->
+    <link name="p3at_front_${side}_hub">
+      <inertial>
+        <mass value="0.1"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0"
+                 izz="0.001"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/${side}_hubcap.stl"/>
+        </geometry>
+        <material name="HubcapYellow">
+          <color rgba="1.0 0.811 0.151 1.0"/>
+        </material>
+      </visual>
+    </link>
+    <gazebo reference="p3at_front_${side}_hub">
+      <material>Gazebo/Yellow</material>
+    </gazebo>
+
+    <joint name="base_front_${side}_hub_joint" type="fixed">
+      <origin xyz="0 ${reflect*0.041} 0" rpy="0 0 0"/>
+      <parent link="p3at_front_${side}_axle"/>
+      <child link="p3at_front_${side}_hub"/>
+    </joint>
+
+    <!-- Front wheel -->
+    <link name="p3at_front_${side}_wheel">
+      <inertial>
+        <mass value="1.2"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.012411765597" ixy="0" ixz="0"
+                 iyy="0.015218160428" iyz="0"
+                 izz="0.011763977943"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/wheel.stl"/>
+        </geometry>
+        <material name="WheelBlack">
+          <color rgba="0.117 0.117 0.117 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${-PI/2} 0 0"/>
+        <geometry>
+          <cylinder radius="0.111" length="0.075"/>
+        </geometry>
+      </collision>
+    </link>
+    <gazebo reference="p3at_front_${side}_wheel">
+      <material>Gazebo/Black</material>
+      <kp>1000000.0</kp>
+      <kd>100.0</kd>
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
+      <maxVel>1.0</maxVel>
+      <minDepth>0.00</minDepth>
+    </gazebo>
+
+    <joint name="p3at_front_${side}_wheel_joint" type="continuous">
+      <axis xyz="0 1 0"/>
+      <limit effort="100" velocity="100"/>
+      <joint_properties damping="0.7"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="p3at_front_${side}_hub"/>
+      <child link="p3at_front_${side}_wheel"/>
+    </joint>
+
+    <!-- Back axle -->
+    <link name="p3at_back_${side}_axle">
+      <inertial>
+        <mass value="0.1"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0"
+                 izz="0.001"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/axle.stl"/>
+        </geometry>
+        <material name="AxleGrey">
+          <color rgba="0.5 0.5 0.5 1"/>
+        </material>
+      </visual>
+    </link>
+    <gazebo reference="p3at_back_${side}_axle">
+      <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <joint name="p3at_back_${side}_axle_joint" type="fixed">
+      <origin xyz="-0.134 ${reflect*0.156} 0.111" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="p3at_back_${side}_axle"/>
+    </joint>
+
+    <!-- Back hub -->
+    <link name="p3at_back_${side}_hub">
+      <inertial>
+        <mass value="0.1"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0"
+                 izz="0.001"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/${side}_hubcap.stl"/>
+        </geometry>
+        <material name="HubcapYellow">
+          <color rgba="1.0 0.811 0.151 1.0"/>
+        </material>
+      </visual>
+    </link>
+    <gazebo reference="p3at_back_${side}_hub">
+      <material>Gazebo/Yellow</material>
+    </gazebo>
+
+    <joint name="p3at_back_${side}_hub_joint" type="fixed">
+      <origin xyz="0 ${reflect*0.041} 0" rpy="0 0 0"/>
+      <parent link="p3at_back_${side}_axle"/>
+      <child link="p3at_back_${side}_hub"/>
+    </joint>
+
+    <!-- Back wheel -->
+    <link name="p3at_back_${side}_wheel">
+      <inertial>
+        <mass value="1.2"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.012411765597" ixy="0" ixz="0"
+                 iyy="0.015218160428" iyz="0"
+                 izz="0.011763977943"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/wheel.stl"/>
+        </geometry>
+        <material name="WheelBlack">
+          <color rgba="0.117 0.117 0.117 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${-PI/2} 0 0"/>
+        <geometry>
+          <cylinder radius="0.111" length="0.075"/>
+        </geometry>
+      </collision>
+    </link>
+    <gazebo reference="p3at_back_${side}_wheel">
+      <material>Gazebo/Black</material>
+      <kp>1000000.0</kp>
+      <kd>100.0</kd>
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
+      <maxVel>1.0</maxVel>
+      <minDepth>0.00</minDepth>
+    </gazebo>
+
+    <joint name="p3at_back_${side}_wheel_joint" type="continuous">
+      <axis xyz="0 1 0"/>
+      <limit effort="100" velocity="100"/>
+      <joint_properties damping="0.7"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="p3at_back_${side}_hub"/>
+      <child link="p3at_back_${side}_wheel"/>
+    </joint>
+
+  </xacro:macro>
+
+  <!-- Instantiate left and right drive sides -->
+  <xacro:p3at_drive_side side="left"  reflect="1"/>
+  <xacro:p3at_drive_side side="right" reflect="-1"/>
+
+  <!-- ======================== SICK LMS200 Lidar ======================== -->
+  <!--
+    Mounted on top plate. The LMS200 is ~0.185m tall, sits on the top plate at z=0.274.
+    laser frame origin at the scanner emission plane.
+  -->
+  <link name="laser">
+    <inertial>
+      <mass value="4.5"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0"
+               iyy="0.01" iyz="0.0"
+               izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.156 0.155 0.185"/>
+      </geometry>
+      <material name="LMS200Blue">
+        <color rgba="0.12 0.34 0.56 1.0"/>
       </material>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <cylinder radius="0.04" length="0.08"/>
+        <box size="0.156 0.155 0.185"/>
       </geometry>
     </collision>
   </link>
+  <gazebo reference="laser">
+    <material>Gazebo/Blue</material>
+  </gazebo>
 
   <joint name="laser_joint" type="fixed">
     <parent link="base_link"/>
     <child link="laser"/>
-    <origin xyz="${laser_x} ${laser_y} ${laser_z}" rpy="0 0 0"/>
+    <!-- On top plate center, raised to emission plane -->
+    <origin xyz="0.0 0.0 0.366" rpy="0 0 0"/>
   </joint>
 
-  <!-- Gazebo settings -->
-  <gazebo reference="base_link">
-    <mu1>1.0</mu1>
-    <mu2>1.0</mu2>
-  </gazebo>
-
-  <!-- Gazebo skid-steer drive -->
+  <!-- ======================== Gazebo Skid-Steer Drive Plugin ======================== -->
   <gazebo>
     <plugin name="skid_steer_drive" filename="libgazebo_ros_skid_steer_drive.so">
       <robotNamespace>/</robotNamespace>
 
-      <leftFrontJoint>front_left_wheel_joint</leftFrontJoint>
-      <leftRearJoint>rear_left_wheel_joint</leftRearJoint>
-      <rightFrontJoint>front_right_wheel_joint</rightFrontJoint>
-      <rightRearJoint>rear_right_wheel_joint</rightRearJoint>
+      <leftFrontJoint>p3at_front_left_wheel_joint</leftFrontJoint>
+      <rightFrontJoint>p3at_front_right_wheel_joint</rightFrontJoint>
+      <leftRearJoint>p3at_back_left_wheel_joint</leftRearJoint>
+      <rightRearJoint>p3at_back_right_wheel_joint</rightRearJoint>
 
-      <wheelSeparation>${2*wheel_y}</wheelSeparation>
-      <wheelDiameter>${2*wheel_radius}</wheelDiameter>
+      <wheelSeparation>0.4</wheelSeparation>
+      <wheelDiameter>0.222</wheelDiameter>
 
-      <torque>20</torque>
+      <torque>200</torque>
       <updateRate>50</updateRate>
 
       <commandTopic>cmd_vel</commandTopic>
@@ -156,7 +417,7 @@
     </plugin>
   </gazebo>
 
-  <!-- Gazebo 2D lidar (LMS200-like) -->
+  <!-- ======================== Gazebo LMS200 Lidar Sensor ======================== -->
   <gazebo reference="laser">
     <sensor type="ray" name="lms200">
       <pose>0 0 0 0 0 0</pose>
@@ -165,10 +426,10 @@
       <ray>
         <scan>
           <horizontal>
-            <samples>720</samples>
+            <samples>361</samples>
             <resolution>1</resolution>
-            <min_angle>-1.57079632679</min_angle> <!-- -90 deg -->
-            <max_angle> 1.57079632679</max_angle> <!-- +90 deg -->
+            <min_angle>-1.57079632679</min_angle>
+            <max_angle> 1.57079632679</max_angle>
           </horizontal>
         </scan>
         <range>
