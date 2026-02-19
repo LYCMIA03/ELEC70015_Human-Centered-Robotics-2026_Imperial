@@ -2,5 +2,4 @@ build/
 devel/
 logs/
 .catkin_workspace
-*.pyc
-__pycache__/
+src/CMakeLists.txt
