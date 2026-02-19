@@ -1,0 +1,27 @@
+# AMCL parameters for localization on a saved map
+use_map_topic: true
+first_map_only: false
+
+min_particles: 300
+max_particles: 2000
+kld_err: 0.02
+kld_z: 0.99
+
+update_min_d: 0.15
+update_min_a: 0.2
+
+resample_interval: 1
+transform_tolerance: 0.3
+
+laser_model_type: likelihood_field
+laser_max_range: 12.0
+laser_min_range: 0.05
+
+odom_model_type: diff
+odom_alpha1: 0.1
+odom_alpha2: 0.1
+odom_alpha3: 0.2
+odom_alpha4: 0.2
+
+recovery_alpha_slow: 0.0
+recovery_alpha_fast: 0.0

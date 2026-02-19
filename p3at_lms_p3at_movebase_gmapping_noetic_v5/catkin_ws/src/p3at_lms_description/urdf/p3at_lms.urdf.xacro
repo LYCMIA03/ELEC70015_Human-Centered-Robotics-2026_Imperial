@@ -1,0 +1,193 @@
+<?xml version="1.0"?>
+<robot name="p3at_lms" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Parameters -->
+  <xacro:property name="PI_CONST" value="3.1415926535897931"/>
+
+  <!-- Basic dimensions (rough, tweak as needed) -->
+  <xacro:property name="base_length" value="0.60"/>
+  <xacro:property name="base_width"  value="0.50"/>
+  <xacro:property name="base_height" value="0.20"/>
+
+  <xacro:property name="wheel_radius" value="0.095"/>
+  <xacro:property name="wheel_width"  value="0.05"/>
+  <xacro:property name="wheel_x"      value="0.22"/>
+  <xacro:property name="wheel_y"      value="0.25"/>
+  <xacro:property name="wheel_z"      value="0.05"/>
+
+  <!-- Lidar mount -->
+  <xacro:property name="laser_x" value="0.20"/>
+  <xacro:property name="laser_y" value="0.0"/>
+  <xacro:property name="laser_z" value="0.25"/>
+
+  <!-- Base link -->
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="35.0"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 ${base_height/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${base_length} ${base_width} ${base_height}"/>
+      </geometry>
+      <material name="Gray">
+        <color rgba="0.55 0.55 0.55 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${base_height/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${base_length} ${base_width} ${base_height}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Optional base_footprint -->
+  <link name="base_footprint"/>
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Wheels -->
+  <xacro:macro name="wheel" params="name x y">
+    <link name="${name}_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="2.0"/>
+        <inertia ixx="0.02" ixy="0.0" ixz="0.0" iyy="0.02" iyz="0.0" izz="0.02"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="${PI_CONST/2} 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <material name="Black">
+          <color rgba="0.1 0.1 0.1 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${PI_CONST/2} 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${name}_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${name}_link"/>
+      <origin xyz="${x} ${y} ${wheel_z}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit effort="30.0" velocity="50.0"/>
+      <dynamics damping="0.1" friction="0.1"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:wheel name="front_left_wheel"  x="${ wheel_x}" y="${ wheel_y}"/>
+  <xacro:wheel name="rear_left_wheel"   x="${-wheel_x}" y="${ wheel_y}"/>
+  <xacro:wheel name="front_right_wheel" x="${ wheel_x}" y="${-wheel_y}"/>
+  <xacro:wheel name="rear_right_wheel"  x="${-wheel_x}" y="${-wheel_y}"/>
+
+  <!-- Lidar link -->
+  <link name="laser">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.04" length="0.08"/>
+      </geometry>
+      <material name="Blue">
+        <color rgba="0.2 0.2 0.8 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.04" length="0.08"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="laser_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="laser"/>
+    <origin xyz="${laser_x} ${laser_y} ${laser_z}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Gazebo settings -->
+  <gazebo reference="base_link">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <!-- Gazebo skid-steer drive -->
+  <gazebo>
+    <plugin name="skid_steer_drive" filename="libgazebo_ros_skid_steer_drive.so">
+      <robotNamespace>/</robotNamespace>
+
+      <leftFrontJoint>front_left_wheel_joint</leftFrontJoint>
+      <leftRearJoint>rear_left_wheel_joint</leftRearJoint>
+      <rightFrontJoint>front_right_wheel_joint</rightFrontJoint>
+      <rightRearJoint>rear_right_wheel_joint</rightRearJoint>
+
+      <wheelSeparation>${2*wheel_y}</wheelSeparation>
+      <wheelDiameter>${2*wheel_radius}</wheelDiameter>
+
+      <torque>20</torque>
+      <updateRate>50</updateRate>
+
+      <commandTopic>cmd_vel</commandTopic>
+      <odometryTopic>odom</odometryTopic>
+      <odometryFrame>odom</odometryFrame>
+      <robotBaseFrame>base_link</robotBaseFrame>
+
+      <publishWheelTF>true</publishWheelTF>
+      <publishTf>true</publishTf>
+      <broadcastTF>true</broadcastTF>
+      <publishWheelJointState>true</publishWheelJointState>
+    </plugin>
+  </gazebo>
+
+  <!-- Gazebo 2D lidar (LMS200-like) -->
+  <gazebo reference="laser">
+    <sensor type="ray" name="lms200">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>true</visualize>
+      <update_rate>10</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>720</samples>
+            <resolution>1</resolution>
+            <min_angle>-1.57079632679</min_angle> <!-- -90 deg -->
+            <max_angle> 1.57079632679</max_angle> <!-- +90 deg -->
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.05</min>
+          <max>30.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+
+      <plugin name="gazebo_ros_laser" filename="libgazebo_ros_laser.so">
+        <topicName>scan</topicName>
+        <frameName>laser</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</robot>

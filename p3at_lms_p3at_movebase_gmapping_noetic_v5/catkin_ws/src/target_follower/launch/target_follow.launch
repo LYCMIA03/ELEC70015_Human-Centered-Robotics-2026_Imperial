@@ -1,0 +1,35 @@
+<launch>
+  <arg name="use_gazebo_target" default="true"/>
+  <arg name="use_rviz_goal_relay" default="false"/>
+  <arg name="robot_model_name" default="p3at"/>
+
+  <!-- Option A: Follow a Gazebo model called "target" -->
+  <group if="$(arg use_gazebo_target)">
+    <node pkg="target_follower" type="gazebo_target_publisher.py" name="gazebo_target_publisher" output="screen">
+      <param name="model_name" value="target"/>
+      <!-- Publish target pose relative to the robot so the frame exists in TF -->
+      <param name="robot_model_name" value="$(arg robot_model_name)"/>
+      <param name="reference_frame" value="$(arg robot_model_name)::base_link"/>
+      <param name="out_frame" value="base_link"/>
+      <param name="topic" value="/target_pose"/>
+      <param name="rate_hz" value="10.0"/>
+    </node>
+  </group>
+
+  <!-- Option B: Use RViz "2D Nav Goal" as a manual target source -->
+  <group if="$(arg use_rviz_goal_relay)">
+    <node pkg="target_follower" type="goal_to_target_relay.py" name="goal_to_target_relay" output="screen"/>
+  </group>
+
+  <!-- Follower: sends goals to move_base -->
+  <node pkg="target_follower" type="target_follower.py" name="target_follower" output="screen">
+    <param name="target_topic" value="/target_pose"/>
+    <param name="global_frame" value="map"/>
+    <param name="robot_frame" value="base_link"/>
+    <param name="send_rate_hz" value="2.0"/>
+    <param name="min_update_dist" value="0.25"/>
+    <!-- Following cares about position; ignore orientation to avoid spin-in-place -->
+    <param name="use_target_orientation" value="false"/>
+    <param name="target_timeout" value="2.0"/>
+  </node>
+</launch>
