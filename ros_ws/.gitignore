@@ -1,2 +1,5 @@
 build/
 devel/
+.catkin_workspace
+frames.gv
+frames.pdf
