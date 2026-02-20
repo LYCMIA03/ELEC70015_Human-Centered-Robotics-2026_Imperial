@@ -16,6 +16,7 @@ The LMS200 lidar handles **all** mapping, localization, path planning, and local
   - [Navigation on a Saved Map (AMCL)](#2-navigation-on-a-saved-map-amcl)
   - [Target Following](#3-target-following)
   - [Testing Navigation (3-Waypoint Test)](#4-testing-navigation-3-waypoint-test)
+  - [Testing Target Follower Features (Unit Tests)](#5-testing-target-follower-features-unit-tests)
 - [Verifying the System](#verifying-the-system)
 - [Troubleshooting](#troubleshooting)
 - [Simulation Calibration Notes (Bug Fixes)](#simulation-calibration-notes-bug-fixes)
@@ -82,8 +83,10 @@ catkin_ws/src/
 ├── target_follower/         # Target following system
 │   ├── scripts/
 │   │   ├── target_follower.py          # Subscribes /target_pose, sends MoveBaseGoal
+│   │   │                               #   (supports standoff_distance and face_target)
 │   │   ├── gazebo_target_publisher.py  # Publishes Gazebo model pose as /target_pose
-│   │   └── goal_to_target_relay.py     # Relays RViz 2D Nav Goal to /target_pose
+│   │   ├── goal_to_target_relay.py     # Relays RViz 2D Nav Goal to /target_pose
+│   │   └── test_standoff_face.py       # Unit tests for standoff & face_target logic
 │   └── launch/target_follow.launch
 └── p3at_base/               # Real robot base driver (runs on Raspberry Pi)
     ├── launch/base.launch              # RosAria + odom republisher
@@ -296,6 +299,69 @@ Each waypoint has a **65-second timeout**. The script prints position and action
 If a waypoint is `ABORTED`, check `rostopic echo /move_base/status` and ensure the goal is not
 inside an obstacle inflation zone.
 
+### 5. Testing Target Follower Features (Unit Tests)
+
+A self-contained unit test script verifies the core maths of `standoff_distance` and `face_target`
+**without requiring a running ROS system or Gazebo**. It replicates the exact logic from
+`target_follower.py` and checks all edge cases with known inputs.
+
+Script: `target_follower/scripts/test_standoff_face.py`
+
+#### Running the tests
+
+```bash
+# No ROS sourcing needed — pure Python, no dependencies
+python3 catkin_ws/src/target_follower/scripts/test_standoff_face.py
+```
+
+#### What is tested (21 tests, all expected to PASS)
+
+| Group | Test | What is verified |
+|-------|------|------------------|
+| **Standoff geometry** | T1 | `standoff=0` → goal equals target exactly |
+| | T2a–d | `standoff=1.5`, robot at origin, target 4 m away → goal is exactly 1.5 m from target, lies on the robot→target line |
+| | T3 | Robot already inside standoff zone (d=1.0 < standoff=2.0) → returns `skip=True`, no goal sent |
+| | T4a–c | `standoff=1.0`, oblique direction → goal exactly 1 m from target, collinear with robot→target |
+| **face_target yaw** | F1 | Target due east → yaw = 0° |
+| | F2 | `standoff=1 m` + target due east → yaw still = 0° |
+| | F3 | Target due north → yaw = 90° |
+| | F4 | Target south-west → yaw = −135° |
+| | F5 | `standoff=2 m`, target NE at 45° → yaw = 45° |
+| | F6 | `yaw_to_quaternion` round-trip: recover original yaw from (z, w) |
+| **Edge cases** | E1 | `d == standoff` (exact boundary) → skip |
+| | E2 | `d < standoff` → skip |
+| | E3 | `d` just above `standoff` → no skip, goal exactly `standoff` metres from target |
+| | E4 | goal ≈ target (standoff ≈ 0) → falls back to robot→target direction for yaw |
+
+#### Expected output
+
+```
+════════════════════════════════════════════════════════════
+UNIT TEST: standoff_distance geometry
+════════════════════════════════════════════════════════════
+  [PASS] T1: standoff=0, no skip
+  [PASS] T1: standoff=0, goal == target  (goal=(3.0000,4.0000), target=(3.0,4.0))
+  [PASS] T2a: standoff=1.5, no skip (d=4 > 1.5)
+  [PASS] T2b: goal is exactly standoff distance from target  (dist=1.5000m (want 1.5m))
+  [PASS] T2c: goal is on the robot→target line  (goal=(2.5000,0.0000))
+  [PASS] T2d: goal_x = 4.0 - 1.5 = 2.5  (gx=2.5000)
+  [PASS] T3: inside standoff zone → skip=True  (d=1.0 <= standoff=2.0, skip=True)
+  ...
+════════════════════════════════════════════════════════════
+SUMMARY
+════════════════════════════════════════════════════════════
+  [PASS] ...  (×21)
+
+  21/21 unit tests passed
+  All unit tests PASSED ✓
+```
+
+> **Note:** The unit tests verify the mathematical correctness of the standoff and
+> face_target logic in isolation. End-to-end navigation tests (robot actually moving to
+> the computed goal) are covered by `waypoint_test.py` for the baseline case. Full
+> integration of `standoff_distance` + `face_target` was also verified manually in
+> Gazebo simulation (commit `7d87bbb`).
+
 ### 2. Navigation on a Saved Map (AMCL)
 
 **Terminal 1** — Launch Gazebo + AMCL + move_base + RViz:
@@ -352,6 +418,74 @@ roslaunch p3at_lms_navigation mapping.launch \
 Now every "2D Nav Goal" click in RViz is forwarded to `/target_pose` and triggers the follower.
 
 **Programmatic target** (e.g., from a YOLO detector): Publish to `/target_pose` from any node. The pose can be in `map`, `odom`, or `base_link` frame -- `target_follower` handles the TF transform automatically.
+
+#### Standoff Distance
+
+The `standoff_distance` parameter makes the robot stop a fixed distance *short* of the target instead of driving all the way to it. This is useful when following a person — you want the robot to keep a comfortable gap rather than crowd the target.
+
+```bash
+# Stop 1.5 m short of the target
+roslaunch p3at_lms_navigation mapping.launch standoff_distance:=1.5
+```
+
+**How it works:**
+- The robot computes the vector from its current position to the target.
+- The goal sent to `move_base` is placed `standoff_distance` metres back along that vector.
+- If the robot is already *inside* the standoff zone (current distance ≤ `standoff_distance`), no new goal is sent — the robot stays put.
+- The standoff goal is recomputed each time the target moves, so it tracks correctly as both robot and target move.
+
+```
+  Robot ──────── Goal ─ [standoff_distance] ─ Target
+```
+
+**Change at runtime** without restarting:
+```bash
+rosparam set /target_follower/standoff_distance 2.0
+```
+
+#### Face Target
+
+The `face_target` parameter orients the robot to face *toward* the target when it arrives at the goal pose. Without this, the robot keeps its current heading (default DWA behaviour).
+
+```bash
+# Robot faces the target at the goal
+roslaunch p3at_lms_navigation mapping.launch face_target:=true
+```
+
+**How it works:**
+- After computing the goal position (with or without standoff), the goal orientation is set to `atan2(target_y - goal_y, target_x - goal_x)`.
+- When `standoff_distance > 0`, the robot faces from the standoff goal toward the target — i.e., it points at the target from a distance.
+- When `standoff_distance = 0` and `face_target = true`, the robot faces the direction it approached from (robot → target vector).
+- The yaw is converted to a unit quaternion and passed directly to `move_base`; actual pointing accuracy is limited by DWA's `yaw_goal_tolerance` (0.5 rad ≈ 29°).
+
+**Change at runtime** without restarting:
+```bash
+rosparam set /target_follower/face_target true
+```
+
+#### Combined Example
+
+```bash
+# Stop 1.0 m from the target AND face it
+roslaunch p3at_lms_navigation mapping.launch \
+  standoff_distance:=1.0 face_target:=true
+```
+
+This is the recommended mode for human-following: the robot stops at a comfortable distance and turns to face the person.
+
+#### All `target_follower` Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `~target_topic` | string | `/target_pose` | Topic to subscribe for target pose |
+| `~global_frame` | string | `map` | Global reference frame for goals |
+| `~robot_frame` | string | `base_link` | Robot body frame (for standoff TF lookup) |
+| `~send_rate_hz` | float | `2.0` | Max rate at which new goals are sent (Hz) |
+| `~min_update_dist` | float | `0.3` | Min target movement (m) before re-sending goal |
+| `~target_timeout_s` | float | `1.0` | Ignore stale target poses older than this (s) |
+| `~use_target_orientation` | bool | `false` | Use the orientation from the target message |
+| `~standoff_distance` | float | `0.0` | Stop this many metres short of the target (0 = go all the way) |
+| `~face_target` | bool | `false` | Orient robot to face the target at the goal pose |
 
 ---
 
@@ -513,6 +647,8 @@ Launch arguments:
 | `use_rviz` | `true` | Start RViz |
 | `use_target_follower` | `false` | Enable target following |
 | `use_rviz_goal_relay` | `false` | Relay RViz 2D Nav Goal to /target_pose |
+| `standoff_distance` | `0.0` | Stop this many metres short of target (see [Standoff Distance](#standoff-distance)) |
+| `face_target` | `false` | Orient robot to face the target at goal (see [Face Target](#face-target)) |
 
 This starts:
 - `sicklms` (sicktoolbox_wrapper): LMS200 driver publishing `/scan` in the `laser` frame
@@ -538,6 +674,8 @@ Launch arguments are the same as mapping, plus:
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `map_file` | `...maps/demo_map.yaml` | Path to the saved map YAML |
+| `standoff_distance` | `0.0` | Stop this many metres short of target |
+| `face_target` | `false` | Orient robot to face the target at goal |
 
 This starts: `sicklms`, `robot_state_publisher`, `map_server`, `amcl`, `move_base`, and optionally RViz.
 
@@ -635,6 +773,9 @@ The `target_follower` node subscribes to `/target_pose` (`geometry_msgs/PoseStam
 - [x] Obstacle detection (obstacle_layer, inflation_layer in costmap) -- verified
 - [x] 3-waypoint sequential navigation test -- all SUCCEEDED (errors < 0.2 m)
 - [x] Map saving and loading (map_server + AMCL) -- verified
+- [x] `standoff_distance` feature -- implemented and verified (commit `7d87bbb`, 21/21 unit tests pass)
+- [x] `face_target` feature -- implemented and verified (commit `7d87bbb`, 21/21 unit tests pass)
+- [x] Unit test suite for standoff + face_target logic -- 21/21 pass (commit `8e189ba`)
 - [x] Real robot launch files (mapping + navigation) -- created, pending hardware test
 - [x] Raspberry Pi base driver package (p3at_base) -- created, pending hardware test
 - [ ] YOLO target detection node -- not started
