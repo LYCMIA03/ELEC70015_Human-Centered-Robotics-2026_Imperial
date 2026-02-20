@@ -34,6 +34,10 @@ The repository contains two workspaces:
   - [Step 2a - Mapping (Jetson)](#step-2a---mapping-jetson)
   - [Step 2b - Navigation (Jetson)](#step-2b---navigation-jetson)
 - [Key Topics and TF Frames](#key-topics-and-tf-frames)
+  - [Node Graph](#node-graph)
+  - [Complete Node List](#complete-node-list-mapping-mode-observed-at-runtime)
+  - [Topic Pub/Sub Reference](#topic-pubsub-reference)
+  - [TF Tree](#tf-tree)
 - [Parameter Tuning](#parameter-tuning)
 - [Connecting a YOLO Target Detector](#connecting-a-yolo-target-detector)
 - [Known Issues and Notes](#known-issues-and-notes)
@@ -70,7 +74,7 @@ Target following :  target_follower node             target_follower node
 
 ```
 ELEC70015_Human-Centered-Robotics-2026_Imperial/
-├── catkin_ws/                 # LMS200 LiDAR navigation workspace (this branch)
+├── catkin_ws/                 # LMS200 LiDAR navigation workspace (real_robot_navigation branch)
 │   ├── src/
 │   │   ├── p3at_lms_description/   # URDF/Xacro robot model (P3-AT + laser link)
 │   │   ├── p3at_lms_gazebo/        # Gazebo world, target model, simulation launch
@@ -79,7 +83,7 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 │   │   └── p3at_base/              # Raspberry Pi base driver
 │   ├── build/                  # Build artifacts (not tracked)
 │   └── devel/                  # Development space (not tracked)
-├── ros_ws/                    # Depth camera simulation workspace (main branch)
+├── ros_ws/                    # Depth camera simulation workspace (in main branch)
 │   └── src/
 │       └── amr-ros-config/     # AMR configuration (git submodule)
 ├── build_and_hint.sh          # Quick-build helper script
@@ -345,7 +349,7 @@ rosrun map_server map_saver -f $(rospack find p3at_lms_navigation)/maps/my_map
 
 This creates `my_map.pgm` and `my_map.yaml` in `p3at_lms_navigation/maps/`.
 
-### 4. Testing Navigation (3-Waypoint Test)
+### 2. Testing Navigation (3-Waypoint Test)
 
 A Python script is provided to verify end-to-end navigation automatically:
 `p3at_lms_navigation/scripts/waypoint_test.py`
@@ -397,7 +401,7 @@ Each waypoint has a **65-second timeout**. The script prints position and action
 If a waypoint is `ABORTED`, check `rostopic echo /move_base/status` and ensure the goal is not
 inside an obstacle inflation zone.
 
-### 5. Testing Target Follower Features (Unit Tests)
+### 3. Testing Target Follower Features (Unit Tests)
 
 A self-contained unit test script verifies the core maths of `standoff_distance` and `face_target`
 **without requiring a running ROS system or Gazebo**. It replicates the exact logic from
@@ -460,7 +464,7 @@ SUMMARY
 > integration of `standoff_distance` + `face_target` was also verified manually in
 > Gazebo simulation (commit `7d87bbb`).
 
-### 2. Navigation on a Saved Map (AMCL)
+### 4. Navigation on a Saved Map (AMCL)
 
 **Terminal 1** — Launch Gazebo + AMCL + move_base + RViz:
 
@@ -504,7 +508,7 @@ pose:
     w: 1.0" -1
 ```
 
-### 3. Target Following
+### 5. Target Following
 
 **Gazebo model tracking** (default in `mapping.launch`): The `gazebo_target_publisher` reads the Gazebo "target" model pose and publishes it as `/target_pose`. The `target_follower` node converts this into a continuous stream of `MoveBaseGoal` actions.
 
@@ -821,28 +825,155 @@ This starts: `sicklms`, `robot_state_publisher`, `map_server`, `amcl`, `move_bas
 
 ## Key Topics and TF Frames
 
-### Topics
+> All data in this section was captured live from a running `mapping.launch` simulation
+> (commit `8e189ba`, `use_gazebo_target:=false`).
 
-| Topic | Type | Publisher | Description |
-|-------|------|-----------|-------------|
-| `/scan` | `sensor_msgs/LaserScan` | Gazebo plugin / sicklms | 2D lidar scan |
-| `/odom` | `nav_msgs/Odometry` | Gazebo plugin / odom_republisher | Robot odometry |
-| `/cmd_vel` | `geometry_msgs/Twist` | move_base | Velocity commands |
-| `/map` | `nav_msgs/OccupancyGrid` | gmapping / map_server | Occupancy grid map |
-| `/target_pose` | `geometry_msgs/PoseStamped` | gazebo_target_publisher / YOLO node | Target position for following |
-| `/move_base/goal` | `move_base_msgs/MoveBaseActionGoal` | target_follower | Navigation goal |
+### Node Graph
+
+#### Mapping Mode (`mapping.launch use_gazebo_target:=false`)
+
+Seven nodes are active in this mode.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  Node relationships — mapping.launch (use_gazebo_target:=false)                 │
+│                                                                                 │
+│  /joint_state_publisher ──/joint_states──► /robot_state_publisher               │
+│                                                    │                            │
+│                                               /tf, /tf_static                   │
+│                                                    ▼                            │
+│  /gazebo ──/scan──────────────────────────► /slam_gmapping ──/map──► /move_base │
+│         ──/odom──────────────────────────────────────────────────────►          │
+│         ──/tf (odom→base_footprint)──────────────────────────────────►          │
+│         ◄─/cmd_vel─────────────────────────────────────── /move_base            │
+│                                                                │                │
+│                                        /move_base/NavfnROS/plan│                │
+│                                     /move_base/DWAPlannerROS/* │                │
+│                                                                ▼                │
+│  /rviz ◄──/map, /scan, /tf, /move_base/NavfnROS/plan, /move_base/DWAPlannerROS/local_plan
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Target Following Mode (`mapping.launch` — default with `use_gazebo_target:=true`)
+
+Three extra nodes appear when target following is enabled:
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  Additional nodes for target following                             │
+│                                                                    │
+│  /gazebo ──/gazebo/get_model_state (service)──► /gazebo_target_publisher
+│                                                         │          │
+│                                                   /target_pose     │
+│                                                         ▼          │
+│                                               /target_follower     │
+│           /tf (for robot position lookup) ◄───────────────│        │
+│                                               /move_base/goal      │
+│                                                         ▼          │
+│                                                   /move_base       │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+When `use_rviz_goal_relay:=true`, an extra `/goal_to_target_relay` node bridges
+`/move_base_simple/goal` (set by RViz "2D Nav Goal") to `/target_pose`.
+
+### Complete Node List (mapping mode, observed at runtime)
+
+| Node | Package | Role |
+|------|---------|------|
+| `/gazebo` | `gazebo_ros` | Physics simulator; publishes `/scan`, `/odom`, `/tf (odom→base_footprint)` |
+| `/joint_state_publisher` | `joint_state_publisher` | Publishes URDF joint states to `/joint_states` |
+| `/robot_state_publisher` | `robot_state_publisher` | Computes and broadcasts static/dynamic `/tf` and `/tf_static` from URDF |
+| `/slam_gmapping` | `slam_gmapping` | SLAM; subscribes `/scan`+`/tf`, publishes `/map` and `/tf (map→odom)` |
+| `/move_base` | `move_base` | Global + local planner; subscribes `/map`, `/scan`, `/odom`, `/tf`; publishes `/cmd_vel` |
+| `/rviz` | `rviz` | Visualization; subscribes `/map`, `/scan`, `/tf`, planner paths |
+| `/rosout` | `rosout` | ROS logging aggregator |
+| `/gazebo_target_publisher`* | `target_follower` | Calls Gazebo service to get target model pose; publishes `/target_pose` |
+| `/target_follower`* | `target_follower` | Subscribes `/target_pose`; sends `MoveBaseAction` goals to `/move_base` |
+| `/goal_to_target_relay`† | `target_follower` | Relays `/move_base_simple/goal` → `/target_pose` |
+
+\* Active only when `use_gazebo_target:=true` (default in `mapping.launch`).  
+† Active only when `use_rviz_goal_relay:=true`.
+
+### Topic Pub/Sub Reference
+
+All data observed from `rosnode info` in live simulation.
+
+| Topic | Message Type | Publisher(s) | Subscriber(s) |
+|-------|-------------|--------------|---------------|
+| `/clock` | `rosgraph_msgs/Clock` | `/gazebo` | `/joint_state_publisher`, `/robot_state_publisher`, `/slam_gmapping`, `/move_base`, `/rviz` |
+| `/scan` | `sensor_msgs/LaserScan` | `/gazebo` (ray sensor plugin) | `/slam_gmapping`, `/move_base`, `/rviz` |
+| `/odom` | `nav_msgs/Odometry` | `/gazebo` (skid-steer plugin) | `/move_base` |
+| `/cmd_vel` | `geometry_msgs/Twist` | `/move_base` | `/gazebo` |
+| `/joint_states` | `sensor_msgs/JointState` | `/joint_state_publisher` | `/robot_state_publisher` |
+| `/tf` | `tf2_msgs/TFMessage` | `/gazebo`, `/robot_state_publisher`, `/slam_gmapping` | `/slam_gmapping`, `/move_base`, `/rviz` |
+| `/tf_static` | `tf2_msgs/TFMessage` | `/robot_state_publisher` | `/slam_gmapping`, `/move_base`, `/rviz` |
+| `/map` | `nav_msgs/OccupancyGrid` | `/slam_gmapping` | `/move_base`, `/rviz` |
+| `/map_metadata` | `nav_msgs/MapMetaData` | `/slam_gmapping` | — |
+| `/map_updates` | `map_msgs/OccupancyGridUpdate` | `/slam_gmapping` | `/move_base`, `/rviz` |
+| `/slam_gmapping/entropy` | `std_msgs/Float64` | `/slam_gmapping` | — |
+| `/move_base_simple/goal` | `geometry_msgs/PoseStamped` | RViz / user | `/move_base` (direct), `/goal_to_target_relay`† |
+| `/move_base/goal` | `move_base_msgs/MoveBaseActionGoal` | `/target_follower`* | `/move_base` |
+| `/move_base/feedback` | `move_base_msgs/MoveBaseActionFeedback` | `/move_base` | `/target_follower`* |
+| `/move_base/result` | `move_base_msgs/MoveBaseActionResult` | `/move_base` | `/target_follower`* |
+| `/move_base/status` | `actionlib_msgs/GoalStatusArray` | `/move_base` | — |
+| `/move_base/cancel` | `actionlib_msgs/GoalID` | `/target_follower`* | `/move_base` |
+| `/move_base/current_goal` | `geometry_msgs/PoseStamped` | `/move_base` | — |
+| `/move_base/NavfnROS/plan` | `nav_msgs/Path` | `/move_base` | `/rviz` |
+| `/move_base/DWAPlannerROS/global_plan` | `nav_msgs/Path` | `/move_base` | — |
+| `/move_base/DWAPlannerROS/local_plan` | `nav_msgs/Path` | `/move_base` | `/rviz` |
+| `/move_base/global_costmap/costmap` | `nav_msgs/OccupancyGrid` | `/move_base` | `/rviz` |
+| `/move_base/local_costmap/costmap` | `nav_msgs/OccupancyGrid` | `/move_base` | `/rviz` |
+| `/target_pose` | `geometry_msgs/PoseStamped` | `/gazebo_target_publisher`* / YOLO node / `/goal_to_target_relay`† | `/target_follower`* |
+| `/gazebo/model_states` | `gazebo_msgs/ModelStates` | `/gazebo` | — |
+| `/gazebo/link_states` | `gazebo_msgs/LinkStates` | `/gazebo` | — |
+
+\* Active only when `use_gazebo_target:=true`.  
+† Active only when `use_rviz_goal_relay:=true`.
 
 ### TF Tree
 
+The full TF tree captured live via `rosrun tf view_frames`:
+
 ```
-map -> odom -> base_footprint -> base_link -> laser
-                                           -> (4x wheel links)
+map
+└── odom                       [/slam_gmapping  ~20 Hz]
+    └── base_footprint         [/gazebo (skid-steer plugin)  ~50 Hz]
+        └── base_link          [/robot_state_publisher  static]
+            ├── laser          [/robot_state_publisher  static]
+            ├── top_plate      [/robot_state_publisher  static]
+            ├── front_sonar    [/robot_state_publisher  static]
+            ├── back_sonar     [/robot_state_publisher  static]
+            ├── p3at_front_left_axle   [/robot_state_publisher  static]
+            │   └── p3at_front_left_hub
+            │       └── p3at_front_left_wheel   [/robot_state_publisher  ~10 Hz]
+            ├── p3at_front_right_axle  [/robot_state_publisher  static]
+            │   └── p3at_front_right_hub
+            │       └── p3at_front_right_wheel  [/robot_state_publisher  ~10 Hz]
+            ├── p3at_back_left_axle    [/robot_state_publisher  static]
+            │   └── p3at_back_left_hub
+            │       └── p3at_back_left_wheel    [/robot_state_publisher  ~10 Hz]
+            └── p3at_back_right_axle   [/robot_state_publisher  static]
+                └── p3at_back_right_hub
+                    └── p3at_back_right_wheel   [/robot_state_publisher  ~10 Hz]
 ```
 
-- `map` -> `odom`: Published by gmapping (during mapping) or AMCL (during navigation)
-- `odom` -> `base_footprint`: Published by Gazebo skid-steer plugin / RosAria
-- `base_footprint` -> `base_link`: Static, from URDF (identity transform)
-- `base_link` -> `laser`: Static, from URDF
+**Frame broadcaster summary:**
+
+| TF Edge | Broadcaster | Update Rate | Notes |
+|---------|-------------|-------------|-------|
+| `map` → `odom` | `/slam_gmapping` | ~20 Hz | During mapping; replaced by `/amcl` during navigation |
+| `odom` → `base_footprint` | `/gazebo` (skid-steer plugin) | ~50 Hz | Real robot: published by RosAria |
+| `base_footprint` → `base_link` | `/robot_state_publisher` | Static (10 kHz cached) | Identity transform from URDF |
+| `base_link` → `laser` | `/robot_state_publisher` | Static | Laser mount offset from URDF |
+| `base_link` → `top_plate` | `/robot_state_publisher` | Static | Deck plate reference |
+| `base_link` → `front_sonar` / `back_sonar` | `/robot_state_publisher` | Static | Sonar frame references |
+| `base_link` → `p3at_*_axle` (×4) | `/robot_state_publisher` | Static | Wheel axle pivots |
+| `p3at_*_hub` → `p3at_*_wheel` (×4) | `/robot_state_publisher` | ~10 Hz | Driven by Gazebo joint states |
+
+> During **AMCL navigation** (`nav.launch`), `/slam_gmapping` is replaced by `/map_server`
+> (static map) + `/amcl` (particle-filter localization). The `map → odom` edge is then
+> maintained by `/amcl` at the laser scan rate (~10 Hz in simulation).
 
 ## Parameter Tuning
 
