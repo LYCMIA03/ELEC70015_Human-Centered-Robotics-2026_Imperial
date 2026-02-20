@@ -4,11 +4,19 @@ A ROS1 Noetic workspace for the **ELEC70015 Human-Centered Robotics** course at 
 
 The LMS200 lidar handles **all** mapping, localization, path planning, and local obstacle avoidance. A depth camera (Orbbec Femto Bolt) is reserved for future target detection only and is not involved in navigation.
 
+> **Note for WSL2 Users:** If the robot model displays correctly in RViz but the P3AT visual mesh does not appear in Gazebo, this may be due to GPU rendering limitations in WSL2. See the [Troubleshooting](#troubleshooting) section for solutions.
+
+The repository contains two workspaces:
+- **`catkin_ws/`** — LMS200 LiDAR navigation stack (this branch, documented below)
+- **`ros_ws/`** — Depth camera simulation with `depthimage_to_laserscan` (see `main` branch)
+
 ## Table of Contents
 
 - [System Overview](#system-overview)
 - [Hardware](#hardware)
+- [Repository Structure](#repository-structure)
 - [Package Structure](#package-structure)
+- [Prerequisites](#prerequisites)
 - [Dependencies](#dependencies)
 - [Build](#build)
 - [Usage: Gazebo Simulation](#usage-gazebo-simulation)
@@ -29,6 +37,9 @@ The LMS200 lidar handles **all** mapping, localization, path planning, and local
 - [Parameter Tuning](#parameter-tuning)
 - [Connecting a YOLO Target Detector](#connecting-a-yolo-target-detector)
 - [Known Issues and Notes](#known-issues-and-notes)
+- [Git Workflow](#git-workflow)
+- [Resources](#resources)
+- [Post-Installation Checklist](#post-installation-checklist)
 
 ---
 
@@ -54,6 +65,33 @@ Target following :  target_follower node             target_follower node
 | Depth camera | Orbbec Femto Bolt | Future YOLO target detection (depth + RGB) |
 | Main compute | Jetson ORIN NANO | Runs lidar driver, SLAM, navigation, target detection |
 | Base compute | Raspberry Pi | Runs RosAria chassis driver, publishes /odom and /cmd_vel |
+
+## Repository Structure
+
+```
+ELEC70015_Human-Centered-Robotics-2026_Imperial/
+├── catkin_ws/                 # LMS200 LiDAR navigation workspace (this branch)
+│   ├── src/
+│   │   ├── p3at_lms_description/   # URDF/Xacro robot model (P3-AT + laser link)
+│   │   ├── p3at_lms_gazebo/        # Gazebo world, target model, simulation launch
+│   │   ├── p3at_lms_navigation/    # Navigation stack (gmapping, AMCL, move_base)
+│   │   ├── target_follower/        # Target following system
+│   │   └── p3at_base/              # Raspberry Pi base driver
+│   ├── build/                  # Build artifacts (not tracked)
+│   └── devel/                  # Development space (not tracked)
+├── ros_ws/                    # Depth camera simulation workspace (main branch)
+│   └── src/
+│       └── amr-ros-config/     # AMR configuration (git submodule)
+├── build_and_hint.sh          # Quick-build helper script
+├── .gitmodules                # Submodule declarations
+├── .gitignore
+└── README.md
+```
+
+> **Two workspaces:** `catkin_ws/` uses a physical LMS200 LiDAR (simulated via Gazebo ray
+> sensor plugin) for mapping/navigation. `ros_ws/` (on the `main` branch) uses depth
+> camera data converted to laser scans via `depthimage_to_laserscan`. Both workspaces
+> share the same robot platform (Pioneer 3-AT).
 
 ## Package Structure
 
@@ -93,12 +131,58 @@ catkin_ws/src/
     └── scripts/odom_republisher.py     # Republishes /RosAria/pose as /odom
 ```
 
-## Dependencies
+## Prerequisites
 
 ### System Requirements
 
-- Ubuntu 20.04
-- ROS Noetic (full desktop or ros-base)
+- **Ubuntu 20.04 LTS**
+- **Python 3.8+**
+- **ROS Noetic** (full desktop or ros-base)
+- **Gazebo 11** (for simulation)
+
+**Verify ROS installation:**
+```bash
+which roscore  # Should return: /opt/ros/noetic/bin/roscore
+gazebo --version  # Should be 11.x
+```
+
+### Python Dependencies
+
+Some scripts and tools require additional Python packages:
+
+```bash
+pip install numpy>=1.24.4
+pip install matplotlib>=3.1.2
+pip install opencv-python>=4.13.0
+pip install opencv-contrib-python>=4.13.0
+pip install defusedxml  # Required for xacro URDF processing
+pip install scipy>=1.10.1
+pip install pillow>=10.4.0
+```
+
+**Optional:** Add Python user scripts to PATH:
+```bash
+# For bash users:
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+
+# For zsh users:
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+```
+
+### Clone Repository
+
+```bash
+git clone <your-repo-url> ELEC70015_Human-Centered-Robotics-2026_Imperial
+cd ELEC70015_Human-Centered-Robotics-2026_Imperial
+
+# Initialize submodules (amr-ros-config)
+git submodule update --init --recursive
+
+# Switch to the navigation branch
+git checkout real_robot_navigation
+```
+
+## Dependencies
 
 ### ROS Packages (Simulation)
 
@@ -167,7 +251,21 @@ catkin_make
 source devel/setup.bash    # or setup.zsh for zsh users
 ```
 
+Alternatively, use the provided helper script from the repository root:
+```bash
+./build_and_hint.sh
+```
+
 > You must `source devel/setup.bash` (or `.zsh`) in every new terminal before running any `roslaunch` or `rostopic` commands.
+
+> **Important for zsh users:** ROS setup scripts have both `.bash` and `.zsh` versions. Always use `.zsh` files if you are using zsh shell.
+
+If `catkin_make` fails with missing dependencies:
+```bash
+cd ~/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws
+rosdep install --from-paths src --ignore-src -r -y
+catkin_make
+```
 
 ---
 
@@ -493,24 +591,61 @@ This is the recommended mode for human-following: the robot stops at a comfortab
 
 Use these commands in any sourced terminal to check that everything is running correctly.
 
+### Quick System Check
+
 ```bash
+# List all active nodes (expect ~10 nodes with Gazebo + gmapping + move_base)
+rosnode list
+
 # List all active topics
 rostopic list
+```
 
-# Check lidar data rate (should be ~10 Hz in simulation)
+### Sensor Frequencies
+
+```bash
+# Check lidar data rate (should be ~10 Hz in simulation, ~75 Hz real LMS200)
 rostopic hz /scan
 
-# Check odometry rate
+# Check odometry rate (should be ~100 Hz)
 rostopic hz /odom
 
+# Check map update rate (~1 Hz during exploration, less when stationary)
+rostopic hz /map
+```
+
+### Navigation Status
+
+```bash
 # View the current robot pose estimate from AMCL
 rostopic echo /amcl_pose
 
 # Check move_base goal status
 rostopic echo /move_base/status
 
+# Monitor velocity commands (robot should be publishing when moving)
+timeout 5 rostopic echo /cmd_vel
+```
+
+### TF Tree
+
+```bash
 # Print the full TF tree to a PDF
 rosrun tf2_tools view_frames.py && evince frames.pdf
+
+# Check specific transforms
+rosrun tf tf_echo map odom
+rosrun tf tf_echo odom base_link
+rosrun tf tf_echo base_link laser
+```
+
+### Quick Diagnostic (one-liner)
+
+```bash
+echo "=== Nodes ===" && rosnode list && \
+echo "=== Scan Hz ===" && timeout 3 rostopic hz /scan && \
+echo "=== Odom Hz ===" && timeout 3 rostopic hz /odom && \
+echo "=== TF map->base_link ===" && rosrun tf tf_echo map base_link 2>&1 | head -5
 ```
 
 ---
@@ -530,6 +665,9 @@ rosrun tf2_tools view_frames.py && evince frames.pdf
 | `roslaunch` reports package not found | Workspace not sourced | Run `source devel/setup.zsh` in that terminal |
 | Gazebo opens but robot falls through floor | Mesh collision geometry issue | Restart Gazebo; this is intermittent with complex STL meshes |
 | `catkin_make` fails with missing package | ROS dependency not installed | Run `rosdep install --from-paths src --ignore-src -r -y` |
+| P3AT mesh invisible in Gazebo (WSL2) | GPU rendering limitation in WSL2 | See [WSL2 GPU Acceleration Guide](https://zhuanlan.zhihu.com/p/19575977500); install WSL2 GPU drivers or configure X11 forwarding |
+| Processes not terminating cleanly | Stale ROS/Gazebo processes | `killall -9 gzserver gzclient roscore rosmaster roslaunch rviz; sleep 3` |
+| `evince` command not found | PDF viewer not installed | Use alternatives: `xdg-open frames.pdf`, `eog frames.pdf`, or `okular frames.pdf` |
 
 ---
 
@@ -766,6 +904,69 @@ The `target_follower` node subscribes to `/target_pose` (`geometry_msgs/PoseStam
 - **Conda environments**: If running inside a conda Python environment, avoid nodes that require `PyKDL`. The `target_follower` in this workspace uses pure-Python quaternion math and does not depend on PyKDL.
 - **Gazebo reference frame**: The `target_follow.launch` uses `base_footprint` as the Gazebo reference frame (not `base_link`) because Gazebo merges fixed joints -- the frame `p3at::base_link` does not exist in the Gazebo model, only `p3at::base_footprint`.
 
+---
+
+## Git Workflow
+
+### What's Tracked
+
+- Source packages: `catkin_ws/src/` (all navigation, description, gazebo, target_follower, base packages)
+- Launch files, URDF/Xacro models, RViz configs
+- Navigation parameters: `param/` YAML files
+- Test scripts: `waypoint_test.py`, `test_standoff_face.py`
+- Submodule: `ros_ws/src/amr-ros-config/` (MobileRobots AMR configuration)
+- Helper scripts: `build_and_hint.sh`
+- Documentation: `README.md`
+
+### What's Ignored (`.gitignore`)
+
+- Build artifacts: `catkin_ws/build/`, `catkin_ws/devel/`, `ros_ws/build/`, `ros_ws/devel/`
+- Generated maps: `*.pgm`, `*.yaml` in `maps/` (optional: commit reference maps)
+- TF frame outputs: `frames.gv`, `frames.pdf`
+- Python caches: `__pycache__/`
+- Catkin workspace marker: `.catkin_workspace`
+
+### Setup After Clone
+
+```bash
+# 1. Clone repository
+git clone <repo-url> ELEC70015_Human-Centered-Robotics-2026_Imperial
+cd ELEC70015_Human-Centered-Robotics-2026_Imperial
+
+# 2. Initialize submodules
+git submodule update --init --recursive
+
+# 3. Switch to navigation branch
+git checkout real_robot_navigation
+
+# 4. Build workspace
+cd catkin_ws
+catkin_make
+source devel/setup.bash  # or setup.zsh
+```
+
+---
+
+## Resources
+
+- [ROS Noetic Documentation](http://wiki.ros.org/noetic)
+- [Gazebo Tutorials](http://gazebosim.org/tutorials)
+- [GMapping SLAM](http://wiki.ros.org/gmapping)
+- [AMCL Localization](http://wiki.ros.org/amcl)
+- [move_base Navigation](http://wiki.ros.org/move_base)
+- [DWA Local Planner](http://wiki.ros.org/dwa_local_planner)
+- [NavfnROS Global Planner](http://wiki.ros.org/navfn)
+- [map_server Package](http://wiki.ros.org/map_server)
+- [URDF Tutorial](http://wiki.ros.org/urdf/Tutorials)
+- [depthimage_to_laserscan Package](http://wiki.ros.org/depthimage_to_laserscan) (used on `main` branch)
+- [sicktoolbox_wrapper (LMS200)](http://wiki.ros.org/sicktoolbox_wrapper)
+- [RosAria (P3-AT driver)](http://wiki.ros.org/ROSARIA)
+- [REP-103: Coordinate Frames](https://www.ros.org/reps/rep-0103.html)
+- [REP-105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/rep-0105.html)
+- [WSL2 GPU Rendering Guide](https://zhuanlan.zhihu.com/p/19575977500)
+
+---
+
 ## Status
 
 - [x] Gazebo simulation (gmapping + move_base + target following) -- verified
@@ -781,3 +982,41 @@ The `target_follower` node subscribes to `/target_pose` (`geometry_msgs/PoseStam
 - [ ] YOLO target detection node -- not started
 - [ ] Multi-machine network configuration scripts -- not started
 - [ ] Real hardware parameter tuning -- not started
+
+---
+
+## Post-Installation Checklist
+
+Verify everything works after cloning and building:
+
+### Environment Setup
+- [ ] Workspace builds without errors: `catkin_make`
+- [ ] ROS sourcing works: `source devel/setup.zsh && rospack find p3at_lms_navigation`
+- [ ] Submodule initialized: `ls ros_ws/src/amr-ros-config/`
+
+### Gazebo Simulation
+- [ ] Gazebo launches: `roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=false`
+- [ ] Robot spawns in simulation (no errors in terminal)
+- [ ] Wait ~30 seconds, then verify core nodes: `rosnode list`
+- [ ] Lidar scan publishes at ~10 Hz: `rostopic hz /scan`
+- [ ] Odometry publishes at ~100 Hz: `rostopic hz /odom`
+- [ ] Map is being built: `rostopic hz /map`
+- [ ] TF tree complete: `rosrun tf tf_echo map base_link`
+- [ ] RViz shows robot model, laser scan, and map
+
+### Navigation
+- [ ] Manual goal succeeds: send a `2D Nav Goal` in RViz or publish to `/move_base_simple/goal`
+- [ ] Robot moves toward the goal and stops near it
+- [ ] Waypoint test passes: `python3 src/p3at_lms_navigation/scripts/waypoint_test.py`
+- [ ] Map saving works: `rosrun map_server map_saver -f /tmp/test_map`
+
+### Target Following
+- [ ] Target follower works: `roslaunch p3at_lms_navigation mapping.launch` (default mode)
+- [ ] Drag "target" model in Gazebo; robot follows
+- [ ] Unit tests pass: `python3 catkin_ws/src/target_follower/scripts/test_standoff_face.py` (21/21)
+
+### AMCL Navigation (requires a saved map)
+- [ ] AMCL launches: `roslaunch p3at_lms_navigation nav.launch map_file:=<path_to_map.yaml>`
+- [ ] Set initial pose with "2D Pose Estimate" in RViz
+- [ ] Particle cloud converges around robot
+- [ ] Navigation goal succeeds with AMCL localization
