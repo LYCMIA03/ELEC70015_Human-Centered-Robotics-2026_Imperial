@@ -15,6 +15,8 @@
   <arg name="use_rviz"           default="true"/>
   <arg name="use_target_follower" default="false"/>
   <arg name="use_rviz_goal_relay" default="false"/>
+  <arg name="standoff_distance"   default="0.0"/>
+  <arg name="face_target"          default="false"/>
 
   <!-- ========== LMS200 激光雷达驱动 ========== -->
   <node pkg="sicktoolbox_wrapper" type="sicklms" name="sicklms"
@@ -61,6 +63,8 @@
       <param name="min_update_dist" value="0.25"/>
       <param name="use_target_orientation" value="false"/>
       <param name="target_timeout" value="2.0"/>
+      <param name="standoff_distance" value="$(arg standoff_distance)"/>
+      <param name="face_target" value="$(arg face_target)"/>
     </node>
   </group>
 

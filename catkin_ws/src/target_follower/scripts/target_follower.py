@@ -75,6 +75,11 @@ class TargetFollower:
         self.target_timeout_s = float(rospy.get_param("~target_timeout_s", 1.0))
         self.use_target_orientation = bool(rospy.get_param("~use_target_orientation", False))
 
+        # Stop short of the target by this distance (metres). 0 = go all the way.
+        self.standoff_distance = float(rospy.get_param("~standoff_distance", 0.0))
+        # Orient the robot to face the target at the goal pose.
+        self.face_target = bool(rospy.get_param("~face_target", False))
+
         self.tfbuf = tf2_ros.Buffer(cache_time=rospy.Duration(10.0))
         self.tfl = tf2_ros.TransformListener(self.tfbuf)
 
@@ -89,8 +94,32 @@ class TargetFollower:
 
         rospy.Subscriber(self.target_topic, PoseStamped, self.cb_target, queue_size=1)
 
+        if self.standoff_distance > 0:
+            rospy.loginfo("standoff_distance = %.2f m", self.standoff_distance)
+        if self.face_target:
+            rospy.loginfo("face_target enabled")
+
     def cb_target(self, msg):
         self.last_target = msg
+
+    def _get_robot_pose_in_global(self):
+        """Return (x, y) of robot in global_frame, or None on failure."""
+        try:
+            tf_robot = self.tfbuf.lookup_transform(
+                self.global_frame, self.robot_frame,
+                rospy.Time(0), rospy.Duration(0.2),
+            )
+            rx = tf_robot.transform.translation.x
+            ry = tf_robot.transform.translation.y
+            return rx, ry, tf_robot
+        except Exception as e:
+            rospy.logwarn_throttle(2.0, "TF not ready for robot pose: %s", str(e))
+            return None
+
+    @staticmethod
+    def _yaw_to_quaternion(yaw):
+        """Convert a yaw angle (rad) to geometry_msgs/Quaternion."""
+        return Quaternion(0.0, 0.0, math.sin(yaw / 2.0), math.cos(yaw / 2.0))
 
     def maybe_send_goal(self):
         if self.last_target is None:
@@ -125,23 +154,61 @@ class TargetFollower:
             if dist_xy(target_g, self.last_sent_goal) < self.min_update_dist:
                 return
 
-        goal = MoveBaseGoal()
-        goal.target_pose = target_g
-        goal.target_pose.header.stamp = rospy.Time.now()
+        # --- Compute goal pose (possibly with standoff) ---
+        tx = target_g.pose.position.x
+        ty = target_g.pose.position.y
 
-        # In most follower setups, forcing the robot to match the target's
-        # orientation causes unnecessary spinning and can trigger recovery.
-        if not self.use_target_orientation:
-            try:
-                tf_robot = self.tfbuf.lookup_transform(
-                    self.global_frame,
-                    self.robot_frame,
-                    rospy.Time(0),
-                    rospy.Duration(0.2),
-                )
-                goal.target_pose.pose.orientation = tf_robot.transform.rotation
-            except Exception as e:
-                rospy.logwarn_throttle(2.0, "TF not ready for robot pose: %s", str(e))
+        goal_x, goal_y = tx, ty
+
+        if self.standoff_distance > 0 or self.face_target:
+            robot_info = self._get_robot_pose_in_global()
+            if robot_info is None:
+                return
+            rx, ry, tf_robot = robot_info
+
+            dx = tx - rx
+            dy = ty - ry
+            d = math.hypot(dx, dy)
+
+            if self.standoff_distance > 0:
+                if d <= self.standoff_distance:
+                    # Already within standoff range — no need to send a new goal.
+                    return
+                # Place goal standoff_distance metres back along the robot→target vector.
+                ratio = (d - self.standoff_distance) / d
+                goal_x = rx + dx * ratio
+                goal_y = ry + dy * ratio
+
+        goal = MoveBaseGoal()
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.header.frame_id = self.global_frame
+        goal.target_pose.pose.position.x = goal_x
+        goal.target_pose.pose.position.y = goal_y
+        goal.target_pose.pose.position.z = 0.0
+
+        # --- Orientation ---
+        if self.face_target:
+            # Face from the goal position towards the actual target.
+            face_dx = tx - goal_x
+            face_dy = ty - goal_y
+            if math.hypot(face_dx, face_dy) > 0.01:
+                yaw = math.atan2(face_dy, face_dx)
+            else:
+                # Goal ≈ target (standoff ≈ 0); face from robot towards target instead.
+                robot_info = self._get_robot_pose_in_global()
+                if robot_info is not None:
+                    yaw = math.atan2(ty - robot_info[1], tx - robot_info[0])
+                else:
+                    yaw = 0.0
+            goal.target_pose.pose.orientation = self._yaw_to_quaternion(yaw)
+        elif self.use_target_orientation:
+            goal.target_pose.pose.orientation = target_g.pose.orientation
+        else:
+            # Keep the robot's current orientation (avoid spinning).
+            robot_info = self._get_robot_pose_in_global()
+            if robot_info is not None:
+                goal.target_pose.pose.orientation = robot_info[2].transform.rotation
+            else:
                 goal.target_pose.pose.orientation = Quaternion(0.0, 0.0, 0.0, 1.0)
 
         self.client.send_goal(goal)

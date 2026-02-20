@@ -2,6 +2,8 @@
   <arg name="use_gazebo_target" default="true"/>
   <arg name="use_rviz_goal_relay" default="false"/>
   <arg name="robot_model_name" default="p3at"/>
+  <arg name="standoff_distance" default="0.0"/>
+  <arg name="face_target" default="false"/>
 
   <!-- Option A: Follow a Gazebo model called "target" -->
   <group if="$(arg use_gazebo_target)">
@@ -31,5 +33,9 @@
     <!-- Following cares about position; ignore orientation to avoid spin-in-place -->
     <param name="use_target_orientation" value="false"/>
     <param name="target_timeout" value="2.0"/>
+    <!-- Stop this many metres short of the target (0 = go all the way) -->
+    <param name="standoff_distance" value="$(arg standoff_distance)"/>
+    <!-- Orient the robot to face the target at the goal position -->
+    <param name="face_target" value="$(arg face_target)"/>
   </node>
 </launch>

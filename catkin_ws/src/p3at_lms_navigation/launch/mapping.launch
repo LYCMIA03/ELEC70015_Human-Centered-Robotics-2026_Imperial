@@ -3,6 +3,8 @@
   <arg name="use_gazebo_target" default="true"/>
   <arg name="use_rviz_goal_relay" default="false"/>
   <arg name="use_target_follower" default="$(arg use_gazebo_target)"/>
+  <arg name="standoff_distance" default="0.0"/>
+  <arg name="face_target" default="false"/>
 
   <include file="$(find p3at_lms_gazebo)/launch/sim.launch">
     <arg name="gui" value="$(arg gui)"/>
@@ -27,6 +29,8 @@
   <include file="$(find target_follower)/launch/target_follow.launch" if="$(arg use_target_follower)">
     <arg name="use_gazebo_target" value="$(arg use_gazebo_target)"/>
     <arg name="use_rviz_goal_relay" value="$(arg use_rviz_goal_relay)"/>
+    <arg name="standoff_distance" value="$(arg standoff_distance)"/>
+    <arg name="face_target" value="$(arg face_target)"/>
   </include>
 
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find p3at_lms_navigation)/rviz/nav.rviz" required="false"/>
