@@ -33,3 +33,4 @@ ros_ws/install/
 # Third-party ROS packages (should be installed via apt)
 ros_ws/src/gazebo_ros_pkgs/
 ros_ws/src/gazebo_ros_pkgs/
+catkin_ws/
