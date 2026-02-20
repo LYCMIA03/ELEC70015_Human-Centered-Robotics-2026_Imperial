@@ -3,6 +3,9 @@
   <arg name="map_file" default="$(find p3at_lms_navigation)/maps/demo_map.yaml"/>
   <arg name="use_gazebo_target" default="true"/>
   <arg name="use_rviz_goal_relay" default="false"/>
+  <arg name="use_point_target_bridge" default="false"/>
+  <arg name="point_target_topic" default="/trash_detection/target_point"/>
+  <arg name="point_target_frame" default=""/>
 
   <include file="$(find p3at_lms_gazebo)/launch/sim.launch">
     <arg name="gui" value="$(arg gui)"/>
@@ -30,6 +33,9 @@
   <include file="$(find target_follower)/launch/target_follow.launch">
     <arg name="use_gazebo_target" value="$(arg use_gazebo_target)"/>
     <arg name="use_rviz_goal_relay" value="$(arg use_rviz_goal_relay)"/>
+    <arg name="use_point_target_bridge" value="$(arg use_point_target_bridge)"/>
+    <arg name="point_target_topic" value="$(arg point_target_topic)"/>
+    <arg name="point_target_frame" value="$(arg point_target_frame)"/>
   </include>
 
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find p3at_lms_navigation)/rviz/nav.rviz" required="false"/>

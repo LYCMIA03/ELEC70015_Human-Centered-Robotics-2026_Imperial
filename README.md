@@ -927,10 +927,26 @@ The `target_follower` node subscribes to `/target_pose` (`geometry_msgs/PoseStam
    roslaunch p3at_lms_navigation real_robot_nav.launch use_target_follower:=true
    ```
 
-3. Manual test without a detector:
+3. If your detector publishes `geometry_msgs/PointStamped` (for example a 3D point in camera frame), enable the bridge node:
+   ```bash
+   roslaunch p3at_lms_navigation real_robot_nav.launch \
+     use_target_follower:=true \
+     use_point_target_bridge:=true \
+     point_target_topic:=/trash_detection/target_point
+   ```
+   The bridge converts `PointStamped` to `PoseStamped` on `/target_pose`.  
+   `target_follower` will transform it to `map` using TF and publish `move_base` goals.
+
+4. Manual test without a detector (`PoseStamped` directly):
    ```bash
    rostopic pub -r 5 /target_pose geometry_msgs/PoseStamped \
      "{header: {frame_id: 'map'}, pose: {position: {x: 2.0, y: 1.0, z: 0.0}, orientation: {w: 1.0}}}"
+   ```
+
+5. Manual test detector-like input (`PointStamped`):
+   ```bash
+   rostopic pub -r 5 /trash_detection/target_point geometry_msgs/PointStamped \
+     "{header: {frame_id: 'base_link'}, point: {x: 2.0, y: 0.0, z: 0.0}}"
    ```
 
 ## Known Issues and Notes

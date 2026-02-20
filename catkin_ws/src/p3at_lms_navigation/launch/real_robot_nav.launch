@@ -15,6 +15,9 @@
   <arg name="use_rviz"           default="true"/>
   <arg name="use_target_follower" default="false"/>
   <arg name="use_rviz_goal_relay" default="false"/>
+  <arg name="use_point_target_bridge" default="false"/>
+  <arg name="point_target_topic" default="/trash_detection/target_point"/>
+  <arg name="point_target_frame" default=""/>
   <arg name="standoff_distance"   default="0.0"/>
   <arg name="face_target"          default="false"/>
 
@@ -55,6 +58,14 @@
 
   <!-- ========== 目标追踪（可选） ========== -->
   <group if="$(arg use_target_follower)">
+    <group if="$(arg use_point_target_bridge)">
+      <node pkg="target_follower" type="point_to_target_pose.py" name="point_to_target_pose" output="screen">
+        <param name="in_point_topic" value="$(arg point_target_topic)"/>
+        <param name="out_target_topic" value="/target_pose"/>
+        <param name="override_frame" value="$(arg point_target_frame)"/>
+      </node>
+    </group>
+
     <node pkg="target_follower" type="target_follower.py" name="target_follower" output="screen">
       <param name="target_topic" value="/target_pose"/>
       <param name="global_frame" value="map"/>
@@ -62,7 +73,7 @@
       <param name="send_rate_hz" value="2.0"/>
       <param name="min_update_dist" value="0.25"/>
       <param name="use_target_orientation" value="false"/>
-      <param name="target_timeout" value="2.0"/>
+      <param name="target_timeout_s" value="2.0"/>
       <param name="standoff_distance" value="$(arg standoff_distance)"/>
       <param name="face_target" value="$(arg face_target)"/>
     </node>
