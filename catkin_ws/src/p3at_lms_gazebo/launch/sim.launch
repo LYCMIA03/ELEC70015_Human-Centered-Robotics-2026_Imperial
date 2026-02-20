@@ -1,0 +1,29 @@
+<launch>
+  <arg name="gui" default="true"/>
+  <arg name="paused" default="false"/>
+  <arg name="world" default="$(find p3at_lms_gazebo)/worlds/p3at_lms.world"/>
+
+  <!-- Robot description -->
+  <arg name="model" default="$(find p3at_lms_description)/urdf/p3at_lms.urdf.xacro"/>
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
+
+  <!-- Gazebo -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world)"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="use_sim_time" value="true"/>
+  </include>
+
+  <!-- Publish TF from URDF -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
+  <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher"/>
+
+  <!-- Spawn robot -->
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_p3at"
+        args="-urdf -param robot_description -model p3at -x 0 -y 0 -z 0.05" />
+
+  <!-- Spawn target object -->
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_target"
+        args="-file $(find p3at_lms_gazebo)/models/target/model.sdf -sdf -model target -x 4 -y 0 -z 0.0" />
+</launch>

@@ -1,0 +1,80 @@
+<launch>
+  <!--
+    真机建图 Launch（Jetson Orin Nano 上运行）
+    功能：LMS200 激光雷达 + gmapping SLAM + move_base + target_follower
+    前提：树莓派已启动 p3at_base/base.launch（rosaria 底盘驱动，发布 /odom + /cmd_vel）
+    
+    启动：
+      roslaunch p3at_lms_navigation real_robot_mapping.launch
+    
+    建图完成后保存地图：
+      rosrun map_server map_saver -f $(rospack find p3at_lms_navigation)/maps/my_map
+  -->
+
+  <!-- ========== 参数 ========== -->
+  <arg name="lms200_port"        default="/dev/ttyUSB0"/>
+  <arg name="lms200_baud"        default="38400"/>
+  <arg name="use_rviz"           default="true"/>
+  <arg name="use_target_follower" default="false"/>
+  <arg name="use_rviz_goal_relay" default="false"/>
+  <arg name="standoff_distance"   default="0.0"/>
+  <arg name="face_target"          default="false"/>
+
+  <!-- ========== LMS200 激光雷达驱动 ========== -->
+  <node pkg="sicktoolbox_wrapper" type="sicklms" name="sicklms"
+        output="screen" respawn="true">
+    <param name="port"            value="$(arg lms200_port)"/>
+    <param name="baud"            value="$(arg lms200_baud)"/>
+    <param name="frame_id"        value="laser"/>
+    <!-- LMS200 参数 -->
+    <param name="resolution"      value="0.5"/>   <!-- 0.25 / 0.5 / 1.0 度 -->
+    <param name="measuring_units" value="cm"/>
+  </node>
+
+  <!-- ========== 机器人模型 & TF ========== -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_lms.urdf.xacro"/>
+  <node pkg="robot_state_publisher" type="robot_state_publisher"
+        name="robot_state_publisher" output="screen"/>
+
+  <!-- ========== gmapping SLAM 建图 ========== -->
+  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+    <rosparam file="$(find p3at_lms_navigation)/param/gmapping.yaml" command="load"/>
+    <remap from="scan" to="/scan"/>
+  </node>
+
+  <!-- ========== move_base 导航 ========== -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="false">
+    <rosparam file="$(find p3at_lms_navigation)/param/costmap_common.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/costmap_common.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/global_costmap.yaml" command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/local_costmap.yaml"  command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/move_base.yaml"      command="load"/>
+  </node>
+
+  <!-- ========== 目标追踪（可选） ========== -->
+  <group if="$(arg use_target_follower)">
+    <node pkg="target_follower" type="target_follower.py" name="target_follower" output="screen">
+      <param name="target_topic" value="/target_pose"/>
+      <param name="global_frame" value="map"/>
+      <param name="robot_frame"  value="base_link"/>
+      <param name="send_rate_hz" value="2.0"/>
+      <param name="min_update_dist" value="0.25"/>
+      <param name="use_target_orientation" value="false"/>
+      <param name="target_timeout" value="2.0"/>
+      <param name="standoff_distance" value="$(arg standoff_distance)"/>
+      <param name="face_target" value="$(arg face_target)"/>
+    </node>
+  </group>
+
+  <!-- RViz 2D Nav Goal 中继（可选，用于手动点目标测试） -->
+  <group if="$(arg use_rviz_goal_relay)">
+    <node pkg="target_follower" type="goal_to_target_relay.py"
+          name="goal_to_target_relay" output="screen"/>
+  </group>
+
+  <!-- ========== RViz 可视化 ========== -->
+  <node if="$(arg use_rviz)"
+        pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find p3at_lms_navigation)/rviz/nav.rviz"/>
+</launch>

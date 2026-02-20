@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>p3at_base</name>
+  <version>0.1.0</version>
+  <description>P3-AT base driver for Raspberry Pi: rosaria + odom/TF republisher.</description>
+  <maintainer email="yuchen@imperial.ac.uk">yuchen</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>rosaria</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+
+  <export/>
+</package>

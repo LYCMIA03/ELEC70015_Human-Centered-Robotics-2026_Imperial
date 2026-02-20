@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>p3at_lms_navigation</name>
+  <version>0.1.0</version>
+  <description>Navigation stack configs: gmapping mapping, AMCL localization, move_base planning and avoidance.</description>
+  <maintainer email="you@example.com">Your Team</maintainer>
+  <license>MIT</license>
+
+    <buildtool_depend>catkin</buildtool_depend>
+<depend>move_base</depend>
+  <depend>map_server</depend>
+  <depend>amcl</depend>
+  <depend>gmapping</depend>
+  <depend>tf</depend>
+  <depend>robot_state_publisher</depend>
+  <depend>p3at_lms_gazebo</depend>
+  <depend>target_follower</depend>
+  <depend>rviz</depend>
+
+  <export/>
+</package>

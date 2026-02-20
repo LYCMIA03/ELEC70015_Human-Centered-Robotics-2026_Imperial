@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>p3at_lms_description</name>
+  <version>0.1.0</version>
+  <description>URDF/Xacro description for P3-AT with an LMS200-style 2D lidar.</description>
+  <maintainer email="you@example.com">Your Team</maintainer>
+  <license>MIT</license>
+
+    <buildtool_depend>catkin</buildtool_depend>
+<depend>xacro</depend>
+  <depend>robot_state_publisher</depend>
+  <depend>joint_state_publisher</depend>
+  <depend>rviz</depend>
+
+  <export/>
+</package>

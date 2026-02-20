@@ -1,0 +1,51 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Name: Tool Properties
+  - Class: rviz/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.5
+    - Class: rviz/Map
+      Name: Map
+      Enabled: true
+      Topic: /map
+      Alpha: 0.8
+    - Class: rviz/LaserScan
+      Name: LaserScan
+      Enabled: true
+      Topic: /scan
+      Size (m): 0.05
+    - Class: rviz/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Robot Description: robot_description
+    - Class: rviz/Path
+      Name: GlobalPath
+      Enabled: true
+      Topic: /move_base/NavfnROS/plan
+    - Class: rviz/Path
+      Name: LocalPath
+      Enabled: true
+      Topic: /move_base/DWAPlannerROS/local_plan
+    - Class: rviz/TF
+      Name: TF
+      Enabled: true
+  Fixed Frame: map
+Tools:
+  - Class: rviz/Interact
+  - Class: rviz/MoveCamera
+  - Class: rviz/Select
+  - Class: rviz/FocusCamera
+  - Class: rviz/SetInitialPose
+    Topic: /initialpose
+  - Class: rviz/SetGoal
+    Topic: /move_base_simple/goal

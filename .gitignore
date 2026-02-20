@@ -1,36 +1,3 @@
-# ROS build artifacts
-ros_ws/build/
-ros_ws/devel/
-ros_ws/install/
-ros_ws/.catkin_workspace
-
-# ROS runtime
-.ros/
-.gazebo/
-
-# OS / editor
-*.swp
-*.log
-.DS_Store
-.vscode/
-# ROS generated files
 frames.gv
 frames.pdf
-*.gv
-*.pdf
-
-# Python cache
 __pycache__/
-*.pyc
-*.pyo
-
-# ROS build artifacts (should already be here)
-ros_ws/build/
-ros_ws/devel/
-ros_ws/install/
-.catkin_workspace
-
-# Third-party ROS packages (should be installed via apt)
-ros_ws/src/gazebo_ros_pkgs/
-ros_ws/src/gazebo_ros_pkgs/
-catkin_ws/
