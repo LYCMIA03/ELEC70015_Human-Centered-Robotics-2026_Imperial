@@ -1,9 +1,9 @@
 local_costmap:
   global_frame: odom
-  robot_base_frame: base_link
+  robot_base_frame: base_footprint
   update_frequency: 10.0
   publish_frequency: 5.0
-  transform_tolerance: 0.3
+  transform_tolerance: 0.5
   static_map: false
   rolling_window: true
   width: 8.0
@@ -22,3 +22,9 @@ local_costmap:
       marking: true
       clearing: true
       inf_is_valid: true
+      obstacle_range: 3.0
+      raytrace_range: 4.0
+
+  inflation_layer:
+    inflation_radius: 0.50
+    cost_scaling_factor: 3.0

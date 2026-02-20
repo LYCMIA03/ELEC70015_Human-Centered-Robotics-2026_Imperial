@@ -41,7 +41,8 @@
     <collision>
       <origin xyz="0 0 0.177" rpy="0 0 0"/>
       <geometry>
-        <box size="0.50 0.40 0.20"/>
+        <!-- Slightly shorter than mesh to keep laser rays clear above -->
+        <box size="0.50 0.40 0.16"/>
       </geometry>
     </collision>
   </link>
@@ -371,12 +372,8 @@
         <color rgba="0.12 0.34 0.56 1.0"/>
       </material>
     </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.156 0.155 0.185"/>
-      </geometry>
-    </collision>
+    <!-- No collision: prevents Gazebo ray sensor self-collision
+         after fixed-joint link merging into base_link -->
   </link>
   <gazebo reference="laser">
     <material>Gazebo/Blue</material>
@@ -408,7 +405,7 @@
       <commandTopic>cmd_vel</commandTopic>
       <odometryTopic>odom</odometryTopic>
       <odometryFrame>odom</odometryFrame>
-      <robotBaseFrame>base_link</robotBaseFrame>
+      <robotBaseFrame>base_footprint</robotBaseFrame>
 
       <publishWheelTF>true</publishWheelTF>
       <publishTf>true</publishTf>

@@ -11,26 +11,26 @@
     <!-- A few simple obstacles -->
     <model name="box_obstacle_1">
       <static>true</static>
-      <pose>2 1 0 0 0 0</pose>
+      <pose>2 1 0.5 0 0 0</pose>
       <link name="link">
         <collision name="collision">
-          <geometry><box><size>0.5 0.5 0.5</size></box></geometry>
+          <geometry><box><size>0.5 0.5 1.0</size></box></geometry>
         </collision>
         <visual name="visual">
-          <geometry><box><size>0.5 0.5 0.5</size></box></geometry>
+          <geometry><box><size>0.5 0.5 1.0</size></box></geometry>
         </visual>
       </link>
     </model>
 
     <model name="box_obstacle_2">
       <static>true</static>
-      <pose>3 -1 0 0 0 0</pose>
+      <pose>3 -1 0.5 0 0 0</pose>
       <link name="link">
         <collision name="collision">
-          <geometry><box><size>0.6 0.3 0.6</size></box></geometry>
+          <geometry><box><size>0.6 0.3 1.0</size></box></geometry>
         </collision>
         <visual name="visual">
-          <geometry><box><size>0.6 0.3 0.6</size></box></geometry>
+          <geometry><box><size>0.6 0.3 1.0</size></box></geometry>
         </visual>
       </link>
     </model>

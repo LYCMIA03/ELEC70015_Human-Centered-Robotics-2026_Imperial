@@ -3,36 +3,48 @@ base_local_planner: "dwa_local_planner/DWAPlannerROS"
 
 planner_frequency: 1.0
 controller_frequency: 10.0
-planner_patience: 5.0
-controller_patience: 5.0
+planner_patience: 10.0
+controller_patience: 10.0
+max_planning_retries: 3
 
-recovery_behavior_enabled: false
-clearing_rotation_allowed: false
+recovery_behavior_enabled: true
+clearing_rotation_allowed: true
 shutdown_costmaps: false
+
+NavfnROS:
+  allow_unknown: true
+  default_tolerance: 0.1
+  visualize_potential: false
 
 DWAPlannerROS:
   # P3-AT skid-steer like limits, tune to match your sim/real robot
   max_vel_x: 0.6
-  min_vel_x: 0.0
+  min_vel_x: -0.1
+  max_vel_y: 0.0
+  min_vel_y: 0.0
+  max_vel_trans: 0.6
+  min_vel_trans: 0.0
   max_vel_theta: 1.2
-  min_vel_theta: 0.3
+  min_vel_theta: 0.0
 
   acc_lim_x: 0.8
+  acc_lim_y: 0.0
   acc_lim_theta: 1.8
 
-  vx_samples: 10
+  vx_samples: 12
+  vy_samples: 1
   vtheta_samples: 20
-  sim_time: 2.0
+  sim_time: 2.5
+  sim_granularity: 0.025
 
   path_distance_bias: 32.0
-  goal_distance_bias: 20.0
+  goal_distance_bias: 24.0
   occdist_scale: 0.02
   forward_point_distance: 0.325
 
-  # For target following we usually do not care about final yaw.
-  xy_goal_tolerance: 0.30
-  yaw_goal_tolerance: 3.14
-  latch_xy_goal_tolerance: true
+  xy_goal_tolerance: 0.10
+  yaw_goal_tolerance: 0.5
+  latch_xy_goal_tolerance: false
 
   stop_time_buffer: 0.2
   oscillation_reset_dist: 0.05
