@@ -1,0 +1,65 @@
+<launch>
+  <!--
+    auto_mapping.launch — Autonomous mapping in the complex maze world.
+
+    Launches:
+      1. Gazebo with complex_maze.world
+      2. slam_gmapping for SLAM
+      3. move_base for navigation
+      4. autonomous_explorer.py for frontier-based exploration
+      5. RViz for visualization
+
+    Usage:
+      roslaunch p3at_lms_navigation auto_mapping.launch
+      roslaunch p3at_lms_navigation auto_mapping.launch gui:=false  (headless)
+      roslaunch p3at_lms_navigation auto_mapping.launch exploration_timeout:=300
+  -->
+
+  <arg name="gui" default="true"/>
+  <arg name="exploration_timeout" default="600"/>
+  <arg name="min_frontier_size" default="8"/>
+  <arg name="initial_wait" default="12.0"/>
+  <arg name="map_save_name" default="explored_map"/>
+
+  <!-- Gazebo with complex maze world -->
+  <include file="$(find p3at_lms_gazebo)/launch/sim.launch">
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="world" value="$(find p3at_lms_gazebo)/worlds/complex_maze.world"/>
+  </include>
+
+  <!-- slam_gmapping -->
+  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+    <rosparam file="$(find p3at_lms_navigation)/param/gmapping.yaml" command="load"/>
+    <remap from="scan" to="/scan"/>
+  </node>
+
+  <!-- move_base -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="false">
+    <rosparam file="$(find p3at_lms_navigation)/param/costmap_common.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/costmap_common.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/global_costmap.yaml" command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/local_costmap.yaml" command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/move_base.yaml" command="load"/>
+  </node>
+
+  <!-- Autonomous frontier exploration -->
+  <node pkg="p3at_lms_navigation" type="autonomous_explorer.py" name="autonomous_explorer"
+        output="screen" required="false">
+    <param name="exploration_timeout" value="$(arg exploration_timeout)"/>
+    <param name="min_frontier_size" value="$(arg min_frontier_size)"/>
+    <param name="initial_wait" value="$(arg initial_wait)"/>
+    <param name="save_map" value="true"/>
+    <param name="map_save_path"
+           value="$(find p3at_lms_navigation)/maps/$(arg map_save_name)"/>
+    <param name="spin_in_place_first" value="true"/>
+    <!-- Conservative safety margins -->
+    <param name="robot_radius" value="0.55"/>
+    <param name="frontier_blacklist_radius" value="0.8"/>
+    <!-- 45s per goal prevents long stalls; 5 consecutive no-frontier before stopping -->
+    <param name="goal_timeout" value="45.0"/>
+  </node>
+
+  <!-- RViz -->
+  <node pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find p3at_lms_navigation)/rviz/nav.rviz" required="false"/>
+</launch>
