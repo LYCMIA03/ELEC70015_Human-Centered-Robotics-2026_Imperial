@@ -949,6 +949,21 @@ The `target_follower` node subscribes to `/target_pose` (`geometry_msgs/PoseStam
      "{header: {frame_id: 'base_link'}, point: {x: 2.0, y: 0.0, z: 0.0}}"
    ```
 
+6. Mock detector mode (no depth camera required):
+   ```bash
+   roslaunch p3at_lms_navigation mapping.launch \
+     use_gazebo_target:=false \
+     use_target_follower:=true \
+     use_mock_detector:=true \
+     use_point_target_bridge:=true \
+     point_target_topic:=/trash_detection/target_point \
+     mock_target_frame:=base_link \
+     mock_mode:=fixed \
+     mock_x:=2.0 mock_y:=0.0 mock_z:=0.0 \
+     standoff_distance:=0.6 face_target:=true
+   ```
+   `mock_mode:=circle` is also supported for moving-target stress tests.
+
 ## Known Issues and Notes
 
 - **Simulation fidelity**: The URDF model and Gazebo dynamics are approximate. Real P3-AT behavior (especially skid-steer turning) will differ.

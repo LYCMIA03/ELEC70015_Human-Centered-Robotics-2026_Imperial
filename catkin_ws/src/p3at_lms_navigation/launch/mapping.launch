@@ -2,9 +2,20 @@
   <arg name="gui" default="true"/>
   <arg name="use_gazebo_target" default="true"/>
   <arg name="use_rviz_goal_relay" default="false"/>
+  <arg name="use_mock_detector" default="false"/>
   <arg name="use_point_target_bridge" default="false"/>
   <arg name="point_target_topic" default="/trash_detection/target_point"/>
   <arg name="point_target_frame" default=""/>
+  <arg name="mock_target_frame" default="base_link"/>
+  <arg name="mock_mode" default="fixed"/>
+  <arg name="mock_rate_hz" default="5.0"/>
+  <arg name="mock_x" default="2.0"/>
+  <arg name="mock_y" default="0.0"/>
+  <arg name="mock_z" default="0.0"/>
+  <arg name="mock_circle_radius" default="1.5"/>
+  <arg name="mock_circle_center_x" default="2.0"/>
+  <arg name="mock_circle_center_y" default="0.0"/>
+  <arg name="mock_angular_speed" default="0.3"/>
   <arg name="use_target_follower" default="$(arg use_gazebo_target)"/>
   <arg name="standoff_distance" default="0.0"/>
   <arg name="face_target" default="false"/>
@@ -32,9 +43,21 @@
   <include file="$(find target_follower)/launch/target_follow.launch" if="$(arg use_target_follower)">
     <arg name="use_gazebo_target" value="$(arg use_gazebo_target)"/>
     <arg name="use_rviz_goal_relay" value="$(arg use_rviz_goal_relay)"/>
+    <arg name="use_mock_detector" value="$(arg use_mock_detector)"/>
     <arg name="use_point_target_bridge" value="$(arg use_point_target_bridge)"/>
     <arg name="point_target_topic" value="$(arg point_target_topic)"/>
     <arg name="point_target_frame" value="$(arg point_target_frame)"/>
+    <arg name="mock_target_topic" value="$(arg point_target_topic)"/>
+    <arg name="mock_target_frame" value="$(arg mock_target_frame)"/>
+    <arg name="mock_mode" value="$(arg mock_mode)"/>
+    <arg name="mock_rate_hz" value="$(arg mock_rate_hz)"/>
+    <arg name="mock_x" value="$(arg mock_x)"/>
+    <arg name="mock_y" value="$(arg mock_y)"/>
+    <arg name="mock_z" value="$(arg mock_z)"/>
+    <arg name="mock_circle_radius" value="$(arg mock_circle_radius)"/>
+    <arg name="mock_circle_center_x" value="$(arg mock_circle_center_x)"/>
+    <arg name="mock_circle_center_y" value="$(arg mock_circle_center_y)"/>
+    <arg name="mock_angular_speed" value="$(arg mock_angular_speed)"/>
     <arg name="standoff_distance" value="$(arg standoff_distance)"/>
     <arg name="face_target" value="$(arg face_target)"/>
   </include>
