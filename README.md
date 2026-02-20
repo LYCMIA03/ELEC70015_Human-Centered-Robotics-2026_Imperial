@@ -30,6 +30,7 @@ The repository contains two workspaces:
 - [Simulation Calibration Notes (Bug Fixes)](#simulation-calibration-notes-bug-fixes)
 - [Usage: Real Robot](#usage-real-robot)
   - [Multi-Machine Setup](#multi-machine-setup)
+  - [Deployment Helper Scripts](#deployment-helper-scripts)
   - [Step 1 - Start Base Driver (Raspberry Pi)](#step-1---start-base-driver-raspberry-pi)
   - [Step 2a - Mapping (Jetson)](#step-2a---mapping-jetson)
   - [Step 2b - Navigation (Jetson)](#step-2b---navigation-jetson)
@@ -752,6 +753,42 @@ On the **Jetson** (runs `roscore`):
 export ROS_MASTER_URI=http://<jetson_ip>:11311
 export ROS_IP=<jetson_ip>
 ```
+
+### Deployment Helper Scripts
+
+To avoid repeatedly typing `source` and long launch commands, helper scripts are provided in `scripts/`.
+
+1. Copy and edit IP config:
+```bash
+cp scripts/deploy.env.example scripts/deploy.env
+```
+
+2. Fill in `JETSON_IP`, `RASPI_IP`, `LAPTOP_IP` in `scripts/deploy.env`.
+
+3. Run with wrappers (from repo root or any directory):
+```bash
+# Local WSL simulation (laptop as ROS master)
+scripts/start_master.sh laptop
+scripts/start_sim_mapping.sh
+# or
+scripts/start_sim_nav.sh
+
+# Real robot topology (Jetson as ROS master)
+# Jetson terminal 1:
+scripts/start_master.sh jetson
+# Jetson terminal 2:
+scripts/start_real_mapping.sh
+# or
+scripts/start_real_nav.sh map_file:=/absolute/path/to/my_map.yaml
+# RasPi terminal:
+scripts/start_base.sh
+```
+
+Notes:
+- `scripts/env.sh` is the single environment entrypoint and is sourced by all `start_*.sh` scripts.
+- `MASTER_HOST` can be overridden when needed, for example:
+  `MASTER_HOST=laptop scripts/start_base.sh`
+- `scripts/deploy.env` is git-ignored by default so each machine can keep its own local IP config.
 
 ### Step 1 - Start Base Driver (Raspberry Pi)
 

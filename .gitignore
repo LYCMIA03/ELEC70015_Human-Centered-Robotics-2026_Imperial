@@ -1,3 +1,4 @@
 frames.gv
 frames.pdf
 __pycache__/
+scripts/deploy.env
