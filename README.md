@@ -12,11 +12,13 @@ The LMS200 lidar handles **all** mapping, localization, path planning, and local
 - [Dependencies](#dependencies)
 - [Build](#build)
 - [Usage: Gazebo Simulation](#usage-gazebo-simulation)
-  - [Mapping (gmapping)](#1-mapping-gmapping)
+  - [Mapping + Manual Navigation (gmapping)](#1-mapping--manual-navigation-gmapping)
   - [Navigation on a Saved Map (AMCL)](#2-navigation-on-a-saved-map-amcl)
   - [Target Following](#3-target-following)
+  - [Testing Navigation (3-Waypoint Test)](#4-testing-navigation-3-waypoint-test)
 - [Verifying the System](#verifying-the-system)
 - [Troubleshooting](#troubleshooting)
+- [Simulation Calibration Notes (Bug Fixes)](#simulation-calibration-notes-bug-fixes)
 - [Usage: Real Robot](#usage-real-robot)
   - [Multi-Machine Setup](#multi-machine-setup)
   - [Step 1 - Start Base Driver (Raspberry Pi)](#step-1---start-base-driver-raspberry-pi)
@@ -67,13 +69,16 @@ catkin_ws/src/
 │   │   ├── nav.launch                  # Sim: Gazebo + AMCL + move_base
 │   │   ├── real_robot_mapping.launch   # Real: LMS200 + gmapping + move_base
 │   │   └── real_robot_nav.launch       # Real: LMS200 + AMCL + move_base
-│   └── param/
-│       ├── gmapping.yaml           # gmapping SLAM parameters
-│       ├── amcl.yaml               # AMCL localization parameters
-│       ├── move_base.yaml          # NavfnROS + DWA planner config
-│       ├── costmap_common.yaml     # Shared costmap (footprint, inflation)
-│       ├── global_costmap.yaml     # Global costmap layers
-│       └── local_costmap.yaml      # Local costmap layers (obstacle + inflation)
+│   ├── param/
+│   │   ├── gmapping.yaml           # gmapping SLAM parameters
+│   │   ├── amcl.yaml               # AMCL localization parameters
+│   │   ├── move_base.yaml          # NavfnROS + DWA planner config
+│   │   ├── costmap_common.yaml     # Shared costmap (footprint, inflation)
+│   │   ├── global_costmap.yaml     # Global costmap layers (obstacle + inflation)
+│   │   └── local_costmap.yaml      # Local costmap layers (obstacle + inflation)
+│   ├── scripts/
+│   │   └── waypoint_test.py        # Sequential 3-waypoint navigation test
+│   └── maps/                       # Saved maps (created by map_saver)
 ├── target_follower/         # Target following system
 │   ├── scripts/
 │   │   ├── target_follower.py          # Subscribes /target_pose, sends MoveBaseGoal
@@ -171,30 +176,55 @@ All simulation launch files start Gazebo, spawn the robot, and open RViz automat
 source ~/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.zsh
 ```
 
-### 1. Mapping (gmapping)
+### 1. Mapping + Manual Navigation (gmapping)
 
-**Terminal 1** — Launch Gazebo + gmapping + move_base + RViz:
+#### Option A — Manual goal sending (recommended for testing)
+
+**Terminal 1** — Launch Gazebo + gmapping + move_base + RViz **without** target_follower:
+
+```bash
+roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=false
+```
+
+> **Important**: pass `use_gazebo_target:=false` when you want to send goals manually or run
+> the waypoint test script. Without this flag, the `target_follower` node starts and will
+> cancel any manual goals after ~2 seconds.
+
+Wait ~30 seconds for Gazebo, gmapping, and move_base to fully initialise (you will see
+`odom received` and `Registering First Scan` messages in the terminal).
+
+**Send a single navigation goal from any sourced terminal:**
+
+```bash
+rostopic pub -1 /move_base_simple/goal geometry_msgs/PoseStamped \
+  '{header: {frame_id: "map"}, pose: {position: {x: 2.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}}'
+```
+
+Or click **"2D Nav Goal"** in RViz.
+
+#### Option B — Gazebo target following (default)
 
 ```bash
 roslaunch p3at_lms_navigation mapping.launch
 ```
 
 This starts:
-- Gazebo with the P3-AT robot and two box obstacles
+- Gazebo with the P3-AT robot and two box obstacles (1.0 m tall)
 - `slam_gmapping` building a 2D occupancy grid map in real time
 - `move_base` (NavfnROS global planner + DWA local planner)
 - `target_follower` tracking a Gazebo model named "target"
 - RViz showing the live map, robot pose, and laser scan
 
-**Drive the robot** (two options):
-
-Option A — Move the Gazebo "target" model (robot follows automatically):
+Drive the robot by moving the **"target"** model in Gazebo:
 1. In Gazebo, click the model named **"target"** in the left panel
 2. Select the **Translate** tool (T key)
 3. Drag the target to a new position; the robot will navigate toward it
 
-Option B — Keyboard teleop in a new terminal:
+#### Option C — Keyboard teleop
+
 ```bash
+roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=false
+# In a second terminal:
 rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 ```
 Key bindings:
@@ -213,6 +243,58 @@ rosrun map_server map_saver -f $(rospack find p3at_lms_navigation)/maps/my_map
 ```
 
 This creates `my_map.pgm` and `my_map.yaml` in `p3at_lms_navigation/maps/`.
+
+### 4. Testing Navigation (3-Waypoint Test)
+
+A Python script is provided to verify end-to-end navigation automatically:
+`p3at_lms_navigation/scripts/waypoint_test.py`
+
+**Prerequisites:**
+- The simulation is running: `roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=false`
+- Wait at least **30 seconds** after launch before running the test
+- Source the workspace in the terminal where you run the script
+
+```bash
+# From the catkin_ws directory:
+source devel/setup.zsh   # (or setup.bash)
+python3 src/p3at_lms_navigation/scripts/waypoint_test.py
+```
+
+**What the script does:**
+
+Sends three sequential `MoveBaseGoal` actions via the `actionlib` interface and reports
+progress and final position error for each waypoint:
+
+| Waypoint | Target (map frame) | Notes |
+|----------|--------------------|-------|
+| WP1 | (0.0, -2.0) | Open space south, ~2 m straight run |
+| WP2 | (3.5, 2.0) | North of obstacle_1 at (2, 1) — robot must navigate around |
+| WP3 | (5.0, 0.0) | Far east, past both obstacles — tests narrow-corridor traversal |
+
+**Expected output (verified on commit `5d9e4d2`):**
+
+```
+Connected to move_base!
+
+========== Waypoint 1 [open south, ~2 m]: (0.0, -2.0) ==========
+  Start position : (0.000, 0.000)
+  RESULT: SUCCEEDED | Final pos: (...) | Error: 0.14 m
+
+========== Waypoint 2 [N of obstacle_1@(2,1), ~5 m total, must avoid]: (3.5, 2.0) ==========
+  RESULT: SUCCEEDED | Final pos: (...) | Error: 0.11 m
+
+========== Waypoint 3 [far east past both obstacles, ~7 m total]: (5.0, 0.0) ==========
+  RESULT: SUCCEEDED | Final pos: (...) | Error: 0.19 m
+
+========== SUMMARY ==========
+  WP1 [open south, ~2 m] : PASS
+  WP2 [N of obstacle_1@(2,1), ~5 m total, must avoid] : PASS
+  WP3 [far east past both obstacles, ~7 m total] : PASS
+```
+
+Each waypoint has a **65-second timeout**. The script prints position and action state every 5 seconds.
+If a waypoint is `ABORTED`, check `rostopic echo /move_base/status` and ensure the goal is not
+inside an obstacle inflation zone.
 
 ### 2. Navigation on a Saved Map (AMCL)
 
@@ -306,10 +388,76 @@ rosrun tf2_tools view_frames.py && evince frames.pdf
 | RViz shows no map | `map_server` not running, or wrong `map_file` path | Check the `map_file` argument; ensure the `.yaml` and `.pgm` files exist |
 | Robot does not move after nav goal | AMCL not yet localized | Use "2D Pose Estimate" in RViz first, then resend the goal |
 | Navigation goal immediately aborted | Target is inside an obstacle or too close to a wall | Choose a goal in open space; increase `inflation_radius` if needed |
+| Manual goal cancelled after 2 s | `target_follower` is running and timing out | Launch with `use_gazebo_target:=false` to disable it |
+| All lidar readings < 0.15 m (self-hit) | `<collision>` on laser link causing ray self-hit | Already fixed in URDF; check no collision element was re-added |
+| Robot cannot see obstacles (detour missing) | Obstacles shorter than laser height (0.366 m) | Already fixed in world file; obstacles are now 1.0 m tall |
+| waypoint_test.py: `move_base not available` | Simulation not ready yet | Wait 30 s after launch start; ensure `use_gazebo_target:=false` |
 | Robot spins in place indefinitely | DWA planner cannot find a feasible velocity | Lower `max_vel_theta` or increase `sim_time` in `move_base.yaml` |
 | `roslaunch` reports package not found | Workspace not sourced | Run `source devel/setup.zsh` in that terminal |
 | Gazebo opens but robot falls through floor | Mesh collision geometry issue | Restart Gazebo; this is intermittent with complex STL meshes |
 | `catkin_make` fails with missing package | ROS dependency not installed | Run `rosdep install --from-paths src --ignore-src -r -y` |
+
+---
+
+## Simulation Calibration Notes (Bug Fixes)
+
+The following issues were identified and fixed during simulation testing (all changes committed in `5d9e4d2`):
+
+### 1 — Lidar Self-Collision (URDF)
+
+**Problem:** Gazebo merges fixed-joint child links into the parent link for physics simulation.
+This caused the `laser` link's collision geometry to be treated as part of `base_link`,
+so all 361 lidar rays were hitting the robot body (readings 0.05–0.14 m).
+
+**Fix:** Removed the `<collision>` element from the `laser` link in
+`p3at_lms_description/urdf/p3at_lms.urdf.xacro`. The visual and sensor elements are
+retained; only the collision box was removed.
+
+### 2 — Obstacles Below Laser Plane (World File)
+
+**Problem:** The two box obstacles were 0.5 m / 0.6 m tall. The laser is mounted at
+z = 0.366 m, so the obstacle tops were at 0.5 m / 0.6 m but the lidar plane swept above
+the shorter one. In practice **all scan rays passed over the obstacles** and the costmap
+had no obstacle markings.
+
+**Fix:** Raised both obstacle heights to **1.0 m** (centre at z = 0.5 m) in
+`p3at_lms_gazebo/worlds/p3at_lms.world`.
+
+### 3 — target_follower Cancelling Manual Goals
+
+**Problem:** `target_follower.py` subscribes to `/target_pose` and, if no message arrives
+within 2 seconds, cancels any active move_base goal. This silently cancelled every
+manually-sent goal and made it impossible to test navigation without the Gazebo target.
+
+**Fix:** Added `use_target_follower` argument to `mapping.launch`; the node is wrapped in
+`<group if="$(arg use_target_follower)">`. It defaults to off when
+`use_gazebo_target:=false`.
+
+### 4 — DWA Goal Tolerance Too Large
+
+**Problem:** `xy_goal_tolerance: 0.30` with `latch_xy_goal_tolerance: true` caused
+move_base to declare success while the robot was still 0.3 m from the target. With `yaw_goal_tolerance: 3.14` the orientation was irrelevant.
+
+**Fix (move_base.yaml):** `xy_goal_tolerance: 0.10`, `yaw_goal_tolerance: 0.5`,
+`latch_xy_goal_tolerance: false`.
+
+### 5 — TF Frame Mismatch in Costmap
+
+**Problem:** `robot_base_frame: base_link` in both costmap YAML files, but the skid-steer
+Gazebo plugin publishes odometry with `child_frame_id: base_footprint`. This caused a TF
+lookup failure that prevented the local costmap from updating.
+
+**Fix:** Set `robot_base_frame: base_footprint` in both `global_costmap.yaml` and
+`local_costmap.yaml`.
+
+### 6 — Missing obstacle_layer in Global Costmap
+
+**Problem:** `global_costmap.yaml` only had a `static_layer`. Without an `obstacle_layer`,
+the planner could not see live sensor obstacles — it only knew about walls from the static
+map. Newly-seen obstacles (the two boxes) were never inscribed into the global costmap.
+
+**Fix:** Added explicit `obstacle_layer` and `inflation_layer` configurations to both
+`global_costmap.yaml` and `local_costmap.yaml`.
 
 ---
 
@@ -433,9 +581,12 @@ Key parameter files are in `p3at_lms_navigation/param/`:
 **move_base.yaml** - Planner parameters:
 - `max_vel_x: 0.6` - maximum forward velocity (m/s)
 - `max_vel_theta: 1.2` - maximum rotational velocity (rad/s)
-- `xy_goal_tolerance: 0.30` - position tolerance at goal (m)
-- `yaw_goal_tolerance: 3.14` - orientation tolerance at goal (rad, relaxed for following)
-- `recovery_behavior_enabled: false` - recovery disabled for stable mapping
+- `xy_goal_tolerance: 0.10` - position tolerance at goal (m) — tightened from 0.30
+- `yaw_goal_tolerance: 0.50` - orientation tolerance at goal (rad) — tightened from 3.14
+- `latch_xy_goal_tolerance: false` - re-evaluate tolerance each iteration
+- `recovery_behavior_enabled: true` - enabled; `clearing_rotation_allowed: true`
+- `planner_patience: 10.0` / `controller_patience: 10.0` - allow planning retries
+- NavfnROS: `allow_unknown: true`, `default_tolerance: 0.10`
 
 **costmap_common.yaml** - Costmap parameters:
 - `footprint: [[0.30, 0.25], [0.30, -0.25], [-0.30, -0.25], [-0.30, 0.25]]` - P3-AT footprint (m)
@@ -473,13 +624,16 @@ The `target_follower` node subscribes to `/target_pose` (`geometry_msgs/PoseStam
 
 - **Simulation fidelity**: The URDF model and Gazebo dynamics are approximate. Real P3-AT behavior (especially skid-steer turning) will differ.
 - **LMS200 FOV**: The real LMS200 has a 180-degree field of view. The Gazebo simulation uses a similar configuration. Verify `resolution` and `measuring_units` match your LMS200 firmware settings.
-- **move_base recovery**: Recovery behaviors are disabled (`recovery_behavior_enabled: false`) to prevent erratic behavior during mapping. Re-enable for production navigation if needed.
+- **move_base recovery**: Recovery behaviors are enabled (`recovery_behavior_enabled: true`) with clearing rotations. If the robot gets stuck during mapping, disable with `recovery_behavior_enabled: false` in `move_base.yaml`.
 - **Conda environments**: If running inside a conda Python environment, avoid nodes that require `PyKDL`. The `target_follower` in this workspace uses pure-Python quaternion math and does not depend on PyKDL.
 - **Gazebo reference frame**: The `target_follow.launch` uses `base_footprint` as the Gazebo reference frame (not `base_link`) because Gazebo merges fixed joints -- the frame `p3at::base_link` does not exist in the Gazebo model, only `p3at::base_footprint`.
 
 ## Status
 
 - [x] Gazebo simulation (gmapping + move_base + target following) -- verified
+- [x] Simulation laser self-collision bug fixed -- verified (commit `5d9e4d2`)
+- [x] Obstacle detection (obstacle_layer, inflation_layer in costmap) -- verified
+- [x] 3-waypoint sequential navigation test -- all SUCCEEDED (errors < 0.2 m)
 - [x] Map saving and loading (map_server + AMCL) -- verified
 - [x] Real robot launch files (mapping + navigation) -- created, pending hardware test
 - [x] Raspberry Pi base driver package (p3at_base) -- created, pending hardware test
