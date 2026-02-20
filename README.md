@@ -127,6 +127,7 @@ catkin_ws/src/
 │   │   ├── target_follower.py          # Subscribes /target_pose, sends MoveBaseGoal
 │   │   │                               #   (supports standoff_distance and face_target)
 │   │   ├── gazebo_target_publisher.py  # Publishes Gazebo model pose as /target_pose
+│   │   ├── move_target.py              # Moves Gazebo target model along waypoints (dynamic target)
 │   │   ├── goal_to_target_relay.py     # Relays RViz 2D Nav Goal to /target_pose
 │   │   └── test_standoff_face.py       # Unit tests for standoff & face_target logic
 │   └── launch/target_follow.launch
@@ -521,6 +522,83 @@ Now every "2D Nav Goal" click in RViz is forwarded to `/target_pose` and trigger
 
 **Programmatic target** (e.g., from a YOLO detector): Publish to `/target_pose` from any node. The pose can be in `map`, `odom`, or `base_link` frame -- `target_follower` handles the TF transform automatically.
 
+#### Dynamic Target Following
+
+The `move_target` parameter enables automatic movement of the Gazebo "target" model along a predefined waypoint loop. This simulates a moving person or object for the robot to chase, providing a fully autonomous test of the target-following pipeline without manual Gazebo interaction.
+
+```bash
+# Launch with dynamic target (recommended for testing)
+roslaunch p3at_lms_navigation mapping.launch \
+  move_target:=true target_speed:=0.3 target_pause:=2.0
+```
+
+This starts the `move_target` node, which calls Gazebo's `/gazebo/set_model_state` service to move the target model at `target_speed` m/s, pausing `target_pause` seconds at each waypoint.
+
+**Default waypoint loop** (avoids the two box obstacles in the world):
+
+| Waypoint | Position (x, y) | Notes |
+|----------|-----------------|-------|
+| WP0 | (4.0, 0.0) | Start (target spawn position) |
+| WP1 | (4.0, 2.0) | North |
+| WP2 | (1.0, 2.0) | West, north of obstacle_1 |
+| WP3 | (1.0, -2.0) | South |
+| WP4 | (4.0, -2.0) | East, south of obstacle_2 |
+| WP5 | (4.0, 0.0) | Back to start (loops) |
+
+**Data flow:**
+
+```
+move_target ──set_model_state──► Gazebo target model
+                                       │
+                              get_model_state
+                                       ▼
+                          gazebo_target_publisher
+                            /target_pose (10 Hz)
+                                       ▼
+                             target_follower
+                            MoveBaseGoal (2 Hz)
+                                       ▼
+                              move_base
+                     NavfnROS + DWA → /cmd_vel
+```
+
+**Combined with standoff + face_target** (recommended for human-following demo):
+
+```bash
+roslaunch p3at_lms_navigation mapping.launch \
+  move_target:=true target_speed:=0.3 target_pause:=2.0 \
+  standoff_distance:=1.0 face_target:=true
+```
+
+The robot will maintain a 1.0 m gap and face the target as it follows.
+
+**Runtime tuning** (no restart needed):
+
+```bash
+# Change target speed
+rosparam set /move_target/speed 0.5
+
+# Change follower parameters
+rosparam set /target_follower/standoff_distance 2.0
+rosparam set /target_follower/send_rate_hz 4.0
+rosparam set /target_follower/min_update_dist 0.15
+```
+
+**`move_target` parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `~model_name` | string | `target` | Gazebo model name to move |
+| `~speed` | float | `0.4` | Movement speed (m/s), tunable at runtime |
+| `~pause` | float | `1.0` | Pause duration at each waypoint (s) |
+| `~loop` | bool | `true` | Loop through waypoints continuously |
+| `~waypoints` | list | (see above) | Override waypoints as list of `[x, y]` pairs |
+
+> **Note:** The target model is a collision-free visual marker (red cylinder). It will
+> not physically interact with the robot or appear as an obstacle in the laser scan /
+> costmap. This is intentional — the robot navigates around real obstacles while
+> following the ghost target.
+
 #### Standoff Distance
 
 The `standoff_distance` parameter makes the robot stop a fixed distance *short* of the target instead of driving all the way to it. This is useful when following a person — you want the robot to keep a comfortable gap rather than crowd the target.
@@ -859,20 +937,24 @@ Seven nodes are active in this mode.
 Three extra nodes appear when target following is enabled:
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│  Additional nodes for target following                             │
-│                                                                    │
-│  /gazebo ──/gazebo/get_model_state (service)──► /gazebo_target_publisher
-│                                                         │          │
-│                                                   /target_pose     │
-│                                                         ▼          │
-│                                               /target_follower     │
-│           /tf (for robot position lookup) ◄───────────────│        │
-│                                               /move_base/goal      │
-│                                                         ▼          │
-│                                                   /move_base       │
-└────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Additional nodes for target following                                  │
+│                                                                         │
+│  /move_target‡ ──/gazebo/set_model_state (service)──► /gazebo (target)  │
+│                                                                         │
+│  /gazebo ──/gazebo/get_model_state (service)──► /gazebo_target_publisher │
+│                                                         │               │
+│                                                   /target_pose          │
+│                                                         ▼               │
+│                                               /target_follower          │
+│           /tf (for robot position lookup) ◄───────────────│             │
+│                                               /move_base/goal           │
+│                                                         ▼               │
+│                                                   /move_base            │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
+
+‡ Active only when `move_target:=true`.
 
 When `use_rviz_goal_relay:=true`, an extra `/goal_to_target_relay` node bridges
 `/move_base_simple/goal` (set by RViz "2D Nav Goal") to `/target_pose`.
@@ -889,10 +971,12 @@ When `use_rviz_goal_relay:=true`, an extra `/goal_to_target_relay` node bridges
 | `/rviz` | `rviz` | Visualization; subscribes `/map`, `/scan`, `/tf`, planner paths |
 | `/rosout` | `rosout` | ROS logging aggregator |
 | `/gazebo_target_publisher`* | `target_follower` | Calls Gazebo service to get target model pose; publishes `/target_pose` |
+| `/move_target`‡ | `target_follower` | Moves the Gazebo target model along waypoints via `set_model_state` service |
 | `/target_follower`* | `target_follower` | Subscribes `/target_pose`; sends `MoveBaseAction` goals to `/move_base` |
 | `/goal_to_target_relay`† | `target_follower` | Relays `/move_base_simple/goal` → `/target_pose` |
 
 \* Active only when `use_gazebo_target:=true` (default in `mapping.launch`).  
+‡ Active only when `move_target:=true`.  
 † Active only when `use_rviz_goal_relay:=true`.
 
 ### Topic Pub/Sub Reference
@@ -1108,6 +1192,9 @@ source devel/setup.bash  # or setup.zsh
 - [x] `standoff_distance` feature -- implemented and verified (commit `7d87bbb`, 21/21 unit tests pass)
 - [x] `face_target` feature -- implemented and verified (commit `7d87bbb`, 21/21 unit tests pass)
 - [x] Unit test suite for standoff + face_target logic -- 21/21 pass (commit `8e189ba`)
+- [x] Dynamic target following (`move_target` node) -- implemented and verified in Gazebo
+- [x] Collision-free target model (ghost marker) -- target no longer flips the robot
+- [x] Target-lost goal cancellation -- `target_follower` cancels `move_base` goal on stale target
 - [x] Real robot launch files (mapping + navigation) -- created, pending hardware test
 - [x] Raspberry Pi base driver package (p3at_base) -- created, pending hardware test
 - [ ] YOLO target detection node -- not started
@@ -1142,8 +1229,10 @@ Verify everything works after cloning and building:
 - [ ] Map saving works: `rosrun map_server map_saver -f /tmp/test_map`
 
 ### Target Following
-- [ ] Target follower works: `roslaunch p3at_lms_navigation mapping.launch` (default mode)
-- [ ] Drag "target" model in Gazebo; robot follows
+- [ ] Static target: `roslaunch p3at_lms_navigation mapping.launch` → drag "target" in Gazebo; robot follows
+- [ ] Dynamic target: `roslaunch p3at_lms_navigation mapping.launch move_target:=true target_speed:=0.3 target_pause:=2.0`
+- [ ] Dynamic + standoff + face: add `standoff_distance:=1.0 face_target:=true` to the above
+- [ ] Verify 11 nodes running: `rosnode list` (includes `/move_target`)
 - [ ] Unit tests pass: `python3 catkin_ws/src/target_follower/scripts/test_standoff_face.py` (21/21)
 
 ### AMCL Navigation (requires a saved map)

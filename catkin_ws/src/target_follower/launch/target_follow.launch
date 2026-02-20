@@ -4,6 +4,9 @@
   <arg name="robot_model_name" default="p3at"/>
   <arg name="standoff_distance" default="0.0"/>
   <arg name="face_target" default="false"/>
+  <arg name="move_target" default="false"/>
+  <arg name="target_speed" default="0.4"/>
+  <arg name="target_pause" default="1.0"/>
 
   <!-- Option A: Follow a Gazebo model called "target" -->
   <group if="$(arg use_gazebo_target)">
@@ -21,6 +24,16 @@
   <!-- Option B: Use RViz "2D Nav Goal" as a manual target source -->
   <group if="$(arg use_rviz_goal_relay)">
     <node pkg="target_follower" type="goal_to_target_relay.py" name="goal_to_target_relay" output="screen"/>
+  </group>
+
+  <!-- Dynamic target: move the Gazebo "target" model along waypoints -->
+  <group if="$(arg move_target)">
+    <node pkg="target_follower" type="move_target.py" name="move_target" output="screen">
+      <param name="model_name" value="target"/>
+      <param name="speed" value="$(arg target_speed)"/>
+      <param name="pause" value="$(arg target_pause)"/>
+      <param name="loop" value="true"/>
+    </node>
   </group>
 
   <!-- Follower: sends goals to move_base -->
