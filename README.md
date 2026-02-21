@@ -19,21 +19,38 @@ The repository contains two workspaces:
 - [Prerequisites](#prerequisites)
 - [Dependencies](#dependencies)
 - [Build](#build)
-- [Usage: Gazebo Simulation](#usage-gazebo-simulation)
-  - [Mapping + Manual Navigation (gmapping)](#1-mapping--manual-navigation-gmapping)
-  - [Navigation on a Saved Map (AMCL)](#2-navigation-on-a-saved-map-amcl)
-  - [Target Following](#3-target-following)
-  - [Testing Navigation (3-Waypoint Test)](#4-testing-navigation-3-waypoint-test)
-  - [Testing Target Follower Features (Unit Tests)](#5-testing-target-follower-features-unit-tests)
-  - [Autonomous Mapping + AMCL Verification](#6-autonomous-mapping--amcl-verification)
-- [Verifying the System](#verifying-the-system)
-- [Troubleshooting](#troubleshooting)
-- [Simulation Calibration Notes (Bug Fixes)](#simulation-calibration-notes-bug-fixes)
-- [Usage: Real Robot](#usage-real-robot)
-  - [Multi-Machine Setup](#multi-machine-setup)
-  - [Step 1 - Start Base Driver (Raspberry Pi)](#step-1---start-base-driver-raspberry-pi)
-  - [Step 2a - Mapping (Jetson)](#step-2a---mapping-jetson)
-  - [Step 2b - Navigation (Jetson)](#step-2b---navigation-jetson)
+- **Part A — Gazebo Simulation**
+  - [Usage: Gazebo Simulation](#usage-gazebo-simulation)
+    - [Mapping + Manual Navigation (gmapping)](#1-mapping--manual-navigation-gmapping)
+    - [Testing Navigation (3-Waypoint Test)](#2-testing-navigation-3-waypoint-test)
+    - [Testing Target Follower Features (Unit Tests)](#3-testing-target-follower-features-unit-tests)
+    - [Navigation on a Saved Map (AMCL)](#4-navigation-on-a-saved-map-amcl)
+    - [Target Following](#5-target-following)
+    - [Autonomous Mapping + AMCL Verification](#6-autonomous-mapping--amcl-verification)
+  - [Verifying the System (Simulation)](#verifying-the-system)
+  - [Troubleshooting (Simulation)](#troubleshooting)
+  - [Simulation Calibration Notes (Bug Fixes)](#simulation-calibration-notes-bug-fixes)
+- **Part B — Real Robot Deployment**
+  - [Real Robot Architecture Overview](#real-robot-architecture-overview)
+  - [Hardware Wiring & Connectivity](#hardware-wiring--connectivity)
+  - [Real Robot Dependencies (Complete List)](#real-robot-dependencies-complete-list)
+    - [Jetson ORIN NANO Dependencies](#jetson-orin-nano-dependencies)
+    - [Raspberry Pi Dependencies](#raspberry-pi-dependencies)
+    - [Orbbec Femto Bolt (Future YOLO)](#orbbec-femto-bolt-future-yolo)
+  - [Multi-Machine Network Setup (Jetson + Raspberry Pi)](#multi-machine-network-setup-jetson--raspberry-pi)
+    - [Step 0 — Static IP Configuration](#step-0--static-ip-configuration)
+    - [Step 1 — Docker Container Setup](#step-1--docker-container-setup)
+    - [Step 2 — Start ROS Master (Jetson)](#step-2--start-ros-master-jetson)
+    - [Step 3 — Connect Pi to Master](#step-3--connect-pi-to-master)
+    - [Step 4 — Cross-Machine Topic Test](#step-4--cross-machine-topic-test)
+    - [Reconnecting Scripts](#reconnecting-scripts)
+  - [Real Robot Launch Procedures](#real-robot-launch-procedures)
+    - [Step 1 — Start Base Driver (Raspberry Pi)](#step-1---start-base-driver-raspberry-pi)
+    - [Step 2a — Mapping (Jetson)](#step-2a---mapping-jetson)
+    - [Step 2b — Navigation (Jetson)](#step-2b---navigation-jetson)
+  - [Real Robot TF Tree & Differences from Simulation](#real-robot-tf-tree--differences-from-simulation)
+  - [Real Robot Parameter Tuning Notes](#real-robot-parameter-tuning-notes)
+  - [Common Pitfalls (Real Robot)](#common-pitfalls-real-robot)
 - [Key Topics and TF Frames](#key-topics-and-tf-frames)
   - [Node Graph](#node-graph)
   - [Complete Node List](#complete-node-list-mapping-mode-observed-at-runtime)
@@ -278,6 +295,10 @@ cd ~/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws
 rosdep install --from-paths src --ignore-src -r -y
 catkin_make
 ```
+
+---
+
+# Part A — Gazebo Simulation
 
 ---
 
@@ -1045,51 +1066,552 @@ map. Newly-seen obstacles (the two boxes) were never inscribed into the global c
 
 ---
 
-## Usage: Real Robot
+# Part B — Real Robot Deployment
 
-The real robot system is split across two machines:
-- **Raspberry Pi**: Runs the P3-AT chassis driver (`p3at_base`)
-- **Jetson ORIN NANO**: Runs the lidar driver, SLAM/localization, and navigation stack
+---
 
-### Multi-Machine Setup
+## Real Robot Architecture Overview
 
-On the **Raspberry Pi**, configure ROS networking before launching:
-```bash
-export ROS_MASTER_URI=http://<jetson_ip>:11311
-export ROS_IP=<raspi_ip>
+The real robot system uses a **dual-machine architecture** connected via a dedicated point-to-point Ethernet link. Both machines run ROS Noetic inside Docker containers with host networking.
+
+```
+┌───────────────────────────────────────────────────────────────────────────┐
+│                          PHYSICAL CONNECTIONS                            │
+│                                                                          │
+│  ┌──────────────────────┐    Ethernet (direct)    ┌──────────────────┐   │
+│  │  Jetson ORIN NANO    │◄───────────────────────►│  Raspberry Pi    │   │
+│  │  Ubuntu 22.04        │    192.168.50.1/24       │  Ubuntu 24.04   │   │
+│  │  Docker: ros_noetic  │    192.168.50.2/24       │  Docker: noetic_pi│  │
+│  │  (ROS Master)        │                          │                 │   │
+│  ├──────────────────────┤                          ├─────────────────┤   │
+│  │  • roscore           │                          │  • RosAria      │   │
+│  │  • sicklms (LMS200)  │                          │  • odom_repub   │   │
+│  │  • gmapping / AMCL   │◄── /odom, TF ───────────│                 │   │
+│  │  • move_base         │─── /cmd_vel ────────────►│                 │   │
+│  │  • robot_state_pub   │                          │                 │   │
+│  │  • RViz              │                          │                 │   │
+│  │  • target_follower*  │                          │                 │   │
+│  ├──────────────────────┤                          ├─────────────────┤   │
+│  │  SICK LMS200 (RS-232)│                          │  P3-AT (Serial) │   │
+│  │  /dev/ttyUSB0        │                          │  /dev/ttyS0     │   │
+│  │                      │                          │  or /dev/ttyUSB0│   │
+│  │  Orbbec Femto Bolt** │                          │                 │   │
+│  │  (USB3, future YOLO) │                          │                 │   │
+│  └──────────────────────┘                          └─────────────────┘   │
+│                                                                          │
+│  * Optional   ** Future — not used in current navigation                 │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
-On the **Jetson** (runs `roscore`):
+**Simulation vs. Real Robot — Key Differences:**
+
+| Aspect | Simulation | Real Robot |
+|--------|------------|------------|
+| **Lidar driver** | Gazebo `libgazebo_ros_laser.so` plugin | `sicktoolbox_wrapper/sicklms` node |
+| **Odometry source** | Gazebo `libgazebo_ros_skid_steer_drive.so` | `RosAria` + `odom_republisher.py` |
+| **`/cmd_vel` consumer** | Gazebo plugin (simulated motors) | `RosAria` → P3-AT hardware |
+| **TF: odom→base** | Gazebo → `odom→base_footprint` | RosAria → `odom→base_link` |
+| **Clock** | `use_sim_time=true` (Gazebo clock) | System wall clock |
+| **Network** | Single machine (localhost) | Dual machine (Ethernet P2P, Docker `--net=host`) |
+| **Target following source** | `gazebo_target_publisher.py` (Gazebo model) | YOLO detector → `/target_pose` (future) |
+| **Launch files** | `mapping.launch`, `nav.launch` | `real_robot_mapping.launch`, `real_robot_nav.launch` |
+
+## Hardware Wiring & Connectivity
+
+| Connection | From | To | Cable / Interface | Notes |
+|------------|------|----|--------------------|-------|
+| Ethernet (ROS network) | Jetson `eth0` | Pi `eth0` | CAT5/6 Ethernet (direct P2P) | Static IP `192.168.50.x/24`, no switch needed |
+| LMS200 lidar | Jetson USB port | SICK LMS200 | RS-232 → USB adapter (FTDI) | Appears as `/dev/ttyUSB0`; baud `38400` |
+| P3-AT chassis | Pi serial port | P3-AT microcontroller | Serial RS-232 (or USB-Serial) | Default `/dev/ttyS0` (GPIO UART) or `/dev/ttyUSB0` |
+| Orbbec Femto Bolt | Jetson USB3 port | Femto Bolt camera | USB 3.0 Type-C | Future YOLO only; not used for navigation |
+| Power | P3-AT battery | Jetson + Pi | DC-DC converter or external battery | Ensure stable 5V for Pi, 5–19V for Jetson |
+| Wi-Fi (optional) | Jetson / Pi | Access point | Wi-Fi adapter | For SSH access during development; **NOT** used for ROS traffic |
+
+## Real Robot Dependencies (Complete List)
+
+### Jetson ORIN NANO Dependencies
+
+**Host OS:** Ubuntu 22.04 (JetPack)
+
+**Docker Image:** `ros:noetic-ros-base` (or `ros:noetic-ros-core`)
+
+> All ROS packages below are installed **inside** the Docker container (`ros_noetic`), not on the host OS.
+
+#### ROS Packages (inside Docker)
+
 ```bash
-export ROS_MASTER_URI=http://<jetson_ip>:11311
-export ROS_IP=<jetson_ip>
+# Core navigation stack
+sudo apt update && sudo apt install -y \
+  ros-noetic-xacro \
+  ros-noetic-robot-state-publisher \
+  ros-noetic-joint-state-publisher \
+  ros-noetic-slam-gmapping \
+  ros-noetic-move-base \
+  ros-noetic-map-server \
+  ros-noetic-amcl \
+  ros-noetic-dwa-local-planner \
+  ros-noetic-navfn \
+  ros-noetic-tf2-ros \
+  ros-noetic-tf2-geometry-msgs \
+  ros-noetic-tf \
+  ros-noetic-actionlib \
+  ros-noetic-move-base-msgs
+
+# Visualization (requires X11 forwarding or local display)
+sudo apt install -y ros-noetic-rviz
+
+# ★ LMS200 lidar driver — real robot specific
+sudo apt install -y ros-noetic-sicktoolbox-wrapper
+
+# Optional: keyboard teleop for manual testing
+sudo apt install -y ros-noetic-teleop-twist-keyboard
 ```
 
-### Step 1 - Start Base Driver (Raspberry Pi)
+If `sicktoolbox_wrapper` is not available via apt (common on arm64/Jetson):
+```bash
+cd ~/catkin_ws/src
+git clone https://github.com/ros-drivers/sicktoolbox_wrapper.git
+# May also need sicktoolbox itself:
+git clone https://github.com/ros-drivers/sicktoolbox.git
+cd ~/catkin_ws && catkin_make
+```
 
-Connect the P3-AT via serial cable, then launch:
+#### Serial Port Permissions (Host OS)
+
+The Docker container needs access to `/dev/ttyUSB0` for the LMS200. Grant permissions on the host:
+```bash
+# Option A: Add user to dialout group (persistent)
+sudo usermod -aG dialout $USER
+
+# Option B: Set udev rule for FTDI adapter (persistent, more specific)
+sudo tee /etc/udev/rules.d/99-lms200.rules > /dev/null <<'EOF'
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="0666", SYMLINK+="lms200"
+EOF
+sudo udevadm control --reload-rules && sudo udevadm trigger
+
+# Option C: Quick one-time permission
+sudo chmod 666 /dev/ttyUSB0
+```
+
+The Docker container must map the device (use `--privileged` or `-v /dev:/dev`).
+
+#### Python Dependencies (inside Docker)
 
 ```bash
+pip install numpy>=1.24.4 scipy>=1.10.1 defusedxml
+```
+
+#### Orbbec Femto Bolt Driver (Future — YOLO Target Detection)
+
+> **Not needed for the current navigation stack.** Install only when integrating the YOLO target detector.
+
+The Femto Bolt requires the Orbbec SDK and ROS wrapper:
+
+```bash
+# Host OS (Jetson): Install Orbbec SDK udev rules
+# Download from: https://github.com/orbbec/OrbbecSDK_ROS1
+sudo bash install_udev_rules.sh
+
+# Inside Docker container:
+cd ~/catkin_ws/src
+git clone https://github.com/orbbec/OrbbecSDK_ROS1.git
+cd ~/catkin_ws && catkin_make
+
+# Topics published:
+#   /camera/color/image_raw      (sensor_msgs/Image, RGB)
+#   /camera/depth/image_raw      (sensor_msgs/Image, 16UC1 depth)
+#   /camera/depth/camera_info    (sensor_msgs/CameraInfo)
+```
+
+### Raspberry Pi Dependencies
+
+**Host OS:** Ubuntu 24.04
+
+**Docker Image:** `ros:noetic-ros-base`
+
+> All ROS packages below are installed **inside** the Docker container (`noetic_pi`).
+
+#### ROS Packages (inside Docker)
+
+```bash
+sudo apt update && sudo apt install -y \
+  ros-noetic-rospy \
+  ros-noetic-nav-msgs \
+  ros-noetic-geometry-msgs \
+  ros-noetic-tf2-ros \
+  ros-noetic-tf
+
+# ★ P3-AT chassis driver — real robot specific
+sudo apt install -y ros-noetic-rosaria
+```
+
+If `rosaria` is not available via apt (common on arm64/Pi):
+```bash
+# Install AriaCoda (ARIA replacement, no license issues)
+cd ~/catkin_ws/src
+git clone https://github.com/reedhedges/AriaCoda.git
+cd AriaCoda && make -j$(nproc) && sudo make install
+
+# Install RosAria
+cd ~/catkin_ws/src
+git clone https://github.com/amor-ros-pkg/rosaria.git
+cd ~/catkin_ws && catkin_make
+```
+
+#### Serial Port Permissions (Host OS)
+
+```bash
+# For GPIO UART (/dev/ttyS0):
+sudo usermod -aG dialout $USER
+
+# For USB-Serial adapter (/dev/ttyUSB0):
+sudo chmod 666 /dev/ttyUSB0
+# Or add udev rule similar to the Jetson section
+```
+
+The Docker container must be started with `--privileged` and `-v /dev:/dev` to access serial ports.
+
+### Orbbec Femto Bolt (Future YOLO)
+
+| Item | Details |
+|------|---------|
+| **Interface** | USB 3.0 Type-C → Jetson |
+| **Driver** | [OrbbecSDK_ROS1](https://github.com/orbbec/OrbbecSDK_ROS1) |
+| **Topics** | `/camera/color/image_raw`, `/camera/depth/image_raw` |
+| **Purpose** | RGB+Depth for YOLO person detection → publish `/target_pose` |
+| **When to install** | Only when implementing the YOLO target detection node |
+| **Note** | Camera is **not** involved in mapping, localization, or obstacle avoidance |
+
+### Complete Dependency Summary Table
+
+| Package / Driver | Jetson (Docker) | Pi (Docker) | Purpose |
+|-----------------|:-:|:-:|---------|
+| `ros-noetic-roscore` | ✅ | (uses Jetson's) | ROS master |
+| `ros-noetic-rospy` | ✅ | ✅ | Python ROS client |
+| `ros-noetic-sicktoolbox-wrapper` | ✅ | — | LMS200 lidar driver |
+| `ros-noetic-rosaria` | — | ✅ | P3-AT chassis driver |
+| `ros-noetic-slam-gmapping` | ✅ | — | SLAM mapping |
+| `ros-noetic-amcl` | ✅ | — | Localization (on saved map) |
+| `ros-noetic-move-base` | ✅ | — | Navigation planner |
+| `ros-noetic-map-server` | ✅ | — | Static map server |
+| `ros-noetic-dwa-local-planner` | ✅ | — | DWA local planner |
+| `ros-noetic-navfn` | ✅ | — | NavfnROS global planner |
+| `ros-noetic-xacro` | ✅ | — | URDF processing |
+| `ros-noetic-robot-state-publisher` | ✅ | — | TF from URDF |
+| `ros-noetic-tf2-ros` | ✅ | ✅ | TF2 library |
+| `ros-noetic-tf` | ✅ | ✅ | TF library |
+| `ros-noetic-actionlib` | ✅ | — | Action client (target_follower) |
+| `ros-noetic-move-base-msgs` | ✅ | — | MoveBase action messages |
+| `ros-noetic-rviz` | ✅ | — | Visualization |
+| `ros-noetic-nav-msgs` | ✅ | ✅ | Odometry messages |
+| `ros-noetic-geometry-msgs` | ✅ | ✅ | Geometry messages |
+| `ros-noetic-teleop-twist-keyboard` | ✅ (optional) | — | Manual driving |
+| AriaCoda (source) | — | ✅ (if apt unavailable) | ARIA library for RosAria |
+| OrbbecSDK_ROS1 (source) | Future | — | Femto Bolt camera driver |
+
+---
+
+## Multi-Machine Network Setup (Jetson + Raspberry Pi)
+
+This section describes the complete multi-machine ROS1 setup using:
+- **Direct point-to-point Ethernet** link between Jetson and Pi
+- **Static IPs** via netplan on both hosts
+- **ROS Noetic inside Docker** on both machines (`--net=host`)
+- **ROS master (`roscore`)** runs on Jetson
+
+```
+┌─────────────────────────┐                    ┌─────────────────────────┐
+│  Jetson ORIN NANO        │    Direct Ethernet  │  Raspberry Pi           │
+│  Host: Ubuntu 22.04      │◄──────────────────►│  Host: Ubuntu 24.04     │
+│  Container: ros_noetic   │                    │  Container: noetic_pi   │
+│  IP: 192.168.50.1        │                    │  IP: 192.168.50.2       │
+│  Role: ROS Master        │                    │  Role: Base Driver      │
+└─────────────────────────┘                    └─────────────────────────┘
+```
+
+> **Important:** Always set `ROS_IP` to the Ethernet IP (`192.168.50.x`), **never** to a Wi-Fi IP. ROS1 uses additional dynamic TCP/UDP ports beyond 11311, so a dedicated Ethernet link is the most stable option.
+
+### Step 0 — Static IP Configuration
+
+#### 0.1 Identify the Ethernet interface name (run on both hosts)
+
+```bash
+ip -br link
+ip -br addr
+```
+
+You should see something like `eth0` or `enp...`. Replace `eth0` below if yours differs.
+
+#### 0.2 Raspberry Pi host (Ubuntu 24.04) — netplan
+
+```bash
+sudo tee /etc/netplan/99-p2p-ros.yaml > /dev/null <<'EOF'
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: no
+      addresses: [192.168.50.2/24]
+      optional: true
+EOF
+
+sudo netplan generate
+sudo netplan apply
+ip -br addr show eth0
+```
+
+#### 0.3 Jetson host (Ubuntu 22.04) — netplan
+
+```bash
+sudo tee /etc/netplan/99-p2p-ros.yaml > /dev/null <<'EOF'
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: no
+      addresses: [192.168.50.1/24]
+      optional: true
+EOF
+
+sudo netplan generate
+sudo netplan apply
+ip -br addr show eth0
+```
+
+#### 0.4 Verify link
+
+```bash
+# From Pi host:
+ping -c 3 192.168.50.1
+
+# From Jetson host:
+ping -c 3 192.168.50.2
+```
+
+### Step 1 — Docker Container Setup
+
+Both ROS containers **must** use `--net=host` for ROS1 multi-machine communication.
+
+#### 1.1 Verify existing containers are host-network
+
+```bash
+# Jetson host:
+docker inspect -f '{{.HostConfig.NetworkMode}}' ros_noetic
+
+# Pi host:
+docker inspect -f '{{.HostConfig.NetworkMode}}' noetic_pi
+```
+
+Both should print: `host`
+
+#### 1.2 Create containers (if they don't exist)
+
+**Jetson host:**
+```bash
+docker run -it -d --name ros_noetic \
+  --net=host \
+  --privileged \
+  -v /dev:/dev \
+  -v $HOME:/root \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  ros:noetic-ros-base bash
+```
+
+**Pi host:**
+```bash
+docker run -it -d --name noetic_pi \
+  --net=host \
+  --privileged \
+  -v /dev:/dev \
+  -v $HOME:/root \
+  ros:noetic-ros-base bash
+```
+
+> **Note:** `--privileged` and `-v /dev:/dev` are required for serial port access (LMS200 on Jetson, P3-AT on Pi). The `-e DISPLAY` and X11 mount on Jetson enable RViz GUI rendering.
+
+### Step 2 — Start ROS Master (Jetson)
+
+```bash
+# 2.1 Start container
+docker start ros_noetic
+
+# 2.2 Launch roscore in background (survives SSH disconnect)
+docker exec -d ros_noetic bash -lc "
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+roscore
+"
+
+# 2.3 Verify roscore is listening
+docker exec -it ros_noetic bash -lc "ss -lntp | grep 11311 || true"
+```
+
+### Step 3 — Connect Pi to Master
+
+```bash
+# 3.1 Start container
+docker start noetic_pi
+
+# 3.2 Verify Pi container can reach the master port
+docker exec -it noetic_pi bash -lc \
+  'timeout 2 bash -lc "cat < /dev/null > /dev/tcp/192.168.50.1/11311" && echo PORT_OK || echo PORT_FAIL'
+
+# 3.3 ROS-level check
+docker exec -it noetic_pi bash -lc "
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.2
+rosnode list
+"
+# Expected: at least /rosout
+```
+
+### Step 4 — Cross-Machine Topic Test
+
+Test bidirectional ROS communication **without** the robot:
+
+**4.1 Publish from Jetson container:**
+```bash
+docker exec -it ros_noetic bash -lc "
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+rostopic pub -r 5 /chatter std_msgs/String \"data: 'hello_from_jetson'\"
+"
+```
+
+**4.2 Echo on Pi container:**
+```bash
+docker exec -it noetic_pi bash -lc "
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.2
+rostopic echo /chatter
+"
+```
+
+If Pi prints the messages, **multi-machine ROS is working**.
+
+### Reconnecting Scripts
+
+Convenience scripts for quick reconnection after reboot.
+
+#### Jetson host: `~/start_roscore.sh`
+
+```bash
+cat > ~/start_roscore.sh <<'SCRIPT'
+#!/usr/bin/env bash
+set -e
+docker start ros_noetic >/dev/null
+
+# If roscore already listening, do nothing
+if docker exec ros_noetic bash -lc "ss -lntp | grep -q ':11311'"; then
+  echo "roscore already listening on 11311"
+  exit 0
+fi
+
+docker exec -d ros_noetic bash -lc "
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+roscore
+"
+echo "started roscore in ros_noetic"
+SCRIPT
+chmod +x ~/start_roscore.sh
+```
+
+#### Pi host: `~/check_ros_link.sh`
+
+```bash
+cat > ~/check_ros_link.sh <<'SCRIPT'
+#!/usr/bin/env bash
+set -e
+docker start noetic_pi >/dev/null
+
+docker exec noetic_pi bash -lc \
+  'timeout 2 bash -lc "cat < /dev/null > /dev/tcp/192.168.50.1/11311"' \
+  && echo "PORT 11311 OK" || (echo "PORT 11311 FAIL" && exit 1)
+
+docker exec -it noetic_pi bash -lc "
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.2
+rosnode list
+"
+SCRIPT
+chmod +x ~/check_ros_link.sh
+```
+
+---
+
+## Real Robot Launch Procedures
+
+> **Prerequisites for all steps below:**
+> 1. Static IPs configured (Step 0)
+> 2. Docker containers running with `--net=host` (Step 1)
+> 3. `roscore` running on Jetson (Step 2)
+> 4. Pi container can reach Jetson master (Step 3)
+> 5. Project workspace cloned and built inside **both** Docker containers
+
+### Step 1 — Start Base Driver (Raspberry Pi)
+
+Connect the P3-AT via serial cable, then launch **inside the Pi Docker container**:
+
+```bash
+docker exec -it noetic_pi bash -lc "
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.2
+source ~/catkin_ws/devel/setup.bash
 roslaunch p3at_base base.launch
-# Or specify a different serial port:
+"
+```
+
+Or specify a different serial port:
+```bash
 roslaunch p3at_base base.launch serial_port:=/dev/ttyUSB0
 ```
 
-This starts:
-- `RosAria` node: reads encoder odometry, accepts velocity commands
-- `odom_republisher`: republishes `/RosAria/pose` as the standard `/odom` topic
-- TF broadcast: `odom` -> `base_link` (published by RosAria with `publish_aria_tf=true`)
-- Topic remapping: `/RosAria/cmd_vel` remapped to `/cmd_vel`
+**What this starts:**
 
-### Step 2a - Mapping (Jetson)
+| Node | Function |
+|------|----------|
+| `RosAria` | Reads P3-AT encoder odometry, accepts `/cmd_vel`, publishes `odom→base_link` TF |
+| `odom_republisher` | Republishes `/RosAria/pose` as standard `/odom` topic |
 
-Connect the LMS200 via serial (typically `/dev/ttyUSB0`), then launch:
+**Verify from Jetson:**
+```bash
+# Should see /RosAria and /odom_republisher
+rosnode list
+
+# Should show odometry data
+rostopic echo /odom --noarr | head -20
+
+# Should show TF: odom → base_link
+rosrun tf tf_echo odom base_link
+```
+
+### Step 2a — Mapping (Jetson)
+
+Connect the LMS200 via RS-232/USB adapter, then launch **inside the Jetson Docker container**:
 
 ```bash
+docker exec -it ros_noetic bash -lc "
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source ~/catkin_ws/devel/setup.bash
 roslaunch p3at_lms_navigation real_robot_mapping.launch
+"
 ```
 
 Launch arguments:
+
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `lms200_port` | `/dev/ttyUSB0` | LMS200 serial port |
@@ -1100,34 +1622,116 @@ Launch arguments:
 | `standoff_distance` | `0.0` | Stop this many metres short of target (see [Standoff Distance](#standoff-distance)) |
 | `face_target` | `false` | Orient robot to face the target at goal (see [Face Target](#face-target)) |
 
-This starts:
-- `sicklms` (sicktoolbox_wrapper): LMS200 driver publishing `/scan` in the `laser` frame
-- `robot_state_publisher`: publishes URDF-based TF (including `base_link` -> `laser`)
-- `slam_gmapping`: builds the occupancy grid map
-- `move_base`: path planning and obstacle avoidance
-- RViz (optional)
+**What this starts:**
 
-Save the map after mapping:
+| Node | Package | Function |
+|------|---------|----------|
+| `sicklms` | `sicktoolbox_wrapper` | LMS200 driver → `/scan` in `laser` frame |
+| `robot_state_publisher` | `robot_state_publisher` | URDF TF (including `base_link→laser`) |
+| `slam_gmapping` | `gmapping` | Builds occupancy grid map |
+| `move_base` | `move_base` | NavfnROS + DWA path planning |
+| `rviz` | `rviz` | Visualization (optional) |
+
+**Drive the robot** using keyboard teleop (in a separate terminal):
+```bash
+rosrun teleop_twist_keyboard teleop_twist_keyboard.py
+```
+
+**Save the map** once coverage is complete:
 ```bash
 rosrun map_server map_saver -f $(rospack find p3at_lms_navigation)/maps/my_map
 ```
 
-### Step 2b - Navigation (Jetson)
+### Step 2b — Navigation (Jetson)
 
 After mapping, use the saved map for AMCL-based navigation:
 
 ```bash
-roslaunch p3at_lms_navigation real_robot_nav.launch map_file:=/absolute/path/to/my_map.yaml
+docker exec -it ros_noetic bash -lc "
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source ~/catkin_ws/devel/setup.bash
+roslaunch p3at_lms_navigation real_robot_nav.launch \
+  map_file:=\$(rospack find p3at_lms_navigation)/maps/my_map.yaml
+"
 ```
 
-Launch arguments are the same as mapping, plus:
+Additional launch arguments (beyond mapping):
+
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `map_file` | `...maps/demo_map.yaml` | Path to the saved map YAML |
-| `standoff_distance` | `0.0` | Stop this many metres short of target |
-| `face_target` | `false` | Orient robot to face the target at goal |
 
-This starts: `sicklms`, `robot_state_publisher`, `map_server`, `amcl`, `move_base`, and optionally RViz.
+**What this starts:** `sicklms`, `robot_state_publisher`, `map_server`, `amcl`, `move_base`, and optionally RViz.
+
+**Initialize AMCL localization:**
+1. In RViz, click **"2D Pose Estimate"**
+2. Click on the map at the robot's actual position, drag to set heading
+3. The green particle cloud should converge around the robot
+
+**Send a navigation goal:**
+- Click **"2D Nav Goal"** in RViz, or
+- Publish from command line:
+  ```bash
+  rostopic pub -1 /move_base_simple/goal geometry_msgs/PoseStamped \
+    '{header: {frame_id: "map"}, pose: {position: {x: 2.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}}'
+  ```
+
+---
+
+## Real Robot TF Tree & Differences from Simulation
+
+```
+Real Robot TF Tree:
+  map
+  └── odom                         [gmapping (~20 Hz) or AMCL (~10 Hz)]
+      └── base_link                [RosAria (publish_aria_tf=true, ~50 Hz)]
+          └── laser                [robot_state_publisher (static, from URDF)]
+
+Simulation TF Tree:
+  map
+  └── odom                         [gmapping (~20 Hz) or AMCL (~10 Hz)]
+      └── base_footprint           [Gazebo skid-steer plugin (~50 Hz)]
+          └── base_link            [robot_state_publisher (static, identity)]
+              └── laser            [robot_state_publisher (static, from URDF)]
+```
+
+**Key difference:** In simulation, Gazebo publishes `odom→base_footprint`, and URDF provides an identity transform `base_footprint→base_link`. On the real robot, RosAria publishes `odom→base_link` directly (no `base_footprint` in the chain).
+
+Since the URDF defines `base_footprint→base_link` as an identity transform, the costmap parameter `robot_base_frame: base_footprint` still works on the real robot — `robot_state_publisher` provides the missing static TF `base_footprint→base_link`. However, if you encounter TF issues, you may change it to `robot_base_frame: base_link` in both `global_costmap.yaml` and `local_costmap.yaml`.
+
+## Real Robot Parameter Tuning Notes
+
+The parameters in `p3at_lms_navigation/param/` are initially tuned for Gazebo simulation. Real hardware typically requires adjustments:
+
+| Parameter | Simulation Value | Real Robot Suggestion | File | Reason |
+|-----------|-----------------|----------------------|------|--------|
+| `max_vel_x` | 0.5 m/s | 0.3–0.4 m/s | `move_base.yaml` | Real P3-AT may overshoot; lower for safety |
+| `max_vel_theta` | 1.0 rad/s | 0.6–0.8 rad/s | `move_base.yaml` | Skid-steer turning is aggressive on carpet/tile |
+| `acc_lim_x` | 0.5 m/s² | 0.2–0.3 m/s² | `move_base.yaml` | Match actual motor limits |
+| `xy_goal_tolerance` | 0.10 m | 0.15–0.20 m | `move_base.yaml` | Real odometry drift requires larger tolerance |
+| `particles` | 30 | 50–80 | `gmapping.yaml` | Real environments are larger/noisier |
+| `linearUpdate` | 0.2 m | 0.1 m | `gmapping.yaml` | More frequent scan processing for real lidar |
+| `min_particles` | 300 | 500 | `amcl.yaml` | Better localization in noisy real conditions |
+| `max_particles` | 2000 | 5000 | `amcl.yaml` | Better initial convergence |
+| `transform_tolerance` | 0.4 s | 0.5–0.8 s | `costmap_common.yaml` | Network latency between machines |
+
+## Common Pitfalls (Real Robot)
+
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| `rosnode list` fails from Pi | `ROS_MASTER_URI`/`ROS_IP` not set | Ensure both env vars are exported; use Ethernet IP only |
+| `rosnode list` shows nodes but `rostopic echo` hangs | `ROS_IP` set to Wi-Fi IP instead of Ethernet | Set `ROS_IP=192.168.50.x` on both machines |
+| `/scan` not publishing | LMS200 serial port wrong or permissions | Check `ls /dev/ttyUSB*`; ensure `chmod 666` or `dialout` group |
+| `/odom` not publishing | P3-AT not connected or wrong serial port | Check `ls /dev/ttyS0 /dev/ttyUSB*`; verify P3-AT is powered on |
+| TF: `odom→base_link` missing | RosAria not started or `publish_aria_tf=false` | Verify `base.launch` has `publish_aria_tf=true` |
+| TF: `base_link→laser` missing | `robot_state_publisher` not running on Jetson | Check Jetson launch output for errors |
+| Navigation aborted immediately | AMCL not yet localized | Use "2D Pose Estimate" in RViz first |
+| Robot oscillates at goal | DWA tolerances too tight | Increase `xy_goal_tolerance` and `yaw_goal_tolerance` |
+| Docker container not `--net=host` | Container was created without `--net=host` | Recreate container with `--net=host` |
+| `roscore` not found in container | ROS not sourced | Add `source /opt/ros/noetic/setup.bash` before commands |
+| RViz cannot display (Jetson) | X11 forwarding not configured | Set `DISPLAY`, mount `/tmp/.X11-unix`, run `xhost +local:docker` on host |
 
 ---
 
@@ -1394,8 +1998,8 @@ source devel/setup.bash  # or setup.zsh
 
 ## Resources
 
+### ROS & Navigation
 - [ROS Noetic Documentation](http://wiki.ros.org/noetic)
-- [Gazebo Tutorials](http://gazebosim.org/tutorials)
 - [GMapping SLAM](http://wiki.ros.org/gmapping)
 - [AMCL Localization](http://wiki.ros.org/amcl)
 - [move_base Navigation](http://wiki.ros.org/move_base)
@@ -1403,12 +2007,28 @@ source devel/setup.bash  # or setup.zsh
 - [NavfnROS Global Planner](http://wiki.ros.org/navfn)
 - [map_server Package](http://wiki.ros.org/map_server)
 - [URDF Tutorial](http://wiki.ros.org/urdf/Tutorials)
-- [depthimage_to_laserscan Package](http://wiki.ros.org/depthimage_to_laserscan) (used on `main` branch)
-- [sicktoolbox_wrapper (LMS200)](http://wiki.ros.org/sicktoolbox_wrapper)
-- [RosAria (P3-AT driver)](http://wiki.ros.org/ROSARIA)
+- [ROS Multi-Machine Setup](http://wiki.ros.org/ROS/Tutorials/MultipleMachines)
 - [REP-103: Coordinate Frames](https://www.ros.org/reps/rep-0103.html)
 - [REP-105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/rep-0105.html)
+
+### Simulation
+- [Gazebo Tutorials](http://gazebosim.org/tutorials)
+- [depthimage_to_laserscan Package](http://wiki.ros.org/depthimage_to_laserscan) (used on `main` branch)
 - [WSL2 GPU Rendering Guide](https://zhuanlan.zhihu.com/p/19575977500)
+
+### Real Robot — Hardware Drivers
+- [sicktoolbox_wrapper (LMS200)](http://wiki.ros.org/sicktoolbox_wrapper)
+- [sicktoolbox_wrapper GitHub](https://github.com/ros-drivers/sicktoolbox_wrapper)
+- [SICK LMS200 Specs](https://www.sick.com/de/en/lidar-sensors/2d-lidar-sensors/lms2xx/c/g91901)
+- [RosAria (P3-AT driver)](http://wiki.ros.org/ROSARIA)
+- [RosAria GitHub](https://github.com/amor-ros-pkg/rosaria)
+- [AriaCoda (ARIA replacement)](https://github.com/reedhedges/AriaCoda)
+- [Orbbec Femto Bolt SDK (ROS1)](https://github.com/orbbec/OrbbecSDK_ROS1)
+
+### Docker & Networking
+- [ROS Docker Images](https://hub.docker.com/_/ros)
+- [Docker Host Networking](https://docs.docker.com/network/host/)
+- [Ubuntu Netplan Configuration](https://netplan.readthedocs.io/)
 
 ---
 
@@ -1433,9 +2053,11 @@ source devel/setup.bash  # or setup.zsh
 - [x] `run_full_pipeline.sh` — one-click two-phase mapping + verification script -- created
 - [x] Real robot launch files (mapping + navigation) -- created, pending hardware test
 - [x] Raspberry Pi base driver package (p3at_base) -- created, pending hardware test
-- [ ] YOLO target detection node -- not started
-- [ ] Multi-machine network configuration scripts -- not started
+- [x] Multi-machine network setup (Jetson + Pi, direct Ethernet, Docker, static IPs) -- documented
+- [x] Multi-machine ROS communication verified (cross-machine topic test)
+- [ ] YOLO target detection node (Orbbec Femto Bolt + YOLO) -- not started
 - [ ] Real hardware parameter tuning -- not started
+- [ ] End-to-end real robot navigation test -- not started
 
 ---
 
@@ -1487,3 +2109,40 @@ Verify everything works after cloning and building:
 - [ ] Report generated: check `maps/amcl_report.txt` and `maps/amcl_report.json` exist
 - [ ] Mean position error < 0.30 m: `grep "Mean position" maps/amcl_report.txt`
 - [ ] Full pipeline script runs end-to-end: `bash run_full_pipeline.sh`
+
+### Real Robot Deployment
+#### Network & Docker
+- [ ] Jetson host: static IP `192.168.50.1` on Ethernet — `ip -br addr show eth0`
+- [ ] Pi host: static IP `192.168.50.2` on Ethernet — `ip -br addr show eth0`
+- [ ] Bidirectional ping: Jetson ↔ Pi via `192.168.50.x`
+- [ ] Jetson Docker container `ros_noetic` uses `--net=host` — `docker inspect -f '{{.HostConfig.NetworkMode}}' ros_noetic`
+- [ ] Pi Docker container `noetic_pi` uses `--net=host` — `docker inspect -f '{{.HostConfig.NetworkMode}}' noetic_pi`
+- [ ] `roscore` running on Jetson container — `ss -lntp | grep 11311`
+- [ ] Pi container can reach master — `/dev/tcp/192.168.50.1/11311` test returns `PORT_OK`
+- [ ] `rosnode list` from Pi returns at least `/rosout`
+- [ ] Cross-machine topic test passes: publish from Jetson, echo on Pi
+
+#### Hardware Devices
+- [ ] LMS200 detected on Jetson: `ls /dev/ttyUSB0` (or appropriate device)
+- [ ] LMS200 serial permissions: `sudo chmod 666 /dev/ttyUSB0` or dialout group
+- [ ] P3-AT detected on Pi: `ls /dev/ttyS0` or `ls /dev/ttyUSB0`
+- [ ] P3-AT serial permissions: user in `dialout` group or `chmod 666`
+
+#### Base Driver (Pi)
+- [ ] `roslaunch p3at_base base.launch` starts without errors
+- [ ] `/odom` publishes: `rostopic hz /odom`
+- [ ] TF `odom→base_link` is active: `rosrun tf tf_echo odom base_link`
+- [ ] `/cmd_vel` is accepted: short teleop test with `teleop_twist_keyboard`
+
+#### Mapping (Jetson)
+- [ ] `roslaunch p3at_lms_navigation real_robot_mapping.launch` starts without errors
+- [ ] `/scan` publishes from LMS200: `rostopic hz /scan` (expect ~75 Hz)
+- [ ] TF `base_link→laser` is active: `rosrun tf tf_echo base_link laser`
+- [ ] Map builds correctly: `rostopic hz /map`
+- [ ] Navigation goal (manual) succeeds
+- [ ] Map saved: `rosrun map_server map_saver -f ...`
+
+#### Navigation (Jetson)
+- [ ] `roslaunch p3at_lms_navigation real_robot_nav.launch map_file:=...` starts without errors
+- [ ] AMCL particle cloud converges after "2D Pose Estimate"
+- [ ] Navigation goal succeeds with AMCL localization
