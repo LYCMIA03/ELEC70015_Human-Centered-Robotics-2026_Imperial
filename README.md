@@ -10,6 +10,8 @@ The repository contains two workspaces:
 - **`catkin_ws/`** — LMS200 LiDAR navigation stack (this branch, documented below)
 - **`ros_ws/`** — Depth camera simulation with `depthimage_to_laserscan` (see `main` branch)
 
+Quick launcher guide: [`doc.md`](doc.md)
+
 ## Table of Contents
 
 - [System Overview](#system-overview)
