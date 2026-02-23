@@ -13,7 +13,7 @@ fi
 UDP_HOST="${UDP_HOST:-127.0.0.1}"
 UDP_PORT="${UDP_PORT:-${TRASH_UDP_PORT:-16031}}"
 UDP_FRAME_ID="${UDP_FRAME_ID:-camera_link}"
-UDP_KIND="${UDP_KIND:-waste}"
+UDP_KIND="${UDP_KIND:-person}"
 UDP_RATE="${UDP_RATE:-10}"
 
 # Jetson local cusparseLt fallback for PyTorch wheels that depend on libcusparseLt.so.0.

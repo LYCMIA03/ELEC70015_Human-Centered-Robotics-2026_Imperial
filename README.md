@@ -12,6 +12,67 @@ The repository contains two workspaces:
 
 Quick launcher guide: [`doc.md`](doc.md)
 
+## Demo v1 Guide (Current Branch)
+
+For `release/demo-v1`, use this three-part structure:
+
+1. Navigation + Raspberry Pi communication (ROS1 multi-machine)
+2. Trash detection (non-ROS host inference) + UDP bridge into ROS1 Docker
+3. Lidar-only part (TBD for this branch)
+
+Practical runbook is maintained in `doc.md`: [`doc.md`](doc.md)
+
+Key notes:
+- ROS master uses port `11311`.
+- Trash detection bridge uses UDP `TRASH_UDP_PORT` (default `16031`) from `scripts/deploy.env`.
+- Detection and navigation can run on the same branch, but in different runtimes (host + Docker).
+
+### Demo v1 Node Tree
+
+Current runtime split (`release/demo-v1`):
+- Host: only trash detection inference (non-ROS)
+- Docker: all ROS nodes
+
+```text
+Host (non-ROS)
+└── predict_15cls_rgbd.py
+    └── UDP JSON -> 127.0.0.1:${TRASH_UDP_PORT}  (default 16031)
+
+Docker (ROS1 Noetic)
+├── roscore / rosmaster
+├── sicklms (LMS200 driver)  [real robot]
+├── robot_state_publisher
+├── map_server + amcl        [nav mode]
+├── slam_gmapping            [mapping mode]
+├── move_base
+├── udp_target_bridge
+│   └── publishes /trash_detection/target_point (PointStamped)
+├── point_to_target_pose
+│   ├── subscribes /trash_detection/target_point
+│   └── publishes  /target_pose (PoseStamped)
+└── target_follower
+    ├── subscribes /target_pose
+    └── sends MoveBaseGoal to move_base (action)
+
+Raspberry Pi (external, real robot base)
+└── p3at_base/base.launch
+    ├── RosAria
+    │   ├── subscribes /cmd_vel
+    │   └── publishes  /RosAria/pose (odometry)
+    └── odom_republisher.py
+        ├── subscribes /RosAria/pose
+        └── publishes  /odom
+```
+
+Key topic/action flow:
+```text
+Host detector (UDP) -> /udp_target_bridge -> /trash_detection/target_point
+-> /point_to_target_pose -> /target_pose -> /target_follower -> /move_base (action)
+-> /cmd_vel -> RosAria (Raspberry Pi Base) -> /RosAria/pose -> /odom
+```
+
+If Raspberry Pi base is not connected/running, `/odom` may be missing in real-robot mode.
+
 ## Table of Contents
 
 - [System Overview](#system-overview)

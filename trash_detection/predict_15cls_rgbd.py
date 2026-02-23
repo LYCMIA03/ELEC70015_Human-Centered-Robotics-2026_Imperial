@@ -414,7 +414,7 @@ def main():
     p.add_argument("--udp-host", default="127.0.0.1", help="UDP 目标 host，默认 127.0.0.1")
     p.add_argument("--udp-port", type=int, default=16031, help="UDP 目标端口，默认 16031（与 ROS master 11311 分离）")
     p.add_argument("--udp-frame-id", default="camera_link", help="发送时使用的 frame_id，默认 camera_link")
-    p.add_argument("--udp-kind", choices=["waste", "person", "auto"], default="waste", help="发送对象：waste/person/auto(优先 waste)")
+    p.add_argument("--udp-kind", choices=["waste", "person", "auto"], default="person", help="发送对象：waste/person/auto(优先 waste)")
     p.add_argument("--udp-rate", type=float, default=10.0, help="UDP 最大发送频率(Hz)，默认 10")
     args = p.parse_args()
 
