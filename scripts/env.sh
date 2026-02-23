@@ -31,6 +31,7 @@ fi
 JETSON_IP="${JETSON_IP:-127.0.0.1}"
 RASPI_IP="${RASPI_IP:-127.0.0.1}"
 LAPTOP_IP="${LAPTOP_IP:-127.0.0.1}"
+TRASH_UDP_PORT="${TRASH_UDP_PORT:-16031}"
 
 if [[ -z "${ROLE}" ]]; then
   echo "[env] Missing role. Use one of: jetson | raspi | laptop"
@@ -74,8 +75,10 @@ esac
 
 export ROS_MASTER_URI="http://${MASTER_IP}:11311"
 export ROS_IP="${SELF_IP}"
+export TRASH_UDP_PORT
 unset ROS_HOSTNAME
 
 echo "[env] role=${ROLE} master_host=${MASTER_HOST}"
 echo "[env] ROS_MASTER_URI=${ROS_MASTER_URI}"
 echo "[env] ROS_IP=${ROS_IP}"
+echo "[env] TRASH_UDP_PORT=${TRASH_UDP_PORT}"

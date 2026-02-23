@@ -9,7 +9,7 @@ from geometry_msgs.msg import PointStamped
 class UdpTargetBridge:
     def __init__(self):
         self.bind_host = rospy.get_param("~bind_host", "0.0.0.0")
-        self.bind_port = int(rospy.get_param("~bind_port", 15001))
+        self.bind_port = int(rospy.get_param("~bind_port", 16031))
         self.out_topic = rospy.get_param("~out_topic", "/trash_detection/target_point")
         self.default_frame = rospy.get_param("~default_frame", "camera_link")
         self.stamp_now = bool(rospy.get_param("~stamp_now", True))

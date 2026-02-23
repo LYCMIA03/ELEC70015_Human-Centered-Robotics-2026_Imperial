@@ -1,38 +1,63 @@
 # -*- coding: utf-8 -*-
 """
-15 类垃圾检测 + RGB-D 相机（Orbbec Femto Bolt / K4A Wrapper）。
+15 类垃圾检测 + RGB-D 相机（Orbbec SDK v2 / pyorbbecsdk）。
 
 与 predict_15cls 相同：Metal 类别 bias、agnostic_nms=False（多类别框可重叠）。
 输入为 RGB-D 的彩色流；可选在框上显示深度距离、另开窗口显示深度图。
 
-前置：K4A_DLL_DIR 指向 Orbbec bin；pip install pyk4a opencv-python numpy ultralytics
+前置：pip install pyorbbecsdk opencv-python numpy ultralytics（Jetson/Linux 需先装 udev 规则）。
 运行（在 trash_detection 或 ELEC70015 根目录）：
-  $env:K4A_DLL_DIR = "F:\year4\HCRYOLO\OrbbecSDK_K4A_Wrapper_...\bin"
   python trash_detection/predict_15cls_rgbd.py
   python trash_detection/predict_15cls_rgbd.py --no-depth-window   # 不显示深度窗口
   python trash_detection/predict_15cls_rgbd.py --max-depth 3      # 只显示 3m 内并标距离
-  python trash_detection/predict_15cls_rgbd.py --color-res 1080p # 彩色流改为 1080p（若设备不支持 1440p）
-  python trash_detection/predict_15cls_rgbd.py --nearest-person  # 每帧输出「离最近垃圾最近的人」的 XYZ（米）
+  python trash_detection/predict_15cls_rgbd.py --color-res 1080p # 彩色流 1080p（多数 Orbbec 支持）
+  python trash_detection/predict_15cls_rgbd.py --nearest-person   # 每帧输出「离最近垃圾最近的人」的 XYZ（米）
   --nearest-person 时：15 类模型禁用 Human，人由 YOLOv8 预训练模型(yolov8m.pt)检测并用于跟随。
   重叠框：agnostic_nms=False 且默认 iou=0.65，重叠的垃圾/人框更易保留。
 """
 import argparse
+import json
+import os
+import socket
 import sys
 import time
 from pathlib import Path
 
+# Jetson 上可缓解 CUDA 分配器 NVML 断言失败（在 import torch 之前设置）
+if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "backend:native"
+
 import numpy as np
 import cv2
+import torch
 
 try:
-    from pyk4a import PyK4A
-    from pyk4a.config import Config, ColorResolution
+    from pyorbbecsdk import (
+        Pipeline, Config, OBSensorType, OBFormat, OBError,
+        OBStreamType, OBFrameAggregateOutputMode, AlignFilter,
+        FormatConvertFilter, OBConvertFormat,
+    )
 except (ModuleNotFoundError, ImportError) as e:
-    print("未找到 pyk4a:", e)
+    print("未找到 pyorbbecsdk:", e)
     sys.exit(1)
 
 from ultralytics import YOLO
 from ultralytics.models.yolo.detect.predict import DetectionPredictor
+from ultralytics.utils.nms import TorchNMS
+
+# Jetson 上 torchvision 与 PyTorch 的 C++ 扩展不兼容时，nms 会报 "Couldn't load custom C++ ops"
+# 对 torchvision.ops.nms 做回退：失败则用 ultralytics 自带的 TorchNMS.nms
+try:
+    import torchvision.ops as _tv_ops
+    _orig_tv_nms = _tv_ops.nms
+    def _nms_fallback(boxes, scores, iou_threshold):
+        try:
+            return _orig_tv_nms(boxes, scores, iou_threshold)
+        except RuntimeError:
+            return TorchNMS.nms(boxes, scores, iou_threshold)
+    _tv_ops.nms = _nms_fallback
+except Exception:
+    pass
 
 # 与 predict_15cls 一致
 ROOT = Path(__file__).resolve().parent
@@ -47,13 +72,13 @@ CLASS_NAMES_15 = [
     "Pear", "Vegetable", "Human",
 ]
 
-# 彩色流分辨率与 pyk4a 枚举对应
+# 彩色流分辨率 (width, height) for pyorbbecsdk
 COLOR_RES_MAP = {
-    "720p": ColorResolution.RES_720P,   # 1280x720
-    "1080p": ColorResolution.RES_1080P,  # 1920x1080
-    "1440p": ColorResolution.RES_1440P,  # 2560x1440
+    "720p": (1280, 720),
+    "1080p": (1920, 1080),
+    "1440p": (2560, 1440),
 }
-# 深度图内参（K4A/Orbbec 深度分辨率可能与彩色不同）
+# 深度图内参（Orbbec 深度分辨率可能与彩色不同，可按相机标定修改）
 DEPTH_FX, DEPTH_FY = 500.0, 500.0
 DEPTH_CX, DEPTH_CY = 319.5, 287.5
 
@@ -65,6 +90,70 @@ PERSON_MODEL_DEFAULT = "yolov8m.pt"
 COCO_PERSON_CLASS_ID = 0
 # NMS IoU 阈值：调高后重叠的框更不易被抑制，便于识别“与人/物重叠”的垃圾
 NMS_IOU_OVERLAP = 0.65
+
+
+class UdpTargetSender:
+    def __init__(self, host, port, frame_id, source, max_rate_hz):
+        self.host = host
+        self.port = int(port)
+        self.frame_id = frame_id
+        self.source = source
+        self.min_dt = 1.0 / max(max_rate_hz, 0.1)
+        self.last_sent_t = 0.0
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    def send_xyz(self, xyz, kind):
+        if xyz is None:
+            return False
+        now = time.time()
+        if now - self.last_sent_t < self.min_dt:
+            return False
+        payload = {
+            "stamp": now,
+            "frame_id": self.frame_id,
+            "x": float(xyz[0]),
+            "y": float(xyz[1]),
+            "z": float(xyz[2]),
+            "source": self.source,
+            "kind": kind,
+        }
+        data = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+        self.sock.sendto(data, (self.host, self.port))
+        self.last_sent_t = now
+        return True
+
+
+def _color_frame_to_bgr(color_frame):
+    """Orbbec 彩色帧 -> BGR numpy (H, W, 3) uint8。"""
+    if color_frame is None:
+        return None
+    h, w = color_frame.get_height(), color_frame.get_width()
+    data = np.asarray(color_frame.get_data())
+    fmt = color_frame.get_format()
+    if fmt == OBFormat.RGB:
+        img = data.reshape(h, w, 3)
+        return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    if fmt == OBFormat.BGR:
+        return data.reshape(h, w, 3).copy()
+    if fmt == OBFormat.MJPG:
+        return cv2.imdecode(data, cv2.IMREAD_COLOR)
+    # 其他格式用 FormatConvertFilter 转 RGB 再转 BGR
+    conv_map = {
+        OBFormat.I420: OBConvertFormat.I420_TO_RGB888,
+        OBFormat.YUYV: OBConvertFormat.YUYV_TO_RGB888,
+        OBFormat.NV12: OBConvertFormat.NV12_TO_RGB888,
+        OBFormat.NV21: OBConvertFormat.NV21_TO_RGB888,
+        OBFormat.UYVY: OBConvertFormat.UYVY_TO_RGB888,
+    }
+    if fmt not in conv_map:
+        return None
+    flt = FormatConvertFilter()
+    flt.set_format_convert_format(conv_map[fmt])
+    rgb = flt.process(color_frame)
+    if rgb is None:
+        return None
+    img = np.asarray(rgb.get_data()).reshape(rgb.get_height(), rgb.get_width(), 3)
+    return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
 
 def get_class_names(model):
@@ -318,6 +407,15 @@ def main():
     p.add_argument("--nearest-person", action="store_true", help="每帧输出「离最近垃圾最近的人」的 XYZ；人用 YOLOv8 预训练检测")
     p.add_argument("--nearest-range", type=float, default=5.0, help="参与最近垃圾/人的深度范围(m)，默认 5")
     p.add_argument("--person-weights", default=PERSON_MODEL_DEFAULT, help="检测人用的 YOLO 权重，默认 yolov8m.pt（COCO person）")
+    p.add_argument("--print-xyz", action="store_true", help="每帧在终端打印最近垃圾/人的 XYZ（适合 SSH 无界面）")
+    p.add_argument("--headless", action="store_true", help="无界面模式：不弹窗，仅推理并打印 XYZ，用 Ctrl+C 退出（适合 SSH）")
+    p.add_argument("--device", choices=["cuda", "cpu", "auto"], default="auto", help="YOLO 推理设备：cuda/cpu/auto，默认 auto（有 GPU 用 cuda）")
+    p.add_argument("--udp-enable", action="store_true", help="启用 UDP JSON 发送 XYZ（用于对接 Docker 内 udp_target_bridge）")
+    p.add_argument("--udp-host", default="127.0.0.1", help="UDP 目标 host，默认 127.0.0.1")
+    p.add_argument("--udp-port", type=int, default=16031, help="UDP 目标端口，默认 16031（与 ROS master 11311 分离）")
+    p.add_argument("--udp-frame-id", default="camera_link", help="发送时使用的 frame_id，默认 camera_link")
+    p.add_argument("--udp-kind", choices=["waste", "person", "auto"], default="waste", help="发送对象：waste/person/auto(优先 waste)")
+    p.add_argument("--udp-rate", type=float, default=10.0, help="UDP 最大发送频率(Hz)，默认 10")
     args = p.parse_args()
 
     weights = Path(args.weights)
@@ -331,7 +429,15 @@ def main():
             return 1
     weights = str(weights)
 
+    # 显式选择设备：--device auto 时有 CUDA 用 GPU，否则 CPU；可传 --device cuda/cpu 覆盖
+    if getattr(args, "device", "auto") == "auto":
+        yolo_device = "cuda" if torch.cuda.is_available() else "cpu"
+    else:
+        yolo_device = args.device
+    print("YOLO 推理设备:", yolo_device, "(CUDA 可用)" if (yolo_device == "cuda" and torch.cuda.is_available()) else "")
+
     model = YOLO(weights)
+
     class_names = get_class_names(model)
     if isinstance(class_names, dict):
         n = max(class_names.keys()) + 1 if class_names else 0
@@ -350,70 +456,113 @@ def main():
     if getattr(args, "nearest_person", False):
         person_weights = getattr(args, "person_weights", PERSON_MODEL_DEFAULT)
         person_model = YOLO(person_weights)
-        print("人检测模型: %s (COCO class 0 = person)" % person_weights)
+        print("人检测模型: %s (COCO class 0 = person)，使用设备: %s" % (person_weights, yolo_device))
+
+    # CUDA 时在开相机前先做一次小图推理，预占 GPU 显存，减轻与 Orbbec/深度管线争用导致的分配器错误
+    if yolo_device == "cuda":
+        dummy = np.zeros((480, 640, 3), dtype=np.uint8)
+        model.predict(dummy, imgsz=min(640, args.imgsz), verbose=False, device=yolo_device)
+        if person_model is not None:
+            person_model.predict(dummy, imgsz=min(640, args.imgsz), verbose=False, device=yolo_device)
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        print("YOLO CUDA 预热完成")
 
     max_depth_mm = int(args.max_depth * 1000) if args.max_depth is not None else None
 
-    color_res = COLOR_RES_MAP.get(args.color_res, ColorResolution.RES_1440P)
-    k4a_config = Config(color_resolution=color_res)
-    k4a = PyK4A(config=k4a_config)
+    # Orbbec 相机：彩色 + 深度，对齐到彩色
+    res_wh = COLOR_RES_MAP.get(args.color_res, (1920, 1080))
+    cw, ch = res_wh[0], res_wh[1]
+    pipeline = Pipeline()
+    config = Config()
     try:
-        k4a.start()
+        profile_list = pipeline.get_stream_profile_list(OBSensorType.COLOR_SENSOR)
+        try:
+            color_profile = profile_list.get_video_stream_profile(cw, ch, OBFormat.RGB, 30)
+        except OBError:
+            color_profile = profile_list.get_default_video_stream_profile()
+            print("使用默认彩色 profile:", color_profile)
+        config.enable_stream(color_profile)
+        depth_list = pipeline.get_stream_profile_list(OBSensorType.DEPTH_SENSOR)
+        config.enable_stream(depth_list.get_default_video_stream_profile())
+        config.set_frame_aggregate_output_mode(OBFrameAggregateOutputMode.FULL_FRAME_REQUIRE)
+    except Exception as e:
+        print("配置 RGB-D 流失败:", type(e).__name__, e)
+        return 1
+    try:
+        pipeline.start(config)
     except Exception as e:
         print("启动 RGB-D 相机失败:", type(e).__name__, e)
-        print("若设备不支持 1440p，可尝试: --color-res 1080p 或 --color-res 720p")
+        print("若设备不支持当前分辨率，可尝试: --color-res 1080p 或 --color-res 720p")
         return 1
+    align_filter = AlignFilter(align_to_stream=OBStreamType.COLOR_STREAM)
+    time.sleep(1.5)  # 等深度流稳定
 
-    print("RGB-D 已开（彩色 %s），按 q 退出。" % args.color_res)
-    if getattr(args, "nearest_person", False):
+    headless = getattr(args, "headless", False)
+    print("RGB-D 已开（彩色 %s），%s" % (args.color_res, "Ctrl+C 退出（无界面）" if headless else "按 q 退出。"))
+    if getattr(args, "nearest_person", False) and not headless:
         print("  [L] 锁定当前选中的垃圾与人并同时跟随；[U] 解锁")
+    sender = None
+    if getattr(args, "udp_enable", False):
+        sender = UdpTargetSender(
+            host=args.udp_host,
+            port=args.udp_port,
+            frame_id=args.udp_frame_id,
+            source="trash_detection_rgbd",
+            max_rate_hz=args.udp_rate,
+        )
+        print(
+            "UDP 发送已启用: %s:%s frame_id=%s kind=%s rate<=%.1fHz"
+            % (args.udp_host, args.udp_port, args.udp_frame_id, args.udp_kind, args.udp_rate)
+        )
     time.sleep(1)
     win_color = "15cls Waste (RGB-D)"
     win_depth = "Depth"
-    cv2.namedWindow(win_color, cv2.WINDOW_NORMAL)
-    if not args.no_depth_window:
-        cv2.namedWindow(win_depth, cv2.WINDOW_NORMAL)
+    if not headless:
+        cv2.namedWindow(win_color, cv2.WINDOW_NORMAL)
+        if not args.no_depth_window:
+            cv2.namedWindow(win_depth, cv2.WINDOW_NORMAL)
 
     locked_person_xyz = None
     locked_waste_xyz = None
     follow_max_m = 2.0
 
+    # FPS 统计：每秒打印一次 循环 FPS 与 YOLO 推理 FPS
+    fps_interval_start = time.perf_counter()
+    fps_frame_count = 0
+    yolo_time_sum = 0.0
+
     try:
         while True:
-            capture = None
-            try:
-                capture = k4a.get_capture()
-            except Exception:
-                if cv2.waitKey(1) & 0xFF == ord("q"):
+            frames = None
+            for _ in range(15):
+                frames = pipeline.wait_for_frames(500)
+                if frames and frames.get_color_frame() and frames.get_depth_frame():
                     break
-                continue
-            if capture is None:
-                if cv2.waitKey(1) & 0xFF == ord("q"):
+            if frames is None:
+                if not headless and (cv2.waitKey(1) & 0xFF) == ord("q"):
                     break
+                if headless:
+                    time.sleep(0.02)
                 continue
-
-            color_img = None
+            frames = align_filter.process(frames)
+            if frames is not None:
+                frames = frames.as_frame_set()
+            color_frame = frames.get_color_frame() if frames else None
+            depth_frame = frames.get_depth_frame() if frames else None
+            color_img = _color_frame_to_bgr(color_frame) if color_frame else None
             depth_copy = None
-            try:
-                c = capture.color
-                if c is not None and c.size > 0:
-                    arr = np.asarray(c)
-                    if arr.ndim == 3 and arr.shape[2] == 4:
-                        color_img = cv2.cvtColor(arr.astype(np.uint8), cv2.COLOR_BGRA2BGR)
-                    else:
-                        color_img = np.asarray(c).copy()
-            except Exception:
-                pass
-            try:
-                d = capture.depth
-                if d is not None and np.asarray(d).size > 0:
-                    depth_copy = np.asarray(d, dtype=np.uint16).copy()
-            except Exception:
-                pass
+            if depth_frame is not None:
+                scale = depth_frame.get_depth_scale()
+                d = np.frombuffer(depth_frame.get_data(), dtype=np.uint16).reshape(
+                    (depth_frame.get_height(), depth_frame.get_width()))
+                depth_copy = (d.astype(np.float32) * scale).astype(np.uint16)  # mm
 
             if color_img is None:
-                if cv2.waitKey(1) & 0xFF == ord("q"):
+                if not headless and (cv2.waitKey(1) & 0xFF) == ord("q"):
                     break
+                if headless:
+                    time.sleep(0.02)
                 continue
 
             dh, dw = (depth_copy.shape[0], depth_copy.shape[1]) if depth_copy is not None and depth_copy.ndim == 2 else (color_img.shape[0], color_img.shape[1])
@@ -423,29 +572,48 @@ def main():
                 frame = color_img.copy()
 
             nms_iou = getattr(args, "iou", NMS_IOU_OVERLAP)
-            results_waste = model.predict(
-                frame,
-                conf=args.conf,
-                imgsz=args.imgsz,
-                iou=nms_iou,
-                agnostic_nms=agnostic_nms,
-                classes=trash_class_ids,
-                verbose=False,
-            )[0]
-            results_person = None
-            if person_model is not None:
-                results_person = person_model.predict(
-                    frame, conf=args.conf, imgsz=args.imgsz, iou=nms_iou, classes=[COCO_PERSON_CLASS_ID],
-                    verbose=False,
-                )[0]
+            t_yolo_start = time.perf_counter()
+            # Jetson 上 CUDA 分配器有时会间歇性 NVML 断言，同帧重试几次往往能通过
+            max_yolo_retries = 3 if yolo_device == "cuda" else 1
+            for _yolo_attempt in range(max_yolo_retries):
+                try:
+                    results_waste = model.predict(
+                        frame,
+                        conf=args.conf,
+                        imgsz=args.imgsz,
+                        iou=nms_iou,
+                        agnostic_nms=agnostic_nms,
+                        classes=trash_class_ids,
+                        verbose=False,
+                        device=yolo_device,
+                    )[0]
+                    results_person = None
+                    if person_model is not None:
+                        results_person = person_model.predict(
+                            frame, conf=args.conf, imgsz=args.imgsz, iou=nms_iou, classes=[COCO_PERSON_CLASS_ID],
+                            verbose=False,
+                            device=yolo_device,
+                        )[0]
+                    break
+                except RuntimeError as e:
+                    err_msg = str(e)
+                    if _yolo_attempt < max_yolo_retries - 1 and yolo_device == "cuda" and ("CUDACachingAllocator" in err_msg or "NVML" in err_msg):
+                        time.sleep(0.15 * (_yolo_attempt + 1))
+                        continue
+                    raise
+            yolo_time_sum += time.perf_counter() - t_yolo_start
 
             draw_all_boxes = True
+            send_waste_xyz = None
+            send_person_xyz = None
             if getattr(args, "nearest_person", False) and depth_copy is not None and depth_copy.ndim == 2:
                 max_range_mm = int(getattr(args, "nearest_range", 5.0) * 1000)
                 waste_xyz, person_xyz, all_persons, all_wastes = get_nearest_waste_and_person_xyz_from_two_models(
                     results_waste, results_person, names_list, depth_copy, dh, dw, args.conf, max_range_mm
                 )
-                key = cv2.waitKey(1) & 0xFF
+                send_waste_xyz = waste_xyz
+                send_person_xyz = person_xyz
+                key = (cv2.waitKey(1) & 0xFF) if not headless else 0
                 if key == ord("u"):
                     locked_person_xyz = None
                     locked_waste_xyz = None
@@ -463,6 +631,7 @@ def main():
                         wbox, wxyz = follow_locked_target(all_wastes, locked_waste_xyz, follow_max_m) if all_wastes else (None, None)
                         if wbox is not None and wxyz is not None:
                             locked_waste_xyz = wxyz
+                            send_waste_xyz = wxyz
                             x1, y1, x2, y2 = int(wbox[0]), int(wbox[1]), int(wbox[2]), int(wbox[3])
                             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 255), 3)
                             cv2.putText(frame, "LOCKED waste", (x1, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
@@ -478,6 +647,7 @@ def main():
                         pbox, pxyz = follow_locked_person(all_persons, locked_person_xyz, follow_max_m) if all_persons else (None, None)
                         if pbox is not None and pxyz is not None:
                             locked_person_xyz = pxyz
+                            send_person_xyz = pxyz
                             x1, y1, x2, y2 = int(pbox[0]), int(pbox[1]), int(pbox[2]), int(pbox[3])
                             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 0), 3)
                             cv2.putText(frame, "LOCKED person", (x1, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
@@ -507,8 +677,35 @@ def main():
                     if person_xyz is not None:
                         cv2.putText(frame, "Person XYZ: %.2f, %.2f, %.2f m  [L]ock" % (person_xyz[0], person_xyz[1], person_xyz[2]), (10, line_y),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+                    # SSH 下在终端打印 XYZ
+                    if getattr(args, "print_xyz", False):
+                        if waste_xyz is not None:
+                            print("Waste XYZ: X=%.3f  Y=%.3f  Z=%.3f m" % (waste_xyz[0], waste_xyz[1], waste_xyz[2]), flush=True)
+                        if person_xyz is not None:
+                            print("Person XYZ: X=%.3f  Y=%.3f  Z=%.3f m" % (person_xyz[0], person_xyz[1], person_xyz[2]), flush=True)
             else:
-                key = cv2.waitKey(1) & 0xFF
+                # 非 nearest-person 模式也可发送“最近垃圾”的 XYZ
+                if depth_copy is not None and depth_copy.ndim == 2:
+                    waste_xyz, _, _, _ = get_nearest_waste_and_person_xyz(
+                        results_waste, names_list, depth_copy, dh, dw, args.conf, int(getattr(args, "nearest_range", 5.0) * 1000)
+                    )
+                    send_waste_xyz = waste_xyz
+                key = (cv2.waitKey(1) & 0xFF) if not headless else 0
+
+            if sender is not None:
+                udp_kind = getattr(args, "udp_kind", "waste")
+                chosen_kind = None
+                chosen_xyz = None
+                if udp_kind == "waste":
+                    chosen_kind, chosen_xyz = "waste", send_waste_xyz
+                elif udp_kind == "person":
+                    chosen_kind, chosen_xyz = "person", send_person_xyz
+                else:  # auto
+                    if send_waste_xyz is not None:
+                        chosen_kind, chosen_xyz = "waste", send_waste_xyz
+                    else:
+                        chosen_kind, chosen_xyz = "person", send_person_xyz
+                sender.send_xyz(chosen_xyz, chosen_kind)
             if draw_all_boxes:
                 frame = draw_results(
                     frame, results_waste, names_list, hide_human=False, conf_threshold=args.conf,
@@ -516,21 +713,36 @@ def main():
                 )
                 if person_model is not None:
                     frame = draw_person_boxes(frame, results_person, args.conf, color=(255, 255, 0))
-            cv2.imshow(win_color, frame)
-            if not args.no_depth_window and depth_copy is not None and depth_copy.ndim == 2:
-                vis = depth_vis(depth_copy)
-                if vis is not None:
-                    cv2.imshow(win_depth, vis)
-            if key == ord("q"):
+            fps_frame_count += 1
+            elapsed_sec = time.perf_counter() - fps_interval_start
+            if elapsed_sec >= 1.0 and fps_frame_count > 0:
+                loop_fps = fps_frame_count / elapsed_sec
+                avg_yolo_s = yolo_time_sum / fps_frame_count
+                yolo_fps = 1.0 / avg_yolo_s if avg_yolo_s > 0 else 0.0
+                print("FPS: %.1f (循环) | YOLO: %.1f fps (推理)" % (loop_fps, yolo_fps), flush=True)
+                fps_interval_start = time.perf_counter()
+                fps_frame_count = 0
+                yolo_time_sum = 0.0
+
+            if not headless:
+                cv2.imshow(win_color, frame)
+                if not args.no_depth_window and depth_copy is not None and depth_copy.ndim == 2:
+                    vis = depth_vis(depth_copy)
+                    if vis is not None:
+                        cv2.imshow(win_depth, vis)
+            elif headless:
+                time.sleep(0.03)
+            if not headless and key == ord("q"):
                 break
     except KeyboardInterrupt:
         pass
     finally:
         try:
-            k4a.stop()
+            pipeline.stop()
         except Exception:
             pass
-        cv2.destroyAllWindows()
+        if not headless:
+            cv2.destroyAllWindows()
     return 0
 
 

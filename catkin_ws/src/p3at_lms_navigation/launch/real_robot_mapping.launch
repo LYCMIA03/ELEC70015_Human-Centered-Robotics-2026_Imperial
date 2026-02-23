@@ -19,7 +19,7 @@
   <arg name="use_rviz_goal_relay" default="false"/>
   <arg name="use_udp_target_bridge" default="false"/>
   <arg name="udp_bind_host" default="0.0.0.0"/>
-  <arg name="udp_bind_port" default="15001"/>
+  <arg name="udp_bind_port" default="16031"/>
   <arg name="udp_default_frame" default="camera_link"/>
   <arg name="use_mock_detector" default="false"/>
   <arg name="use_point_target_bridge" default="$(arg use_udp_target_bridge)"/>

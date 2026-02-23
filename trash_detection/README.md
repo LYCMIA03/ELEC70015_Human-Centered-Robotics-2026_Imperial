@@ -65,6 +65,76 @@ pip install -r requirements.txt
 
 人检测使用 YOLOv8 预训练（默认 `yolov8m.pt`），首次运行时会由 ultralytics 自动下载，无需单独下载。
 
+### 2.1 Jetson 上使用 GPU（PyTorch CUDA）
+
+若在 **Jetson（JetPack 6.x）** 上运行，`pip install torch` 装的是 CPU 版，需改用 NVIDIA 官方带 CUDA 的 wheel 才能让 YOLO 用 GPU：
+
+```bash
+# 先装系统依赖（若未装）
+sudo apt-get -y update
+sudo apt-get install -y python3-pip libopenblas-dev
+
+# 卸掉当前 CPU 版 PyTorch
+pip3 uninstall -y torch
+
+# 安装 NVIDIA 提供的 PyTorch CUDA wheel（JetPack 6.1/6.2，Python 3.10）
+pip3 install --no-cache-dir https://developer.download.nvidia.com/compute/redist/jp/v61/pytorch/torch-2.5.0a0+872d972e41.nv24.08.17622132-cp310-cp310-linux_aarch64.whl
+```
+
+若导入 torch 报错 **`libcusparseLt.so.0: cannot open shared object file`**，需先安装 cuSPARSELt（NVIDIA 单独提供）。
+
+**方式 A（推荐，无需 sudo）**：下载后解压到用户目录，并用 `LD_LIBRARY_PATH` 指向其 `lib`：
+
+```bash
+cd /tmp
+wget https://developer.download.nvidia.com/compute/cusparselt/redist/libcusparse_lt/linux-aarch64/libcusparse_lt-linux-aarch64-0.8.1.1_cuda12-archive.tar.xz
+tar xf libcusparse_lt-linux-aarch64-0.8.1.1_cuda12-archive.tar.xz
+mkdir -p ~/.local/cusparselt
+cp -P libcusparse_lt-linux-aarch64-0.8.1.1_cuda12-archive/lib/* ~/.local/cusparselt/
+echo 'export LD_LIBRARY_PATH="$HOME/.local/cusparselt:$LD_LIBRARY_PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**方式 B（系统路径，需 sudo）**：
+
+```bash
+cd /tmp
+# 若未下载：wget ... 与 tar xf ...（同上）
+sudo cp -P libcusparse_lt-linux-aarch64-0.8.1.1_cuda12-archive/lib/* /usr/local/cuda-12.6/targets/aarch64-linux/lib/
+sudo ldconfig
+```
+
+安装后验证：`python3 -c "import torch; print('CUDA:', torch.cuda.is_available())"` 应输出 `CUDA: True`。
+
+**说明（Jetson + 上述 wheel）**：  
+- **torchvision**：PyPI 的 torchvision 0.20/0.25 与 Jetson 专用 torch 2.5.0a0 在 C++ 扩展上不兼容（会报 `operator torchvision::nms does not exist`）。请安装 **torchvision 0.15.2** 并与 Jetson wheel 搭配使用：`pip3 install 'torchvision==0.15.2' --no-deps`（pip 会提示版本不兼容，可忽略；ultralytics YOLO 可正常用）。  
+- **NumPy**：若出现 NumPy 2.x 与 torch 不兼容的警告或报错，可执行 `pip3 install 'numpy<2'`。  
+- **NVML / CUDACachingAllocator 报错（间歇性）**：Jetson 上该错误有时出现、有时不出现。脚本已做：(1) 开相机前 YOLO CUDA 预热；(2) 每帧若遇此错误会**自动重试最多 3 次**（仍用 CUDA），多数情况下重试即可通过。若仍频繁崩溃可设 `PYTORCH_CUDA_ALLOC_CONF=backend:native` 或减小 `--imgsz`（如 640）。  
+更多版本见 [NVIDIA 文档](https://docs.nvidia.com/deeplearning/frameworks/install-pytorch-jetson-platform-release-notes/pytorch-jetson-rel.html)。
+
+### 2.2 让 torchvision 与 Jetson PyTorch 真正兼容（可选）
+
+当前脚本已对 `torchvision.ops.nms` 做了回退（失败时用 ultralytics 自带的 NMS），因此用 **torchvision 0.15.2** 即可正常运行。若希望**彻底兼容**、去掉版本警告和 C++ 扩展加载失败，可在 Jetson 上**从源码编译**与已装 PyTorch 2.5.0a0 匹配的 torchvision（需约 20–40 分钟）：
+
+```bash
+# 依赖（若未装）
+sudo apt-get install -y git cmake ninja-build libjpeg-dev zlib1g-dev
+
+# 卸载当前 torchvision，避免与即将编译的冲突
+pip3 uninstall -y torchvision
+
+# 克隆与 PyTorch 2.5 对应的 torchvision 0.20 并编译（Jetson 建议单线程，避免内存不足）
+cd /tmp
+git clone --depth 1 --branch v0.20.0 https://github.com/pytorch/vision.git
+cd vision
+export FORCE_CUDA=1
+MAX_JOBS=1 pip3 install . --no-build-isolation
+cd ..
+rm -rf vision
+```
+
+编译完成后执行 `python3 -c "import torchvision; print(torchvision.__version__); torchvision.ops.nms(torch.rand(2,4), torch.rand(2), 0.5)"` 若无报错即表示兼容。之后可去掉脚本里对 `torchvision.ops.nms` 的回退补丁（若你希望完全依赖系统 torchvision）。
+
 ---
 
 ## 3. 使用方法
@@ -112,6 +182,34 @@ python predict_15cls_rgbd.py --nearest-person --person-weights yolov8m.pt  # 人
 
 - **L**：锁定当前「最近垃圾」与「离该垃圾最近的人」，之后每帧只画并跟随这两个框，输出其 XYZ。
 - **U**：解锁，恢复为每帧重新选最近垃圾与最近人。
+
+### 3.3 非 ROS 推理 + Docker ROS 桥接（推荐 Jetson + Noetic 容器）
+
+`predict_15cls_rgbd.py` 可直接通过 UDP 发送 XYZ（不依赖 ROS）：
+
+```bash
+python trash_detection/predict_15cls_rgbd.py \
+  --nearest-person --print-xyz --headless \
+  --udp-enable --udp-host 127.0.0.1 --udp-port 16031 \
+  --udp-frame-id camera_link --udp-kind waste
+```
+
+也可用封装脚本：
+
+```bash
+./scripts/start_trash_detection_rgbd.sh
+```
+
+默认发送 JSON 字段：`stamp, frame_id, x, y, z, source, kind`。
+
+Docker(Noetic) 侧使用 `target_follower/udp_target_bridge.py` 接收 UDP 并发布：
+
+- 输入：UDP `127.0.0.1:16031`（默认）
+- 输出：`/trash_detection/target_point` (`geometry_msgs/PointStamped`)
+
+再通过 `point_to_target_pose.py` 转成 `/target_pose`，交给 `target_follower.py`。
+
+> 端口 `16031` 与 ROS master `11311` 完全独立，不会冲突。
 
 ---
 
