@@ -17,7 +17,7 @@
 
   <arg name="gui" default="true"/>
   <arg name="exploration_timeout" default="600"/>
-  <arg name="min_frontier_size" default="8"/>
+  <arg name="min_frontier_size" default="3"/>
   <arg name="initial_wait" default="12.0"/>
   <arg name="map_save_name" default="explored_map"/>
 
@@ -53,10 +53,10 @@
            value="$(find p3at_lms_navigation)/maps/$(arg map_save_name)"/>
     <param name="spin_in_place_first" value="true"/>
     <!-- Conservative safety margins -->
-    <param name="robot_radius" value="0.55"/>
-    <param name="frontier_blacklist_radius" value="0.8"/>
+    <param name="robot_radius" value="0.25"/>
+    <param name="frontier_blacklist_radius" value="0.3"/>
     <!-- 45s per goal prevents long stalls; 5 consecutive no-frontier before stopping -->
-    <param name="goal_timeout" value="45.0"/>
+    <param name="goal_timeout" value="20.0"/>
   </node>
 
   <!-- RViz -->

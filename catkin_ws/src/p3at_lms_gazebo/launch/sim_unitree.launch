@@ -1,0 +1,37 @@
+<launch>
+  <!--
+    Gazebo simulation with P3-AT + SICK LMS200 + Unitree 4D Lidar L1.
+    Both lidars are active simultaneously:
+      - SICK LMS200: /scan (frame: laser)      — kept for backward compat
+      - Unitree L1:  /unitree/scan (frame: unitree_lidar) — primary for navigation
+      - Unitree L1:  /unitree/cloud (PointCloud2)
+      - Unitree L1:  /unitree/imu  (IMU)
+  -->
+  <arg name="gui" default="true"/>
+  <arg name="paused" default="false"/>
+  <arg name="world" default="$(find p3at_lms_gazebo)/worlds/p3at_lms.world"/>
+
+  <!-- Robot description: P3-AT with BOTH lidars -->
+  <arg name="model" default="$(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
+
+  <!-- Gazebo -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world)"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="use_sim_time" value="true"/>
+  </include>
+
+  <!-- Publish TF from URDF -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
+  <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher"/>
+
+  <!-- Spawn robot -->
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_p3at"
+        args="-urdf -param robot_description -model p3at -x 0 -y 0 -z 0.05"/>
+
+  <!-- Spawn target object -->
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_target"
+        args="-file $(find p3at_lms_gazebo)/models/target/model.sdf -sdf -model target -x 4 -y 0 -z 0.0"/>
+</launch>

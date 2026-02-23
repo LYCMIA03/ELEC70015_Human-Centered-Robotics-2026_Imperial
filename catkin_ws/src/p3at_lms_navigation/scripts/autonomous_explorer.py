@@ -72,6 +72,8 @@ class FrontierExplorer:
         self.total_distance = 0.0
         self.last_x = 0.0
         self.last_y = 0.0
+        self.last_goal = None  # track last goal to prevent re-sending same point
+        self.same_goal_count = 0
 
         # Subscribers
         rospy.Subscriber('/map', OccupancyGrid, self._map_cb, queue_size=1)
@@ -182,20 +184,69 @@ class FrontierExplorer:
         return False
 
     def is_reachable(self, gx, gy):
-        """Basic check: the target cell and nearby cells should be free."""
+        """Light check: the target cell itself is not OCCUPIED.
+        Leave full collision checking to move_base — if the goal is
+        unreachable move_base will ABORT and we blacklist it."""
         h, w = self.map_data.shape
-        r = max(1, int(self.robot_radius / self.map_info.resolution))
-        for dy in range(-r, r + 1):
-            for dx in range(-r, r + 1):
-                nx, ny = int(gx) + dx, int(gy) + dy
-                if 0 <= nx < w and 0 <= ny < h:
-                    val = self.map_data[ny, nx]
-                    if val == self.OCCUPIED:
-                        return False
+        igx, igy = int(gx), int(gy)
+        if not (0 <= igx < w and 0 <= igy < h):
+            return False
+        if self.map_data[igy, igx] == self.OCCUPIED:
+            return False
         return True
 
+    def _find_approach_point(self, gx, gy):
+        """Find a safe FREE cell near (gx, gy) pulled toward the robot.
+
+        Frontier centroids can land on unknown or wall-adjacent cells.
+        Walk a short vector from the frontier centroid toward the robot
+        until we land on a cell that is FREE and well away from walls.
+        """
+        h, w = self.map_data.shape
+        rx_g, ry_g = self.world_to_grid(self.robot_x, self.robot_y)
+        dx = rx_g - gx
+        dy = ry_g - gy
+        length = math.hypot(dx, dy)
+        if length < 1.0:
+            return gx, gy
+        ux, uy = dx / length, dy / length
+
+        # Step toward robot to find a safe spot.
+        # Check radius: ~4 cells (0.20m) — enough to avoid wall-adjacent goals
+        # without being so strict that all maze corridors are rejected.
+        check_r = 4
+        max_steps = max(10, int(0.6 / self.map_info.resolution))  # up to ~0.6m back
+        for step in range(2, max_steps + 1):
+            cx = int(gx + ux * step)
+            cy = int(gy + uy * step)
+            if not (0 <= cx < w and 0 <= cy < h):
+                continue
+            if self.map_data[cy, cx] != self.FREE:
+                continue
+            # Check neighbourhood for occupied cells (inscribed radius clearance)
+            ok = True
+            for ddy in range(-check_r, check_r + 1):
+                if not ok:
+                    break
+                for ddx in range(-check_r, check_r + 1):
+                    nx, ny = cx + ddx, cy + ddy
+                    if 0 <= nx < w and 0 <= ny < h:
+                        if self.map_data[ny, nx] == self.OCCUPIED:
+                            ok = False
+                            break
+            if ok:
+                return cx, cy
+        return gx, gy
+
     def select_goal(self):
-        """Select the best frontier goal. Strategy: nearest large frontier."""
+        """Select the best frontier goal. Strategy: nearest large frontier.
+
+        Key improvement: instead of navigating directly to the frontier
+        centroid (which is often ON the boundary of unknown space), we
+        compute an *approach point* — a nearby free cell pulled slightly
+        toward the robot. This prevents goals inside walls or unknown
+        cells, which is critical in maze environments.
+        """
         frontier_mask = self.find_frontiers()
         clusters = self.cluster_frontiers(frontier_mask)
 
@@ -208,20 +259,34 @@ class FrontierExplorer:
             wx, wy = self.grid_to_world(gx, gy)
             if self.is_blacklisted(wx, wy):
                 continue
-            if not self.is_reachable(gx, gy):
+            # Find safe approach point for this frontier
+            ax, ay = self._find_approach_point(gx, gy)
+            awx, awy = self.grid_to_world(ax, ay)
+            if self.is_blacklisted(awx, awy):
                 continue
-            dist = math.sqrt((wx - self.robot_x)**2 + (wy - self.robot_y)**2)
-            if dist < 0.5:
-                continue  # too close, skip
-            # Score: larger is better, closer is better
-            score = size / (dist + 1.0)
-            scored.append((score, wx, wy, size, dist))
+            if not self.is_reachable(ax, ay):
+                continue
+            dist = math.sqrt((awx - self.robot_x)**2 + (awy - self.robot_y)**2)
+            if dist < 0.6:
+                continue  # must be > xy_goal_tolerance to avoid instant-success loop
+            # Score: STRONGLY prefer closer frontiers (crucial for maze navigation)
+            # Using 1/(dist+0.5)^2 makes the explorer greedily navigate
+            # to nearby frontiers first, gradually expanding outward.
+            score = size / (dist + 0.5)**2
+            scored.append((score, awx, awy, size, dist))
 
         if not scored:
             return None
 
         scored.sort(reverse=True)
-        best = scored[0]
+        # Prefer goals within 1.8m; only take farther goals if nothing close
+        close_goals = [s for s in scored if s[4] <= 1.8]
+        if close_goals:
+            best = close_goals[0]
+        else:
+            # All far away — pick the closest one regardless of score
+            scored_by_dist = sorted(scored, key=lambda x: x[4])
+            best = scored_by_dist[0]
         rospy.loginfo("[Explorer] Selected frontier: (%.2f, %.2f), size=%d, dist=%.2f, score=%.1f"
                       % (best[1], best[2], best[3], best[4], best[0]))
         return best[1], best[2]
@@ -255,7 +320,62 @@ class FrontierExplorer:
             rospy.logwarn("[Explorer] Goal (%.2f, %.2f) failed (state=%d), blacklisting."
                           % (wx, wy, state))
             self.blacklisted_goals.append((wx, wy))
+            # Recovery: clear costmaps so the planner can re-plan from scratch
+            self._clear_costmaps()
             return False
+
+    def _clear_costmaps(self):
+        """Clear costmaps via the move_base service to recover from stuck states."""
+        try:
+            from std_srvs.srv import Empty
+            rospy.wait_for_service('/move_base/clear_costmaps', timeout=3.0)
+            clear_srv = rospy.ServiceProxy('/move_base/clear_costmaps', Empty)
+            clear_srv()
+            rospy.loginfo("[Explorer] Cleared costmaps for recovery.")
+        except Exception as e:
+            rospy.logwarn("[Explorer] Could not clear costmaps: %s" % str(e))
+
+    def _try_backup(self, duration=2.0, speed=-0.10):
+        """Physically reverse the robot to escape a stuck position near walls.
+
+        When the robot is trapped (footprint overlapping lethal cells),
+        move_base cannot plan any path. The only escape is to command
+        raw velocity to back up, then clear costmaps.
+        """
+        from geometry_msgs.msg import Twist
+        cmd_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+        rospy.sleep(0.3)
+
+        # First cancel any active move_base goal
+        self.client.cancel_all_goals()
+        rospy.sleep(0.5)
+
+        twist = Twist()
+        twist.linear.x = speed  # reverse
+        rospy.loginfo("[Explorer] Backing up for %.1fs at %.2f m/s..." % (duration, speed))
+        start = rospy.Time.now()
+        rate = rospy.Rate(10)
+        while (rospy.Time.now() - start).to_sec() < duration and not rospy.is_shutdown():
+            cmd_pub.publish(twist)
+            rate.sleep()
+        twist.linear.x = 0.0
+        cmd_pub.publish(twist)
+        rospy.sleep(0.5)
+
+        # Then do a gentle rotation to face a new direction
+        twist.angular.z = 0.3
+        rospy.loginfo("[Explorer] Rotating to find new direction...")
+        start = rospy.Time.now()
+        while (rospy.Time.now() - start).to_sec() < 3.0 and not rospy.is_shutdown():
+            cmd_pub.publish(twist)
+            rate.sleep()
+        twist.angular.z = 0.0
+        cmd_pub.publish(twist)
+        rospy.sleep(0.5)
+
+        # Clear costmaps after physical recovery
+        self._clear_costmaps()
+        rospy.loginfo("[Explorer] Backup recovery complete.")
 
     def do_initial_spin(self):
         """Rotate in place to get initial scan coverage."""
@@ -345,7 +465,10 @@ class FrontierExplorer:
             self.do_initial_spin()
 
         consecutive_no_frontier = 0
-        max_no_frontier = 5
+        max_no_frontier = 8
+        re_spin_interval = 3  # do a re-spin every N no-frontier attempts
+        consecutive_failures = 0  # track consecutive goal failures
+        max_consecutive_failures = 3  # trigger backup recovery after this many
 
         while not rospy.is_shutdown():
             # Check time limit
@@ -354,6 +477,14 @@ class FrontierExplorer:
                 rospy.loginfo("[Explorer] Exploration timeout (%.0f s). Stopping."
                               % self.exploration_timeout)
                 break
+
+            # If too many consecutive failures, robot is likely stuck
+            if consecutive_failures >= max_consecutive_failures:
+                rospy.logwarn("[Explorer] %d consecutive failures — attempting backup recovery."
+                              % consecutive_failures)
+                self._try_backup()
+                consecutive_failures = 0
+                continue
 
             # Select next frontier
             goal = self.select_goal()
@@ -364,18 +495,44 @@ class FrontierExplorer:
                 if consecutive_no_frontier >= max_no_frontier:
                     rospy.loginfo("[Explorer] No more reachable frontiers. Exploration complete!")
                     break
-                # Wait and retry, map may update
-                rospy.sleep(3.0)
+                # Every re_spin_interval failures, do a 360° spin to
+                # update the map (lidar may reveal new frontiers from
+                # the current position after the map has updated).
+                if consecutive_no_frontier % re_spin_interval == 0:
+                    rospy.loginfo("[Explorer] Re-spinning to discover new frontiers...")
+                    self.do_initial_spin()
+                else:
+                    rospy.sleep(2.0)
                 continue
 
             consecutive_no_frontier = 0
             wx, wy = goal
 
+            # Detect if we keep selecting the same goal (infinite loop guard)
+            if self.last_goal is not None:
+                lg_dist = math.sqrt((wx - self.last_goal[0])**2 + (wy - self.last_goal[1])**2)
+                if lg_dist < 0.3:
+                    self.same_goal_count += 1
+                    if self.same_goal_count >= 2:
+                        rospy.logwarn("[Explorer] Same goal (%.2f, %.2f) selected %d times, blacklisting."
+                                      % (wx, wy, self.same_goal_count))
+                        self.blacklisted_goals.append((wx, wy))
+                        self.same_goal_count = 0
+                        self.last_goal = None
+                        continue
+                else:
+                    self.same_goal_count = 0
+            self.last_goal = (wx, wy)
+
             # Navigate to frontier
             coverage, _, _, _ = self.compute_coverage()
             rospy.loginfo("[Explorer] >>> Goal #%d: (%.2f, %.2f) | Coverage: %.1f%%"
                           % (self.goals_sent + 1, wx, wy, coverage))
-            self.send_nav_goal(wx, wy)
+            success = self.send_nav_goal(wx, wy)
+            if success:
+                consecutive_failures = 0
+            else:
+                consecutive_failures += 1
             rospy.sleep(1.0)
 
         # Save map

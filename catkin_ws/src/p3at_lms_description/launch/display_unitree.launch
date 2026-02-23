@@ -1,0 +1,14 @@
+<launch>
+  <!--
+    Display the P3-AT robot with both SICK LMS200 and Unitree 4D Lidar L1.
+    Shows the robot model, TF tree, and laser scan in RViz.
+  -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
+
+  <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher"/>
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
+
+  <node pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find p3at_lms_description)/rviz/display_unitree.rviz"/>
+</launch>

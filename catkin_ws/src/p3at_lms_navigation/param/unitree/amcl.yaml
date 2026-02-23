@@ -1,0 +1,42 @@
+# AMCL parameters — optimized for Unitree 4D Lidar L1 (360° FOV)
+use_map_topic: true
+first_map_only: false
+
+min_particles: 500
+max_particles: 3000
+kld_err: 0.02
+kld_z: 0.99
+
+update_min_d: 0.10
+update_min_a: 0.15
+
+resample_interval: 1
+transform_tolerance: 0.3
+
+# Laser model
+laser_model_type: likelihood_field
+laser_max_range: 30.0
+laser_min_range: 0.05
+# 360° lidar provides many more beams — use more for better localization
+laser_max_beams: 240
+
+# Odometry model
+odom_model_type: diff
+odom_alpha1: 0.1
+odom_alpha2: 0.1
+odom_alpha3: 0.2
+odom_alpha4: 0.2
+
+recovery_alpha_slow: 0.001
+recovery_alpha_fast: 0.1
+
+# Frame IDs — must match Gazebo differential drive plugin
+# odom topic publishes child_frame_id: "base_footprint"
+base_frame_id: base_footprint
+odom_frame_id: odom
+global_frame_id: map
+
+# Initial pose
+initial_pose_x: 0.0
+initial_pose_y: 0.0
+initial_pose_a: 0.0

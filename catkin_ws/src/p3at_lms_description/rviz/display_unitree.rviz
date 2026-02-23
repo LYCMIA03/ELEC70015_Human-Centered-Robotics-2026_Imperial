@@ -1,0 +1,52 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Name: Tool Properties
+  - Class: rviz/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.5
+    - Class: rviz/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Robot Description: robot_description
+    - Class: rviz/LaserScan
+      Name: "SICK LaserScan"
+      Enabled: true
+      Topic: /scan
+      Size (m): 0.05
+      Color: 255; 0; 0
+    - Class: rviz/LaserScan
+      Name: "Unitree LaserScan"
+      Enabled: true
+      Topic: /unitree/scan
+      Size (m): 0.04
+      Color: 0; 255; 0
+    - Class: rviz/PointCloud2
+      Name: "Unitree PointCloud"
+      Enabled: true
+      Topic: /unitree/cloud
+      Size (m): 0.03
+      Style: Points
+      Color Transformer: Intensity
+    - Class: rviz/TF
+      Name: TF
+      Enabled: true
+  Fixed Frame: odom
+Tools:
+  - Class: rviz/Interact
+  - Class: rviz/MoveCamera
+  - Class: rviz/Select
+  - Class: rviz/FocusCamera
+  - Class: rviz/SetInitialPose
+    Topic: /initialpose
+  - Class: rviz/SetGoal
+    Topic: /move_base_simple/goal
