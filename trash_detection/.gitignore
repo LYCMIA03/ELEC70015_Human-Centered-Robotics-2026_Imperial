@@ -1,0 +1,5 @@
+# 不要提交模型权重（从 Google Drive 下载后本地使用）
+*.pt
+weights/
+weights2/
+weights3/

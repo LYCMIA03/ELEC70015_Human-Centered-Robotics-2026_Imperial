@@ -1,0 +1,14 @@
+# 垃圾检测系统依赖
+
+# 核心依赖
+ultralytics>=8.0.0
+opencv-python>=4.6.0
+numpy>=1.21.0
+
+# PyTorch (根据你的 CUDA 版本选择安装)
+# CUDA 11.8:
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+# CUDA 12.1:
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# CPU only:
+# pip install torch torchvision
