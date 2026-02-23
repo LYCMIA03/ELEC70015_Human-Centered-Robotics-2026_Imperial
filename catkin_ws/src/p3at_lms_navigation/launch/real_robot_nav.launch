@@ -15,8 +15,12 @@
   <arg name="use_rviz"           default="true"/>
   <arg name="use_target_follower" default="false"/>
   <arg name="use_rviz_goal_relay" default="false"/>
+  <arg name="use_udp_target_bridge" default="false"/>
+  <arg name="udp_bind_host" default="0.0.0.0"/>
+  <arg name="udp_bind_port" default="15001"/>
+  <arg name="udp_default_frame" default="camera_link"/>
   <arg name="use_mock_detector" default="false"/>
-  <arg name="use_point_target_bridge" default="false"/>
+  <arg name="use_point_target_bridge" default="$(arg use_udp_target_bridge)"/>
   <arg name="point_target_topic" default="/trash_detection/target_point"/>
   <arg name="point_target_frame" default=""/>
   <arg name="mock_target_frame" default="base_link"/>
@@ -69,6 +73,16 @@
 
   <!-- ========== 目标追踪（可选） ========== -->
   <group if="$(arg use_target_follower)">
+    <group if="$(arg use_udp_target_bridge)">
+      <node pkg="target_follower" type="udp_target_bridge.py"
+            name="udp_target_bridge" output="screen">
+        <param name="bind_host" value="$(arg udp_bind_host)"/>
+        <param name="bind_port" value="$(arg udp_bind_port)"/>
+        <param name="out_topic" value="$(arg point_target_topic)"/>
+        <param name="default_frame" value="$(arg udp_default_frame)"/>
+      </node>
+    </group>
+
     <group if="$(arg use_mock_detector)">
       <node pkg="target_follower" type="mock_target_point_publisher.py"
             name="mock_target_point_publisher" output="screen">

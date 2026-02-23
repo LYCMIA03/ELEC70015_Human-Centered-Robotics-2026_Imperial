@@ -782,6 +782,8 @@ scripts/start_master.sh jetson
 scripts/start_real_mapping.sh
 # or
 scripts/start_real_nav.sh map_file:=/absolute/path/to/my_map.yaml
+# Real target following (local RGBD+YOLO sends UDP JSON x/y/z):
+scripts/start_real_nav.sh map_file:=/absolute/path/to/my_map.yaml use_target_follower:=true use_udp_target_bridge:=true point_target_frame:=camera_link
 # RasPi terminal:
 scripts/start_base.sh
 ```
