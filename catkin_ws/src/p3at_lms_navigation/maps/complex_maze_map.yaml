@@ -1,7 +1,0 @@
-image: /home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/maps/complex_maze_map.pgm
-resolution: 0.050000
-origin: [-10.000000, -10.000000, 0.000000]
-negate: 0
-occupied_thresh: 0.65
-free_thresh: 0.196
-
