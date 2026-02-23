@@ -32,7 +32,7 @@ ROS1 Noetic · Ubuntu 20.04 · Gazebo 11.
    - [TF Tree](#tf-tree)
 10. [Parameter Tuning Guide](#parameter-tuning-guide)
 11. [Autonomous Explorer Algorithm](#autonomous-explorer-algorithm)
-12. [Connecting a YOLO Target Detector](#connecting-a-yolo-target-detector)
+12. [YOLO Target Detection (Native Ubuntu 22.04 → Docker Bridge)](#yolo-target-detection-native-ubuntu-2204--docker-bridge)
 13. [Known Issues and Notes](#known-issues-and-notes)
 14. [Git Workflow](#git-workflow)
 15. [Resources](#resources)
@@ -495,32 +495,161 @@ Expected: mean position error < 0.30 m, convergence time < 5 s.
 
 ### B-1 Network Architecture
 
+#### Physical Topology
+
 ```
-+-------------------+      Direct Ethernet     +------------------+
-|  Jetson (Orin)    | <-----------------------> |  Raspberry Pi    |
-|  192.168.50.1     |     192.168.50.0/24       |  192.168.50.2    |
-|  ROS Master       |                           |  P3-AT driver    |
-|  Unitree L1       |                           |  RosAria         |
-+-------------------+                           +------------------+
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                         JETSON ORIN  (192.168.50.1)                            │
+│                                                                                │
+│  ┌──────────────────────────────────────────────────────────┐                 │
+│  │   ROS Noetic Docker  (--net=host)  ROS_MASTER_URI=:11311 │                 │
+│  │                                                          │                 │
+│  │  roscore / ROS Master                                    │                 │
+│  │  robot_state_publisher  ──pub──►  /tf_static             │                 │
+│  │  unitree_lidar_ros      ──pub──►  /unitree/scan          │                 │
+│  │  slam_gmapping          ──pub──►  /map, /tf(map→odom)    │                 │
+│  │  move_base              ──pub──►  /cmd_vel               │                 │
+│  │  amcl                   ──pub──►  /tf(map→odom)          │                 │
+│  │  autonomous_explorer    ──pub──►  MoveBase action goals  │                 │
+│  │  target_follower        ──pub──►  MoveBase action goals  │                 │
+│  │  camera_json_bridge (*) ──pub──►  /target_pose           │                 │
+│  │                                                          │                 │
+│  └──────────────────────────────────────────────────────────┘                 │
+│           ▲  JSON over localhost                                               │
+│           │  (Unix socket / TCP 127.0.0.1)                                    │
+│  ┌────────┴─────────────────────────────────────────────────┐                 │
+│  │   Native Ubuntu 22.04 (host OS)                          │                 │
+│  │                                                          │                 │
+│  │  Orbbec Femto Bolt driver  ──►  depth + RGB frames       │                 │
+│  │  YOLO inference node       ──►  3D target position       │                 │
+│  │  JSON publisher            ──►  {x,y,z,frame_id,...}     │                 │
+│  └──────────────────────────────────────────────────────────┘                 │
+│                                                                                │
+└────────────────────────────────┬───────────────────────────────────────────────┘
+                                 │  Direct Gigabit Ethernet  192.168.50.0/24
+                                 │  ROS topics (TCPROS)
+                                 │  /cmd_vel  →  Pi
+                                 │  /odom, /tf  ←  Pi
+┌────────────────────────────────┴───────────────────────────────────────────────┐
+│                        RASPBERRY PI 4  (192.168.50.2)                          │
+│                                                                                │
+│  ┌──────────────────────────────────────────────────────────┐                 │
+│  │   ROS Noetic Docker  (--net=host)  ROS_MASTER_URI=:11311 │                 │
+│  │                                                          │                 │
+│  │  rosaria (RosAria)    ─sub─  /cmd_vel                    │                 │
+│  │                       ─pub─  /odom, /tf(odom→base_link)  │                 │
+│  │                       ─pub─  /battery_voltage            │                 │
+│  │  bin_motor_driver (*)                                     │                 │
+│  │      ─sub─  /bin_motor/cmd  (std_msgs/Float32 or custom) │                 │
+│  │      ─pub─  /bin_motor/status                            │                 │
+│  └──────────────────────────────────────────────────────────┘                 │
+│   Serial (USB/UART)                                                            │
+│   ├──  P3-AT chassis controller (ARIA protocol)                                │
+│   └──  Trash-bin motor controller                                              │
+└────────────────────────────────────────────────────────────────────────────────┘
+
+(*) camera_json_bridge: lightweight Python node running inside Jetson Docker,
+    reads JSON from localhost socket, converts to geometry_msgs/PoseStamped,
+    publishes to /target_pose.
+(*) bin_motor_driver: motor control node specific to the trash-bin mechanism.
 ```
 
-Both machines run ROS Noetic inside Docker containers using `--net=host`.
+#### Node Distribution Summary
 
-**Environment variables — Jetson:**
+| Node | Host | Runtime | Role |
+|------|------|---------|------|
+| `roscore` | Jetson | Docker (Noetic) | ROS Master — all nodes register here |
+| `robot_state_publisher` | Jetson | Docker | Broadcast `/tf_static` and dynamic TF from URDF |
+| `unitree_lidar_ros` | Jetson | Docker | Publish `/unitree/scan` from Unitree L1 hardware |
+| `slam_gmapping` | Jetson | Docker | SLAM: `/unitree/scan`+`/tf` → `/map`, `map→odom` TF |
+| `move_base` | Jetson | Docker | Global + local planning; consume `/map`, `/unitree/scan` → `/cmd_vel` |
+| `amcl` | Jetson | Docker | Localisation on a saved map; replace `map→odom` TF |
+| `map_server` | Jetson | Docker | Serve pre-built map YAML/PGM for navigation phase |
+| `autonomous_explorer` | Jetson | Docker | Frontier exploration; send MoveBase action goals |
+| `target_follower` | Jetson | Docker | Follow `/target_pose`; send MoveBase action goals |
+| `camera_json_bridge` | Jetson | Docker | Receive camera JSON → publish `/target_pose` |
+| Orbbec / YOLO driver | Jetson | **Native Ubuntu 22.04** | Depth camera + YOLO inference → JSON output |
+| `rosaria` (RosAria) | Pi | Docker (Noetic) | P3-AT chassis serial driver (ARIA protocol) |
+| `bin_motor_driver` | Pi | Docker (Noetic) | Trash-bin motor controller |
+
+#### Inter-Node Topic Map
+
+```
+                ┌───────────────────────────────────────────────────┐
+                │              JETSON DOCKER                        │
+                │                                                   │
+  unitree_lidar_ros ──/unitree/scan──► slam_gmapping                │
+                │                      slam_gmapping ──/map──► move_base
+                │                      slam_gmapping ──/tf(map→odom)│
+                │                                   ──────────►  TF tree
+                │                                                   │
+  camera_json_bridge ◄──JSON/localhost── [Native: YOLO+Orbbec]    │
+  camera_json_bridge ──/target_pose──► target_follower             │
+                │                      target_follower ──/move_base/goal──► move_base
+                │                                                   │
+  autonomous_explorer ◄──/map─────── slam_gmapping                 │
+  autonomous_explorer ◄──/odom────── rosaria (via Ethernet)        │
+  autonomous_explorer ──/move_base/goal──► move_base               │
+                │                                                   │
+  move_base ──/cmd_vel──────────────────────────────────────────────┼──► rosaria (Pi)
+                │                                                   │
+  robot_state_publisher ──/tf_static──► all TF-aware nodes        │
+                └───────────────────────────────────────────────────┘
+                           Ethernet (TCPROS)
+                ┌───────────────────────────────────────────────────┐
+                │              PI DOCKER                            │
+                │                                                   │
+  rosaria ◄──/cmd_vel────── move_base (Jetson)                     │
+  rosaria ──/odom──────────────────────────────────────────────────►│ move_base, explorer (Jetson)
+  rosaria ──/tf(odom→base_link)───────────────────────────────────►│ TF tree (Jetson)
+                │                                                   │
+  bin_motor_driver ◄──/bin_motor/cmd───── [operator / behaviour]  │
+  bin_motor_driver ──/bin_motor/status──► [operator / behaviour]  │
+                └───────────────────────────────────────────────────┘
+```
+
+#### Depth Camera → ROS Bridge (Native Ubuntu 22.04 → Docker)
+
+The Orbbec Femto Bolt SDK runs on Jetson's **native Ubuntu 22.04** host (not in Docker) because its kernel USB drivers are not available inside the container.  
+Communication to the ROS Master Docker is implemented via a **JSON bridge**:
+
+```
+[Native Ubuntu 22.04]                         [Jetson Docker]
+  Orbbec driver                               camera_json_bridge.py
+  + YOLO inference                              sub: Unix socket / TCP 127.0.0.1:PORT
+  → detect target 3D position       JSON →    pub: /target_pose (geometry_msgs/PoseStamped)
+  → publish JSON:
+    {"x": 1.2, "y": -0.3, "z": 0.0,
+     "frame_id": "map",
+     "stamp": 1708700000.123}
+```
+
+The bridge node `tools/camera_json_bridge.py` (or `tools/relay_camera_info.py`) reads the JSON stream and re-publishes as a standard ROS topic inside the Docker container.
+
+#### ROS Environment Variables
+
+**Jetson Docker:**
 
 ```bash
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 ```
 
-**Environment variables — Pi:**
+**Pi Docker:**
 
 ```bash
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.2
 ```
 
-Configure static IPs with Netplan; verify with `ping 192.168.50.x` from each side.
+Configure static IPs via Netplan on both machines; verify connectivity:
+
+```bash
+ping 192.168.50.2   # from Jetson
+ping 192.168.50.1   # from Pi
+```
+
+> Both Docker containers must use `--net=host` so that ROS TCPROS connections route correctly over the physical Ethernet interface without NAT.
 
 ### B-2 Hardware Setup
 
@@ -735,7 +864,7 @@ Match these to the `sicktoolbox_wrapper` launch arguments.
 | `/move_base/DWAPlannerROS/local_plan` | `nav_msgs/Path` | `/move_base` | `/rviz` |
 | `/move_base/global_costmap/costmap` | `nav_msgs/OccupancyGrid` | `/move_base` | `/rviz` |
 | `/move_base/local_costmap/costmap` | `nav_msgs/OccupancyGrid` | `/move_base` | `/rviz` |
-| `/target_pose` | `geometry_msgs/PoseStamped` | `/gazebo_target_publisher` / YOLO node / relay | `/target_follower` |
+| `/target_pose` | `geometry_msgs/PoseStamped` | `/gazebo_target_publisher` (sim) / `camera_json_bridge` (real robot) / goal relay | `/target_follower` |
 | `/gazebo/model_states` | `gazebo_msgs/ModelStates` | `/gazebo` | — |
 | `/slam_gmapping/entropy` | `std_msgs/Float64` | `/slam_gmapping` | — |
 
@@ -929,30 +1058,101 @@ Maze theoretical maximum ~18%. Accepted baseline performance: 12.6% in 300 s.
 
 ---
 
-## Connecting a YOLO Target Detector
+## YOLO Target Detection (Native Ubuntu 22.04 → Docker Bridge)
 
-The `target_follower` node subscribes to `/target_pose` (`geometry_msgs/PoseStamped`).
+> **Architecture**: The entire YOLO detection pipeline runs **outside Docker** on Jetson's native Ubuntu 22.04, where the Orbbec Femto Bolt kernel driver is available. The 3D navigation target coordinates are sent to the ROS Docker container via a **JSON bridge over localhost**.
 
-To integrate a YOLO detector:
+### System Flow
 
-1. Create a node that:
-   - Subscribes to depth camera RGB + depth topics
-   - Runs YOLO inference to detect the target object
-   - Computes the 3D position from the depth image
-   - Publishes `PoseStamped` to `/target_pose`
+```
+[Jetson — Native Ubuntu 22.04]
+  Orbbec Femto Bolt SDK
+      └─► RGB frame + aligned depth frame
+  YOLO inference (e.g. ultralytics YOLOv8)
+      └─► bounding box → pick centre pixel
+  Depth lookup: depth_image[cy, cx] → Z metres
+  Back-project to 3D (camera intrinsics K):
+      X = (cx - K.ppx) * Z / K.fx
+      Y = (cy - K.ppy) * Z / K.fy
+  Transform to map frame (camera extrinsics + /tf)
+  Publish JSON to localhost TCP socket (default port 9097):
+      {"x": 1.23, "y": -0.45, "z": 0.0,
+       "frame_id": "map",
+       "stamp": 1708700000.123}
 
-2. Enable target following:
-
-```bash
-roslaunch p3at_lms_navigation real_robot_nav_unitree.launch use_target_follower:=true
+[Jetson — ROS Noetic Docker  (--net=host)]
+  tools/camera_json_bridge.py
+      └─► reads JSON stream from TCP 127.0.0.1:9097
+      └─► publishes geometry_msgs/PoseStamped → /target_pose
+  target_follower
+      └─► sub /target_pose → send MoveBaseAction goal
 ```
 
-3. Manual test without a detector:
+### Running the Bridge Inside Docker
+
+```bash
+# Start the JSON bridge node (inside Jetson Docker)
+rosrun p3at_lms_navigation camera_json_bridge.py \
+  _port:=9097 \
+  _frame_id:=map
+```
+
+Or launch it together with navigation:
+
+```bash
+roslaunch p3at_lms_navigation real_robot_nav_unitree.launch \
+  use_target_follower:=true \
+  use_json_bridge:=true
+```
+
+### Running YOLO Detection on Native Ubuntu 22.04
+
+```bash
+# Outside Docker, on Jetson native Ubuntu 22.04
+python3 tools/yolo_target_detector.py \
+  --model yolov8n.pt \
+  --target-class person \
+  --port 9097
+```
+
+The script:
+1. Opens the Orbbec Femto Bolt colour + depth streams via the native SDK
+2. Runs YOLO inference on each RGB frame
+3. For detected targets, reads aligned depth at the bounding-box centre
+4. Back-projects to 3D in the camera frame, then transforms to `map` frame
+5. Serialises to JSON and sends over TCP to Docker on `127.0.0.1:9097`
+
+### JSON Message Format
+
+```json
+{
+  "x": 1.23,
+  "y": -0.45,
+  "z": 0.00,
+  "frame_id": "map",
+  "stamp": 1708700000.123,
+  "confidence": 0.91,
+  "label": "person"
+}
+```
+
+### Manual Testing Without YOLO
+
+Publish a fake target directly inside Docker to verify `target_follower` end-to-end:
 
 ```bash
 rostopic pub -r 5 /target_pose geometry_msgs/PoseStamped \
   "{header: {frame_id: 'map'}, pose: {position: {x: 2.0, y: 1.0, z: 0.0}, orientation: {w: 1.0}}}"
 ```
+
+### Why Native Ubuntu 22.04 (not Docker)?
+
+| Reason | Detail |
+|--------|--------|
+| Kernel USB driver | Orbbec SDK requires custom kernel modules; not available inside Docker |
+| libusb access | USB 3.0 device-level access; `--privileged` + volume mounts are fragile |
+| CUDA / TensorRT | YOLO GPU inference benefits from native CUDA without container overhead |
+| Simplicity | JSON socket is a clean, version-agnostic interface between the two environments |
 
 ---
 
@@ -1080,7 +1280,9 @@ source devel/setup.bash   # or setup.zsh
 - [x] Real robot launch files — all 4 variants (mapping + nav, both stacks) — created
 - [x] Raspberry Pi base driver package (`p3at_base`) — created
 - [x] Multi-machine network setup documented and verified (cross-machine topic test)
-- [ ] YOLO target detection node (Orbbec Femto Bolt + YOLO) — not started
+- [x] YOLO detection architecture defined — native Ubuntu 22.04 + JSON bridge (`tools/camera_json_bridge.py`)
+- [ ] `tools/yolo_target_detector.py` implementation — not started
+- [ ] End-to-end YOLO → `/target_pose` → `target_follower` real-robot test — not started
 - [ ] Real hardware parameter tuning — not started
 - [ ] End-to-end real robot navigation test — Unitree (primary) — not started
 - [ ] End-to-end real robot navigation test — SICK (backup) — not started
