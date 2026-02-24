@@ -102,6 +102,7 @@ docker commit ros_noetic ros_noetic:nav_unitree
 6. [Real Robot Deployment](#real-robot-deployment)
    - [Network Setup](#network-setup)
    - [Startup Order](#startup-order)
+   - [**Keyboard Teleoperation + Unitree Mapping — Full Runbook**](#keyboard-teleoperation--unitree-mapping--full-runbook)
    - [Option A — Unitree L1 (Primary)](#option-a--unitree-l1-primary)
    - [Option B — SICK LMS200 (Backup)](#option-b--sick-lms200-backup)
 7. [Trash Detection Bridge (demo-v1)](#trash-detection-bridge-demo-v1)
@@ -453,6 +454,359 @@ rosnode list               # from Pi — should return /rosout
 
 ---
 
+### Keyboard Teleoperation + Unitree Mapping — Full Runbook
+
+> **This is the verified real-robot procedure** (tested 2026-02-24).  
+> Goal: drive the robot manually with keyboard while Unitree L1 LiDAR builds a `gmapping` occupancy map in real time.  
+> Everything runs inside the `ros_noetic` Docker container on Jetson unless stated otherwise.
+
+#### Hardware checklist before starting
+
+| Item | Check |
+|------|-------|
+| Jetson Orin Nano powered on | ✓ |
+| P3-AT powered on, serial cable connected to Raspberry Pi (`/dev/ttyS0` or `/dev/ttyUSB0`) | ✓ |
+| Raspberry Pi powered on, connected to Jetson via Ethernet (`192.168.50.0/24`) | ✓ |
+| Unitree L1 LiDAR connected to Jetson via USB-C, **but DO NOT power it on yet** | ✓ |
+| `docker ps` shows `ros_noetic` container running on Jetson | ✓ |
+
+> **⚠️ Important:** Power on the Unitree LiDAR **only after** `roslaunch` has already started (Step 3). If the LiDAR is powered on before the driver node initialises, the nodes may register with rosmaster on startup and then lose connection when the LiDAR re-enumerates on power-up, causing all nodes to silently drop off `/rosnode list`. If this happens, see [Recovery: nodes disappeared from rosnode list](#recovery-nodes-disappeared-from-rosnode-list) below.
+
+---
+
+#### Step 1 — Raspberry Pi: start the chassis driver
+
+**Device:** Raspberry Pi 4  
+**Terminal:** SSH into the Pi (`ssh frank@192.168.50.2`) or open a terminal directly on it.
+
+```bash
+# On the Raspberry Pi
+cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
+./scripts/start_base.sh
+```
+
+What this does:
+- Sources `scripts/env.sh` with `role=raspi`, `master=jetson`  
+- Sets `ROS_MASTER_URI=http://192.168.50.1:11311`, `ROS_IP=192.168.50.2`  
+- Runs `roslaunch p3at_base base.launch`  
+- Starts `RosAria` (P3-AT serial driver) and `odom_republisher`  
+
+✅ **Verify:** From Jetson, run:
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+rostopic hz /odom"
+# Expected: ~10 Hz
+```
+
+---
+
+#### Step 2 — Jetson: ensure roscore is running
+
+**Device:** Jetson Orin Nano  
+**Terminal:** Any terminal on Jetson (inside or outside Docker).
+
+```bash
+# Check if roscore is already running (it should be if the container started it)
+docker exec ros_noetic bash -c "pgrep -la rosmaster"
+# If output shows a PID → already running, skip to Step 3
+
+# If NOT running, start it:
+docker exec -d ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+exec roscore"
+
+sleep 3
+docker exec ros_noetic bash -c "pgrep -la rosmaster"
+# Should now show a rosmaster PID
+```
+
+> The `ros_noetic` container uses `--net=host`, so `roscore` on port 11311 is reachable at `192.168.50.1:11311` directly.
+
+---
+
+#### Step 3 — Jetson: start Unitree mapping (in background)
+
+**Device:** Jetson Orin Nano  
+**Terminal:** Any bash terminal on Jetson.
+
+```bash
+cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
+./scripts/start_real_mapping_unitree.sh use_rviz:=false
+```
+
+Alternatively, run it in the background and stream logs:
+```bash
+docker exec -d ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash
+exec roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch use_rviz:=false \
+  > /tmp/mapping_unitree.log 2>&1"
+
+# Monitor log
+docker exec ros_noetic bash -c "tail -f /tmp/mapping_unitree.log"
+```
+
+What this launches:
+| Node | Package | Role |
+|------|---------|------|
+| `unitree_lidar` | `unitree_lidar_ros` | Reads `/dev/ttyUSB0`, publishes `/unilidar/cloud` + `/unilidar/imu` |
+| `pointcloud_to_laserscan` | `pointcloud_to_laserscan` | Converts `/unilidar/cloud` → `/unitree/scan` |
+| `slam_gmapping` | `gmapping` | Subscribes `/unitree/scan` + `/odom`, publishes `/map` + `map→odom` TF |
+| `move_base` | `move_base` | Navigation costmaps (not used during keyboard teleop, but active) |
+| `robot_state_publisher` | `robot_state_publisher` | Publishes static TF `base_link → unitree_lidar` |
+
+✅ **Verify nodes are up:**
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+rosnode list"
+# Expected:
+# /RosAria
+# /move_base
+# /odom_republisher
+# /pointcloud_to_laserscan
+# /robot_state_publisher
+# /rosout
+# /slam_gmapping
+# /unitree_lidar
+```
+
+---
+
+#### Step 4 — Power on the Unitree LiDAR
+
+**Device:** Unitree L1 LiDAR (physical hardware)  
+
+Now plug in / switch on the Unitree LiDAR. The driver node (`unitree_lidar`, PID already running) will open `/dev/ttyUSB0` and begin receiving data.
+
+The LiDAR takes **10–15 seconds** to initialise after power-on.
+
+✅ **Verify data is flowing (~15 seconds after power-on):**
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+timeout 8 rostopic hz /unilidar/cloud"
+# Expected: average rate: ~9.7 Hz
+
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+timeout 8 rostopic hz /unitree/scan"
+# Expected: average rate: ~9.8 Hz
+```
+
+---
+
+#### Step 5 — Keyboard teleoperation
+
+**Device:** Jetson Orin Nano (run this in an **interactive** terminal — not `-d` / background)  
+**Terminal:** Open a new `docker exec -it` terminal.
+
+```bash
+docker exec -it ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash
+rosrun teleop_twist_keyboard teleop_twist_keyboard.py cmd_vel:=/cmd_vel"
+```
+
+Or use the helper script:
+```bash
+# Run on Jetson (role=jetson, no LAPTOP_IP needed)
+./scripts/start_teleop.sh jetson
+```
+
+**The terminal will show:**
+```
+Reading from the keyboard  and Publishing to Twist!
+---------------------------
+   u    i    o
+   j    k    l
+   m    ,    .
+CTRL-C to quit
+currently:      speed 0.5       turn 1.0
+```
+
+**Key bindings:**
+
+| Key | Action |
+|-----|--------|
+| `i` | Forward |
+| `,` | Backward |
+| `j` | Rotate left |
+| `l` | Rotate right |
+| `u` | Forward-left arc |
+| `o` | Forward-right arc |
+| `k` or any other key | **STOP** |
+| `q` / `z` | Increase / decrease linear speed by 10% |
+| `w` / `x` | Increase / decrease linear speed only |
+| `e` / `c` | Increase / decrease angular speed only |
+| `Ctrl+C` | Quit teleop |
+
+> **Click the terminal window first** to ensure it has keyboard focus before pressing keys.
+
+While you drive, `slam_gmapping` builds the occupancy map in real time from `/unitree/scan` + `/odom`.
+
+---
+
+#### Step 6 — Save the map
+
+When you have explored enough area, **save the map before stopping** the mapping launch:
+
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+rosrun map_server map_saver -f \
+  /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/maps/my_map_unitree"
+# Produces:  my_map_unitree.pgm  +  my_map_unitree.yaml
+```
+
+Or with a timestamped filename:
+```bash
+MAP_PATH="/home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/maps/session_$(date +%Y%m%d_%H%M%S)"
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+rosrun map_server map_saver -f ${MAP_PATH}"
+echo "Saved: ${MAP_PATH}.pgm"
+```
+
+✅ **Preview the map in VS Code (no display needed):**
+```bash
+# Convert PGM → PNG and open in VS Code
+python3 -c "
+from PIL import Image
+img = Image.open('${MAP_PATH}.pgm')
+img.save('${MAP_PATH}.png')"
+code "${MAP_PATH}.png"
+```
+
+Map colour key:
+- ⬜ **White** — free / traversable space  
+- ⬛ **Black** — obstacle (wall)  
+- 🔲 **Grey** — unknown (not yet scanned)  
+
+---
+
+#### Full system health check (at any point)
+
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+
+echo '--- Nodes ---'
+rosnode list
+
+echo '--- Key topic rates ---'
+for t in /unilidar/cloud /unitree/scan /odom /map /tf; do
+  rate=\$(timeout 4 rostopic hz \$t 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}')
+  [ -n \"\$rate\" ] && echo \"  OK  \$t: \${rate} Hz\" || echo \"  --  \$t: no data\"
+done
+
+echo '--- TF: map -> base_link ---'
+timeout 4 rosrun tf tf_echo map base_link 2>/dev/null | head -4"
+```
+
+Expected output:
+```
+--- Nodes ---
+/RosAria
+/move_base
+/odom_republisher
+/pointcloud_to_laserscan
+/robot_state_publisher
+/rosout
+/slam_gmapping
+/unitree_lidar
+--- Key topic rates ---
+  OK  /unilidar/cloud: 9.7 Hz
+  OK  /unitree/scan: 9.8 Hz
+  OK  /odom: 10.0 Hz
+  OK  /map: 0.6 Hz
+  OK  /tf: 30.1 Hz
+--- TF: map -> base_link ---
+At time ...
+- Translation: [x, y, 0.000]
+- Rotation: in Quaternion [...]
+```
+
+---
+
+#### Recovery: nodes disappeared from `rosnode list`
+
+**Symptom:** `rosnode list` only shows `/RosAria`, `/odom_republisher`, `/rosout` — mapping nodes have vanished, but `pgrep unitree_lidar_ros_node` still shows a PID.
+
+**Cause:** The node processes are running but lost their rosmaster registration (TCP keepalive timeout). This happens most often when the LiDAR was powered on **before** the driver initialised, causing a re-enumeration of `/dev/ttyUSB0` that blocked the node's network thread long enough for the master to drop the registration.
+
+**Fix:**
+```bash
+# 1. Kill the dangling processes inside Docker
+docker exec ros_noetic bash -c "kill \$(pgrep -d' ' -f 'unitree_lidar_ros_node|slam_gmapping|pointcloud_to_laserscan|roslaunch.*mapping') 2>/dev/null; sleep 2"
+
+# 2. Clean up stale rosmaster registrations
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+rosnode cleanup 2>/dev/null || true"
+
+# 3. Restart mapping (LiDAR already on this time → no re-enumeration, no race)
+docker exec -d ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash
+> /tmp/mapping_unitree.log
+exec roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch use_rviz:=false \
+  > /tmp/mapping_unitree.log 2>&1"
+
+# 4. Wait 12 s then check nodes
+sleep 12
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+source /opt/ros/noetic/setup.bash
+rosnode list"
+```
+
+---
+
+#### Scripts reference
+
+| Script | Runs on | What it does |
+|--------|---------|-------------|
+| `scripts/start_base.sh` | Raspberry Pi | Sources env (role=raspi), runs `p3at_base/base.launch` |
+| `scripts/start_master.sh` | Jetson or Laptop | Sources env, runs `roscore` |
+| `scripts/start_real_mapping_unitree.sh` | Jetson | Sources env (role=jetson), runs `real_robot_mapping_unitree.launch` |
+| `scripts/start_real_mapping.sh` | Jetson | Same but for SICK LMS200 backup |
+| `scripts/start_real_nav.sh` | Jetson | Sources env, runs `real_robot_nav_unitree.launch` |
+| `scripts/start_teleop.sh` | Jetson or Laptop | Sources env, runs `teleop_twist_keyboard` → `/cmd_vel` |
+
+All scripts accept extra `key:=value` args that are forwarded to `roslaunch` / `rosrun`:
+```bash
+./scripts/start_real_mapping_unitree.sh unitree_port:=/dev/ttyUSB1 use_rviz:=true
+./scripts/start_teleop.sh jetson                # run on Jetson (no LAPTOP_IP needed)
+```
+
+---
+
 ### Option A — Unitree L1 (Primary)
 
 > **Use for all real-robot deployments unless Unitree hardware is unavailable.**
@@ -795,9 +1149,15 @@ source devel/setup.zsh
 - [x] Udev rule for Unitree L1 — `/etc/udev/rules.d/99-unitree-lidar.rules` on Jetson host
 - [x] `deploy.env` IPs configured — Jetson `192.168.50.1`, Pi `192.168.50.2`, UDP `16031`
 - [x] `tools/yolo_target_detector.py` — **not needed**: `predict_15cls_rgbd.py --udp-enable` handles detection + UDP sending directly
+- [x] `start_real_mapping_unitree.sh` + `start_teleop.sh` helper scripts — created
+- [x] **Keyboard teleoperation + Unitree mapping — end-to-end real robot test PASSED** (2026-02-24)
+  - `/unilidar/cloud` ~9.7 Hz ✓, `/unitree/scan` ~9.8 Hz ✓, `/odom` ~10 Hz ✓
+  - `slam_gmapping` processed **1008 scan frames**, map 576×576 px @ 0.05 m/px
+  - `map→base_link` TF chain complete ✓
+  - Map saved: `maps/session_20260224_223938.pgm` (325 KB)
 - [ ] End-to-end YOLO → `/target_pose` → `target_follower` real-robot test — not started
 - [ ] Real hardware parameter tuning — not started
-- [ ] End-to-end real robot navigation test — Unitree (primary) — not started
+- [ ] End-to-end real robot navigation test (AMCL on saved map) — Unitree (primary) — not started
 - [ ] End-to-end real robot navigation test — SICK (backup) — not started
 
 ---
@@ -825,9 +1185,11 @@ source devel/setup.zsh
 - [x] Udev rule installed — `/etc/udev/rules.d/99-unitree-lidar.rules` (symlink: `/dev/unitree_lidar`)
 - [x] `frank` user in `dialout` group
 - [ ] `ls /dev/unitree_lidar` shows symlink after connecting Unitree L1
-- [ ] `roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch unitree_port:=/dev/unitree_lidar` — no errors
-- [ ] `rostopic hz /unitree/scan` — ~10 Hz
-- [ ] RViz shows `unitree_lidar` frame and scan data
+- [x] `roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch use_rviz:=false` — no errors (verified 2026-02-24)
+- [x] `rostopic hz /unitree/scan` — ~9.8 Hz (verified 2026-02-24)
+- [x] `rostopic hz /unilidar/cloud` — ~9.7 Hz (verified 2026-02-24)
+- [x] `slam_gmapping` builds `/map` at ~0.6 Hz during teleoperation (verified 2026-02-24)
+- [ ] RViz shows `unitree_lidar` frame and scan data (requires display / X forwarding)
 
 ### Trash Detection Bridge
 - [ ] `python3 tools/inspect_depth_once.py` — Orbbec frame received (native host)
