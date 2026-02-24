@@ -18,7 +18,8 @@ All ROS nodes run inside a Docker container on Jetson. The image `ros_noetic:nav
 
 | Image | Tag | Arch | Size | Contents |
 |-------|-----|------|------|----------|
-| `ros_noetic` | `nav` | arm64 (Jetson native) | ~4.4 GB | ROS Noetic desktop-full + gmapping, move_base, amcl, map_server, DWA, NavfnROS, RViz, Gazebo 11, xacro, tf2, actionlib |
+| `ros_noetic` | `nav_unitree` **← use this** | arm64 (Jetson native) | ~4.45 GB | ROS Noetic desktop-full + all nav packages + **`unitree_lidar_ros` pre-compiled** + git/build-essential |
+| `ros_noetic` | `nav` | arm64 (Jetson native) | ~4.41 GB | ROS Noetic desktop-full + all nav packages (no Unitree driver) |
 
 ### Start the Container
 
@@ -34,7 +35,7 @@ docker run -it --net=host --privileged \
   -v /etc/group:/etc/group:ro \
   --user $(id -u):$(id -g) \
   --name ros_noetic \
-  ros_noetic:nav \
+  ros_noetic:nav_unitree \
   bash
 ```
 
@@ -74,7 +75,7 @@ rospack find p3at_lms_navigation   # should print the package path
 After installing new packages or making persistent changes inside the container:
 
 ```bash
-docker commit ros_noetic ros_noetic:nav
+docker commit ros_noetic ros_noetic:nav_unitree
 ```
 
 ### Container Lifecycle Cheat Sheet
@@ -85,7 +86,7 @@ docker commit ros_noetic ros_noetic:nav
 | Enter running container | `docker exec -it ros_noetic bash` |
 | Stop container | `docker stop ros_noetic` |
 | Check status | `docker ps -a` |
-| Save changes to image | `docker commit ros_noetic ros_noetic:nav` |
+| Save changes to image | `docker commit ros_noetic ros_noetic:nav_unitree` |
 | Remove and recreate | `docker rm ros_noetic` then `docker run ...` (see above) |
 
 ---
@@ -280,7 +281,11 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 │   │       ├── move_target.py              # sim dev only
 │   │       └── test_standoff_face.py       # unit tests
 │   ├── sicktoolbox/                  # SICK C++ library (source)
-│   └── sicktoolbox_wrapper/          # SICK ROS wrapper (source)
+│   ├── sicktoolbox_wrapper/          # SICK ROS wrapper (source)
+│   └── unilidar_sdk/                 # Unitree SDK (git-cloned on Jetson, not tracked in this repo)
+│       ├── unitree_lidar_ros/src/unitree_lidar_ros/  ← ROS1 package (catkin finds automatically)
+│       ├── unitree_lidar_ros2/       (CATKIN_IGNORE)
+│       └── unitree_lidar_sdk/        (CATKIN_IGNORE — aarch64 libunitree_lidar_sdk.a inside)
 ├── tools/
 │   ├── source_ros.sh / source_ros.zsh
 │   ├── camera_info_pub.py
@@ -299,47 +304,69 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 
 ### Jetson Docker — ROS Navigation Packages
 
-The base image (`ros:noetic-ros-base`) does **not** include navigation packages. Install inside the container:
+> **Already included in `ros_noetic:nav_unitree`.** No manual installation needed.
+
+The image is based on `ghcr.io/sloretz/ros:noetic-desktop-full` (arm64) and contains all required packages:
+`ros-noetic-slam-gmapping`, `ros-noetic-move-base`, `ros-noetic-dwa-local-planner`, `ros-noetic-navfn`,
+`ros-noetic-amcl`, `ros-noetic-map-server`, `ros-noetic-robot-state-publisher`, `ros-noetic-xacro`,
+`ros-noetic-tf2-ros`, `ros-noetic-actionlib`, `ros-noetic-rviz`, `ros-noetic-pcl-ros`,
+`build-essential`, `cmake`, `git`.
+
+> If you need to rebuild the image from scratch, base it on `ghcr.io/sloretz/ros:noetic-desktop-full` (arm64, **not** `osrf/ros:noetic-desktop-full` which is amd64).
+
+### Unitree L1 Driver (pre-compiled in `nav_unitree` image)
+
+> **Already compiled in `ros_noetic:nav_unitree`.** The steps below are for reference or if you need to rebuild.
+
+The SDK ships a pre-built `libunitree_lidar_sdk.a` for `aarch64` — no kernel module compilation needed.
 
 ```bash
-sudo apt-get update && sudo apt-get install -y \
-  ros-noetic-slam-gmapping \
-  ros-noetic-move-base \
-  ros-noetic-dwa-local-planner \
-  ros-noetic-navfn \
-  ros-noetic-amcl \
-  ros-noetic-map-server \
-  ros-noetic-map-msgs \
-  ros-noetic-robot-state-publisher \
-  ros-noetic-joint-state-publisher \
-  ros-noetic-xacro \
-  ros-noetic-tf2-ros \
-  ros-noetic-tf2-geometry-msgs \
-  ros-noetic-actionlib \
-  ros-noetic-rviz \
-  ros-noetic-teleop-twist-keyboard \
-  build-essential cmake libboost-dev
-```
-
-> No Gazebo packages needed for real-robot deployment.
-
-### Unitree L1 Driver (compile from source, inside Jetson Docker)
-
-```bash
-cd catkin_ws/src
+# Inside Docker container (one-time setup if rebuilding from scratch)
+cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src
 git clone https://github.com/unitreerobotics/unilidar_sdk.git
-ln -sf unilidar_sdk/unitree_lidar_ros unitree_lidar_ros
-cd ../.. && catkin_make
+
+# Prevent non-catkin subdirectories from breaking catkin_make
+touch unilidar_sdk/unitree_lidar_ros2/CATKIN_IGNORE
+touch unilidar_sdk/unitree_lidar_sdk/CATKIN_IGNORE
+# catkin finds unitree_lidar_ros automatically via recursive scan (no symlink needed)
+
+source /opt/ros/noetic/setup.bash
+cd .. && catkin_make
 ```
 
-Or use the provided helper script:
+The SDK directory layout after clone:
+```
+unilidar_sdk/
+├── unitree_lidar_ros/src/unitree_lidar_ros/   ← ROS1 package (catkin discovers automatically)
+├── unitree_lidar_ros2/                         ← CATKIN_IGNORE applied
+├── unitree_lidar_sdk/                          ← CATKIN_IGNORE applied
+│   └── lib/aarch64/libunitree_lidar_sdk.a      ← pre-built static library
+└── docs/
+```
+
+Or use the provided helper (runs the above steps plus udev setup):
 
 ```bash
 ./setup_unitree_lidar.sh
 ```
 
-> ⚠️ The Unitree SDK needs **kernel modules compiled for your Jetson kernel**.  
-> Allow ~30 min on first setup. Jetson must be running its actual kernel (not a cross-compiled one).
+### Unitree L1 USB — Udev Rule (Jetson Host — already installed)
+
+> **Already created on Jetson host.** Listed here for reference.
+
+File: `/etc/udev/rules.d/99-unitree-lidar.rules`
+```
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE:="0666", SYMLINK+="unitree_lidar"
+```
+
+After connecting Unitree L1 via USB, the device appears as both `/dev/ttyUSB0` and `/dev/unitree_lidar`.
+
+```bash
+# Verify on host
+ls -la /dev/unitree_lidar    # should be a symlink to /dev/ttyUSBx
+```
+
+The `frank` user is already in the `dialout` group (no logout required).
 
 ### Pi Docker
 
@@ -447,7 +474,7 @@ roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `unitree_port` | `/dev/ttyUSB0` | Unitree L1 USB port |
+| `unitree_port` | `/dev/ttyUSB0` | Unitree L1 USB port — use `/dev/unitree_lidar` if udev rule is active |
 | `use_rviz` | `true` | Open RViz |
 | `use_target_follower` | `false` | Enable target following during mapping |
 
@@ -684,7 +711,7 @@ NavfnROS:
 
 - **`clearing_rotation_allowed: false` is safety-critical**: In-place rotation recovery has caused the P3-AT to tip over with Unitree L1 on top (high CoM). Do not re-enable without anti-tip analysis.
 
-- **Unitree kernel module on Jetson**: The SDK requires kernel modules compiled for your specific Jetson kernel. Allow ~30 min on first setup (`./setup_unitree_lidar.sh`).
+- **Unitree SDK — no kernel modules needed**: The SDK uses a pre-built `libunitree_lidar_sdk.a` static library for `aarch64`. No kernel module compilation is required on Jetson Orin Nano.
 
 - **Narrow corridor margins**: P3-AT is ~0.54 m wide; after inflation (0.35–0.45 m), margins in 1 m corridors are very tight. Reduce `inflation_radius` to 0.30 m if the robot gets stuck frequently, but expect more wall contacts.
 
@@ -763,9 +790,11 @@ source devel/setup.zsh
 - [x] Raspberry Pi base driver (`p3at_base`) — created
 - [x] UDP trash detection bridge (`udp_target_bridge.py` + `point_to_target_pose.py`) — created
 - [x] Multi-machine network architecture — documented
-- [ ] `unitree_lidar_ros` compiled in Jetson Docker — **pending**
-- [ ] Docker navigation ROS packages installed — **pending**
-- [ ] `tools/yolo_target_detector.py` — not started
+- [x] Docker navigation ROS packages installed — `ros_noetic:nav_unitree` image
+- [x] `unitree_lidar_ros` compiled in Jetson Docker — compiled in `ros_noetic:nav_unitree`
+- [x] Udev rule for Unitree L1 — `/etc/udev/rules.d/99-unitree-lidar.rules` on Jetson host
+- [x] `deploy.env` IPs configured — Jetson `192.168.50.1`, Pi `192.168.50.2`, UDP `16031`
+- [x] `tools/yolo_target_detector.py` — **not needed**: `predict_15cls_rgbd.py --udp-enable` handles detection + UDP sending directly
 - [ ] End-to-end YOLO → `/target_pose` → `target_follower` real-robot test — not started
 - [ ] Real hardware parameter tuning — not started
 - [ ] End-to-end real robot navigation test — Unitree (primary) — not started
@@ -781,8 +810,9 @@ source devel/setup.zsh
 - [ ] `rospack find unitree_lidar_ros` — found (requires SDK clone + build)
 
 ### Docker Environment (Jetson)
-- [ ] Navigation ROS packages installed (`gmapping`, `move_base`, `amcl`, `rviz` …)
-- [ ] `--net=host` confirmed: `docker inspect -f '{{.HostConfig.NetworkMode}}' <container>`
+- [x] Navigation ROS packages installed — included in `ros_noetic:nav_unitree`
+- [x] `unitree_lidar_ros_node` binary present — `devel/lib/unitree_lidar_ros/unitree_lidar_ros_node`
+- [ ] `--net=host` confirmed: `docker inspect -f '{{.HostConfig.NetworkMode}}' ros_noetic`
 - [ ] `roscore` running: `ss -lntp | grep 11311`
 
 ### Network
@@ -792,8 +822,10 @@ source devel/setup.zsh
 - [ ] `rosnode list` from Pi returns `/rosout`
 
 ### Unitree Hardware
-- [ ] `ls /dev/ttyUSB*` shows device after connecting Unitree L1
-- [ ] `roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch` — no errors
+- [x] Udev rule installed — `/etc/udev/rules.d/99-unitree-lidar.rules` (symlink: `/dev/unitree_lidar`)
+- [x] `frank` user in `dialout` group
+- [ ] `ls /dev/unitree_lidar` shows symlink after connecting Unitree L1
+- [ ] `roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch unitree_port:=/dev/unitree_lidar` — no errors
 - [ ] `rostopic hz /unitree/scan` — ~10 Hz
 - [ ] RViz shows `unitree_lidar` frame and scan data
 

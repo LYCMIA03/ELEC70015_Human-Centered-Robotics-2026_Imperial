@@ -10,6 +10,9 @@ ros_ws/build/
 ros_ws/devel/
 .catkin_workspace
 
+# Unitree SDK — cloned at runtime by setup_unitree_lidar.sh, not part of this repo
+catkin_ws/src/unilidar_sdk/
+
 # Generated maps (auto-produced at runtime, not source files)
 # Keep reference maps (.yaml + .pgm) tracked; ignore runtime-only outputs
 catkin_ws/src/**/maps/*.json
