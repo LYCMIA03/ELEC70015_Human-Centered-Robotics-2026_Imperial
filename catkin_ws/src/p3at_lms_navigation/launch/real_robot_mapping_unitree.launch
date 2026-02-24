@@ -30,21 +30,39 @@
 
   <!-- ========== Unitree 4D Lidar L1 驱动 ========== -->
   <!--
-    unitree_lidar_ros 包发布:
-      /unitree/cloud  (sensor_msgs/PointCloud2) — 3D 点云
-      /unitree/scan   (sensor_msgs/LaserScan)   — 2D 激光扫描
-      /unitree/imu    (sensor_msgs/Imu)          — 内置 IMU
+    SDK 内部以绝对路径 /unitree_lidar_ros_node/* 读参数，需全局设置端口。
+    SDK 实际发布: /unilidar/cloud (PointCloud2) + /unilidar/imu
+    不直接发布 LaserScan，由下面的 pointcloud_to_laserscan 节点转换。
   -->
+  <param name="/unitree_lidar_ros_node/port"        value="$(arg unitree_port)"/>
+  <param name="/unitree_lidar_ros_node/cloud_frame" value="unitree_lidar"/>
+  <param name="/unitree_lidar_ros_node/imu_frame"   value="unitree_lidar"/>
   <node pkg="unitree_lidar_ros" type="unitree_lidar_ros_node" name="unitree_lidar"
         output="screen" respawn="true">
     <param name="port"            value="$(arg unitree_port)"/>
     <param name="frame_id"        value="unitree_lidar"/>
-    <param name="scan_topic"      value="unitree/scan"/>
-    <param name="cloud_topic"     value="unitree/cloud"/>
-    <param name="imu_topic"       value="unitree/imu"/>
     <param name="rotate_yaw_bias" value="0"/>
     <param name="range_start"     value="0.05"/>
     <param name="range_end"       value="30.0"/>
+  </node>
+
+  <!-- ========== PointCloud2 → LaserScan 转换 ========== -->
+  <!-- SDK 只发布 /unilidar/cloud，gmapping/costmap 需要 LaserScan /unitree/scan -->
+  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node"
+        name="pointcloud_to_laserscan" output="screen">
+    <remap from="cloud_in" to="/unilidar/cloud"/>
+    <remap from="scan"     to="/unitree/scan"/>
+    <rosparam>
+      target_frame: ""
+      min_height: -0.5
+      max_height: 0.5
+      angle_min: -3.14159
+      angle_max:  3.14159
+      range_min: 0.05
+      range_max: 30.0
+      use_inf: true
+      inf_epsilon: 1.0
+    </rosparam>
   </node>
 
   <!-- ========== 可选：SICK LMS200 保留 ========== -->
