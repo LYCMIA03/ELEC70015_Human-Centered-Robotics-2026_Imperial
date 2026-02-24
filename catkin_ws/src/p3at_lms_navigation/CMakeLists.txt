@@ -9,3 +9,10 @@ install(DIRECTORY launch param rviz maps
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
 )
+
+catkin_install_python(PROGRAMS
+  scripts/autonomous_explorer.py
+  scripts/amcl_verifier.py
+  scripts/waypoint_test.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

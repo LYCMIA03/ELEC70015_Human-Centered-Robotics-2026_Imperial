@@ -1,0 +1,44 @@
+# slam_gmapping parameters — optimized for Unitree 4D Lidar L1 (360° FOV)
+base_frame: base_link
+odom_frame: odom
+map_frame: map
+map_update_interval: 2.0
+
+# Map dimensions
+xmin: -15.0
+xmax: 15.0
+ymin: -15.0
+ymax: 15.0
+delta: 0.05
+
+# Unitree L1: 360° FOV, max 30m range
+# Use conservative maxUrange for indoor mapping (wall reflections at long range)
+maxUrange: 12.0
+maxRange: 30.0
+
+sigma: 0.05
+kernelSize: 1
+lstep: 0.05
+astep: 0.05
+iterations: 5
+lsigma: 0.075
+ogain: 3.0
+lskip: 0
+
+# Odometry noise model
+srr: 0.1
+srt: 0.2
+str: 0.1
+stt: 0.2
+
+# Update thresholds
+linearUpdate: 0.15
+angularUpdate: 0.15
+temporalUpdate: 0.5
+resampleThreshold: 0.5
+
+# More particles recommended for 360° scanner (better loop closure)
+particles: 50
+
+# Higher minimum score to reject poor scan matches (360° gives more features)
+minimumScore: 50

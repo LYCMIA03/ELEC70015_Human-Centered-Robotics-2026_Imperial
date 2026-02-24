@@ -1,0 +1,47 @@
+<launch>
+  <!--
+    Gazebo 仿真 AMCL 导航 — 使用 Unitree 4D Lidar L1 作为主力传感器
+    SICK LMS200 仍保留并发布 /scan，但 AMCL 和 costmap 使用 Unitree /unitree/scan
+
+    启动:
+      roslaunch p3at_lms_navigation nav_unitree.launch
+      roslaunch p3at_lms_navigation nav_unitree.launch map_file:=/path/to/map.yaml
+  -->
+  <arg name="gui" default="true"/>
+  <arg name="map_file" default="$(find p3at_lms_navigation)/maps/demo_map.yaml"/>
+  <arg name="use_gazebo_target" default="true"/>
+  <arg name="use_rviz_goal_relay" default="false"/>
+
+  <!-- Gazebo with dual-lidar robot model -->
+  <include file="$(find p3at_lms_gazebo)/launch/sim_unitree.launch">
+    <arg name="gui" value="$(arg gui)"/>
+  </include>
+
+  <!-- Map server -->
+  <node pkg="map_server" type="map_server" name="map_server"
+        args="$(arg map_file)" output="screen"/>
+
+  <!-- AMCL — subscribes to Unitree scan -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/amcl.yaml" command="load"/>
+    <remap from="scan" to="/unitree/scan"/>
+  </node>
+
+  <!-- move_base — costmaps use Unitree scan -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="false">
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap.yaml" command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml" command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml" command="load"/>
+  </node>
+
+  <!-- Target following -->
+  <include file="$(find target_follower)/launch/target_follow.launch">
+    <arg name="use_gazebo_target" value="$(arg use_gazebo_target)"/>
+    <arg name="use_rviz_goal_relay" value="$(arg use_rviz_goal_relay)"/>
+  </include>
+
+  <node pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find p3at_lms_navigation)/rviz/nav_unitree.rviz" required="false"/>
+</launch>

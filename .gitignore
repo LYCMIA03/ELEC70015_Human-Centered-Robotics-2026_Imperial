@@ -1,4 +1,18 @@
 frames.gv
 frames.pdf
 __pycache__/
-scripts/deploy.env
+*.pyc
+
+# Build artifacts
+catkin_ws/build/
+catkin_ws/devel/
+ros_ws/build/
+ros_ws/devel/
+.catkin_workspace
+
+# Generated maps (auto-produced at runtime, not source files)
+catkin_ws/src/**/maps/*.pgm
+catkin_ws/src/**/maps/*.yaml
+catkin_ws/src/**/maps/*.json
+catkin_ws/src/**/maps/*.txt
+

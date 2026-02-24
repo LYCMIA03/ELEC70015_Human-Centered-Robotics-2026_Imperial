@@ -1,0 +1,63 @@
+<launch>
+  <!--
+    AMCL 精度验证 — 使用 Unitree 4D Lidar L1
+    在已保存的地图上运行 AMCL 定位，与 Gazebo ground truth 对比
+
+    启动:
+      roslaunch p3at_lms_navigation auto_amcl_verify_unitree.launch
+      roslaunch p3at_lms_navigation auto_amcl_verify_unitree.launch map_file:=/path/to/map.yaml
+  -->
+
+  <arg name="gui" default="true"/>
+  <arg name="map_file" default="$(find p3at_lms_navigation)/maps/complex_maze_map.yaml"/>
+
+  <!-- Gazebo with complex maze world + dual-lidar model -->
+  <include file="$(find p3at_lms_gazebo)/launch/sim_unitree.launch">
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="world" value="$(find p3at_lms_gazebo)/worlds/complex_maze.world"/>
+  </include>
+
+  <!-- Map server -->
+  <node pkg="map_server" type="map_server" name="map_server"
+        args="$(arg map_file)" output="screen"/>
+
+  <!-- AMCL — subscribes to Unitree scan -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/amcl.yaml" command="load"/>
+    <remap from="scan" to="/unitree/scan"/>
+  </node>
+
+  <!-- move_base — costmaps use Unitree scan -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="false">
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap.yaml" command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml" command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml" command="load"/>
+  </node>
+
+  <!-- AMCL verification node -->
+  <node pkg="p3at_lms_navigation" type="amcl_verifier.py" name="amcl_verifier"
+        output="screen" required="false">
+    <param name="initial_wait" value="15.0"/>
+    <param name="settle_time" value="5.0"/>
+    <param name="goal_timeout" value="90.0"/>
+    <param name="convergence_threshold" value="0.3"/>
+    <param name="report_path"
+           value="$(find p3at_lms_navigation)/maps/amcl_report_unitree.txt"/>
+    <param name="json_report_path"
+           value="$(find p3at_lms_navigation)/maps/amcl_report_unitree.json"/>
+    <rosparam param="waypoints">
+      - {name: "WP1_south",   x:  0.0,  y: -1.5}
+      - {name: "WP2_north",   x:  0.0,  y:  1.5}
+      - {name: "WP3_west",    x: -1.5,  y:  0.0}
+      - {name: "WP4_east_s",  x:  1.5,  y: -0.5}
+      - {name: "WP5_north2",  x:  0.0,  y:  2.5}
+      - {name: "WP6_return",  x:  0.0,  y:  0.0}
+    </rosparam>
+  </node>
+
+  <!-- RViz -->
+  <node pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find p3at_lms_navigation)/rviz/nav_unitree.rviz" required="false"/>
+</launch>

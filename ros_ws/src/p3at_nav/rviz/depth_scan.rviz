@@ -1,0 +1,151 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Views
+    Name: Views
+  - Class: rviz/Time
+    Name: Time
+
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/Grid
+      Name: Grid
+      Enabled: true
+      Line Style:
+        Line Width: 0.03
+        Value: Lines
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 20
+      Reference Frame: <Fixed Frame>
+
+    - Class: rviz/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Robot Description: robot_description
+      TF Prefix: ""
+      Visual Enabled: true
+      Collision Enabled: false
+      Alpha: 1
+
+    - Class: rviz/LaserScan
+      Name: LaserScan
+      Enabled: true
+      Topic: /scan
+      Queue Size: 10
+      Unreliable: false
+      Size (m): 0.05
+      Size (Pixels): 3
+      Style: Flat Squares
+      Color Transformer: FlatColor
+      Color: 0; 255; 0
+      Decay Time: 0
+      Position Transformer: XYZ
+      Selectable: true
+
+    - Class: rviz/PointCloud2
+      Name: PointCloud2
+      Enabled: true
+      Topic: /sim_p3at/camera/depth/points
+      Queue Size: 10
+      Unreliable: false
+      Size (m): 0.01
+      Size (Pixels): 3
+      Style: Flat Squares
+      Color Transformer: AxisColor
+      Axis: Z
+      Autocompute Intensity Bounds: true
+      Decay Time: 0
+      Position Transformer: XYZ
+      Selectable: true
+
+    - Class: rviz/Image
+      Name: RGB Camera
+      Enabled: true
+      Topic: /sim_p3at/camera/color/image_raw
+      Transport Hint: raw
+      Queue Size: 2
+      Unreliable: false
+
+    - Class: rviz/Image
+      Name: Depth Camera
+      Enabled: true
+      Topic: /sim_p3at/camera/depth/depth/image_raw
+      Transport Hint: raw
+      Queue Size: 2
+      Unreliable: false
+
+    - Class: rviz/TF
+      Name: TF
+      Enabled: true
+      Frame Timeout: 15
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        {}
+      Update Interval: 0
+      Marker Scale: 0.3
+
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: odom
+    Frame Rate: 30
+
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+    - Class: rviz/SetInitialPose
+      Topic: /initialpose
+    - Class: rviz/SetGoal
+      Topic: /move_base_simple/goal
+    - Class: rviz/PublishPoint
+      Single click: true
+      Topic: /clicked_point
+
+  Value: true
+
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 8
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.01
+      Pitch: 0.5
+      Target Frame: <Fixed Frame>
+      Value: Orbit (rviz)
+      Yaw: 0.785
+    Saved: ~
+
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 800
+  Width: 1200
+  X: 100
+  Y: 100
+  RGB Camera:
+    collapsed: false
+  Depth Camera:
+    collapsed: false
+  Views:
+    collapsed: false
+  Time:
+    collapsed: false

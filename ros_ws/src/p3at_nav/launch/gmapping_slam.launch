@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- GMapping SLAM for P3AT with depth camera -->
+  
+  <!-- Arguments -->
+  <arg name="scan_topic" default="/scan"/>
+  <arg name="use_rviz" default="true"/>
+  
+  <!-- GMapping SLAM node -->
+  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+    <!-- Remap topics to match your robot -->
+    <remap from="scan" to="$(arg scan_topic)"/>
+    
+    <!-- Load parameters -->
+    <rosparam file="$(find p3at_nav)/config/gmapping_params.yaml" command="load"/>
+    
+    <!-- Additional parameters -->
+    <param name="throttle_scans" value="1"/>
+  </node>
+  
+  <!-- Launch RViz with SLAM visualization -->
+  <node pkg="rviz" type="rviz" name="rviz_slam" 
+        args="-d $(find p3at_nav)/rviz/slam.rviz"
+        if="$(arg use_rviz)"/>
+</launch>

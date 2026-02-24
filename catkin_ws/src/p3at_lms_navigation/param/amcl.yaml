@@ -13,6 +13,11 @@ update_min_a: 0.2
 resample_interval: 1
 transform_tolerance: 0.3
 
+# Frame IDs — must match Gazebo differential drive plugin
+base_frame_id: base_footprint
+odom_frame_id: odom
+global_frame_id: map
+
 laser_model_type: likelihood_field
 laser_max_range: 12.0
 laser_min_range: 0.05

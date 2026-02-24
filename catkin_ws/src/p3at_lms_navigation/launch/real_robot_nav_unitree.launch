@@ -1,0 +1,103 @@
+<launch>
+  <!--
+    真机导航 — Unitree 4D Lidar L1 作为主力传感器
+    功能：Unitree L1 激光雷达 + AMCL 定位（已有地图）+ move_base + target_follower
+    前提：
+      1. 树莓派已启动 p3at_base/base.launch（RosAria 底盘驱动，发布 /odom + /cmd_vel）
+      2. Unitree Lidar L1 已通过 USB 连接（默认 /dev/ttyUSB0）
+      3. 已安装 unitree_lidar_ros 包
+    
+    启动：
+      roslaunch p3at_lms_navigation real_robot_nav_unitree.launch
+      roslaunch p3at_lms_navigation real_robot_nav_unitree.launch map_file:=/path/to/map.yaml
+  -->
+
+  <!-- ========== 参数 ========== -->
+  <arg name="unitree_port"        default="/dev/ttyUSB0"/>
+  <arg name="map_file"            default="$(find p3at_lms_navigation)/maps/demo_map.yaml"/>
+  <arg name="use_rviz"            default="true"/>
+  <arg name="use_target_follower" default="false"/>
+  <arg name="use_rviz_goal_relay" default="false"/>
+  <arg name="standoff_distance"   default="0.0"/>
+  <arg name="face_target"         default="false"/>
+  <!-- 可选：同时启动 SICK LMS200 -->
+  <arg name="enable_sick"         default="false"/>
+  <arg name="sick_port"           default="/dev/ttyUSB1"/>
+  <arg name="sick_baud"           default="38400"/>
+
+  <!-- ========== Unitree 4D Lidar L1 驱动 ========== -->
+  <node pkg="unitree_lidar_ros" type="unitree_lidar_ros_node" name="unitree_lidar"
+        output="screen" respawn="true">
+    <param name="port"            value="$(arg unitree_port)"/>
+    <param name="frame_id"        value="unitree_lidar"/>
+    <param name="scan_topic"      value="unitree/scan"/>
+    <param name="cloud_topic"     value="unitree/cloud"/>
+    <param name="imu_topic"       value="unitree/imu"/>
+    <param name="rotate_yaw_bias" value="0"/>
+    <param name="range_start"     value="0.05"/>
+    <param name="range_end"       value="30.0"/>
+  </node>
+
+  <!-- ========== 可选：SICK LMS200 保留 ========== -->
+  <group if="$(arg enable_sick)">
+    <node pkg="sicktoolbox_wrapper" type="sicklms" name="sicklms"
+          output="screen" respawn="true">
+      <param name="port"            value="$(arg sick_port)"/>
+      <param name="baud"            value="$(arg sick_baud)"/>
+      <param name="frame_id"        value="laser"/>
+      <param name="resolution"      value="0.5"/>
+      <param name="measuring_units" value="cm"/>
+    </node>
+  </group>
+
+  <!-- ========== 机器人模型 & TF ========== -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
+  <node pkg="robot_state_publisher" type="robot_state_publisher"
+        name="robot_state_publisher" output="screen"/>
+
+  <!-- ========== 地图服务 ========== -->
+  <node pkg="map_server" type="map_server" name="map_server"
+        args="$(arg map_file)" output="screen"/>
+
+  <!-- ========== AMCL 定位 — 使用 Unitree scan ========== -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/amcl.yaml" command="load"/>
+    <remap from="scan" to="/unitree/scan"/>
+  </node>
+
+  <!-- ========== move_base 导航 — costmaps 使用 Unitree scan ========== -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="false">
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap.yaml" command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml"  command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml"      command="load"/>
+  </node>
+
+  <!-- ========== 目标追踪（可选） ========== -->
+  <group if="$(arg use_target_follower)">
+    <node pkg="target_follower" type="target_follower.py" name="target_follower" output="screen">
+      <param name="target_topic" value="/target_pose"/>
+      <param name="global_frame" value="map"/>
+      <param name="robot_frame"  value="base_link"/>
+      <param name="send_rate_hz" value="2.0"/>
+      <param name="min_update_dist" value="0.25"/>
+      <param name="use_target_orientation" value="false"/>
+      <param name="target_timeout" value="2.0"/>
+      <param name="standoff_distance" value="$(arg standoff_distance)"/>
+      <param name="face_target" value="$(arg face_target)"/>
+    </node>
+  </group>
+
+  <!-- RViz 2D Nav Goal 中继 -->
+  <group if="$(arg use_rviz_goal_relay)">
+    <node pkg="target_follower" type="goal_to_target_relay.py"
+          name="goal_to_target_relay" output="screen"/>
+  </group>
+
+  <!-- ========== RViz 可视化 ========== -->
+  <node if="$(arg use_rviz)"
+        pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find p3at_lms_navigation)/rviz/nav_unitree.rviz"/>
+</launch>

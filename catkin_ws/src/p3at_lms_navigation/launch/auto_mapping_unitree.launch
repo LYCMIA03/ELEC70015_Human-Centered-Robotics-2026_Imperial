@@ -1,0 +1,57 @@
+<launch>
+  <!--
+    自主探索建图 — 使用 Unitree 4D Lidar L1 (360° FOV)
+    相比 SICK LMS200 的 180° FOV，Unitree 360° FOV 能更快发现 frontier，提高探索效率
+
+    启动:
+      roslaunch p3at_lms_navigation auto_mapping_unitree.launch
+      roslaunch p3at_lms_navigation auto_mapping_unitree.launch gui:=false
+      roslaunch p3at_lms_navigation auto_mapping_unitree.launch exploration_timeout:=300
+  -->
+
+  <arg name="gui" default="true"/>
+  <arg name="exploration_timeout" default="600"/>
+  <arg name="min_frontier_size" default="3"/>
+  <arg name="initial_wait" default="12.0"/>
+  <arg name="map_save_name" default="explored_map_unitree"/>
+
+  <!-- Gazebo with complex maze world + dual-lidar model -->
+  <include file="$(find p3at_lms_gazebo)/launch/sim_unitree.launch">
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="world" value="$(find p3at_lms_gazebo)/worlds/complex_maze.world"/>
+  </include>
+
+  <!-- slam_gmapping — subscribes to Unitree scan -->
+  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/gmapping.yaml" command="load"/>
+    <remap from="scan" to="/unitree/scan"/>
+  </node>
+
+  <!-- move_base — costmaps use Unitree scan -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="false">
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap.yaml" command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml" command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml" command="load"/>
+  </node>
+
+  <!-- Autonomous frontier exploration -->
+  <node pkg="p3at_lms_navigation" type="autonomous_explorer.py" name="autonomous_explorer"
+        output="screen" required="false">
+    <param name="exploration_timeout" value="$(arg exploration_timeout)"/>
+    <param name="min_frontier_size" value="$(arg min_frontier_size)"/>
+    <param name="initial_wait" value="$(arg initial_wait)"/>
+    <param name="save_map" value="true"/>
+    <param name="map_save_path"
+           value="$(find p3at_lms_navigation)/maps/$(arg map_save_name)"/>
+    <param name="spin_in_place_first" value="true"/>
+    <param name="robot_radius" value="0.25"/>
+    <param name="frontier_blacklist_radius" value="0.2"/>
+    <param name="goal_timeout" value="30.0"/>
+  </node>
+
+  <!-- RViz -->
+  <node pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find p3at_lms_navigation)/rviz/nav_unitree.rviz" required="false"/>
+</launch>

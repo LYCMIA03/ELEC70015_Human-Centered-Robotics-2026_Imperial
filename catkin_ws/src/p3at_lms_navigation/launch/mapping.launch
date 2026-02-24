@@ -19,6 +19,9 @@
   <arg name="use_target_follower" default="$(arg use_gazebo_target)"/>
   <arg name="standoff_distance" default="0.0"/>
   <arg name="face_target" default="false"/>
+  <arg name="move_target" default="false"/>
+  <arg name="target_speed" default="0.4"/>
+  <arg name="target_pause" default="1.0"/>
 
   <include file="$(find p3at_lms_gazebo)/launch/sim.launch">
     <arg name="gui" value="$(arg gui)"/>
@@ -60,6 +63,9 @@
     <arg name="mock_angular_speed" value="$(arg mock_angular_speed)"/>
     <arg name="standoff_distance" value="$(arg standoff_distance)"/>
     <arg name="face_target" value="$(arg face_target)"/>
+    <arg name="move_target" value="$(arg move_target)"/>
+    <arg name="target_speed" value="$(arg target_speed)"/>
+    <arg name="target_pause" value="$(arg target_pause)"/>
   </include>
 
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find p3at_lms_navigation)/rviz/nav.rviz" required="false"/>

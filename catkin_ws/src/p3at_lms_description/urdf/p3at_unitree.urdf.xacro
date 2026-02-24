@@ -1,0 +1,374 @@
+<?xml version="1.0"?>
+<!--
+  P3-AT robot with Unitree 4D Lidar L1 ONLY (SICK LMS200 removed).
+  - Full P3-AT chassis, wheels, and drive plugin
+  - Unitree 4D Lidar L1 mounted at z=0.366 (same position as former SICK)
+    - 2D LaserScan: /unitree/scan  (frame: unitree_lidar)  360° FOV
+    - 3D PointCloud2: /unitree/cloud (frame: unitree_lidar)
+    - IMU: /unitree/imu (frame: unitree_imu)
+-->
+<robot name="p3at_unitree" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="PI" value="3.1415926535897931"/>
+  <xacro:property name="mesh_prefix" value="package://p3at_lms_description/meshes/p3at_meshes"/>
+
+  <!-- ======================== base_footprint ======================== -->
+  <link name="base_footprint"/>
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ======================== Chassis (base_link) ======================== -->
+  <link name="base_link">
+    <inertial>
+      <mass value="21.5"/>
+      <origin xyz="-0.1 0 0.177"/>
+      <inertia ixx="0.3338" ixy="0.0" ixz="0.0"
+               iyy="0.4783" iyz="0.0"
+               izz="0.3338"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.177" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_prefix}/chassis.stl"/>
+      </geometry>
+      <material name="ChassisRed">
+        <color rgba="0.851 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.177" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.50 0.40 0.16"/>
+      </geometry>
+    </collision>
+  </link>
+  <gazebo reference="base_link">
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <!-- ======================== Top plate ======================== -->
+  <link name="top_plate">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="-0.025 0 -0.223"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0"
+               izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_prefix}/top.stl"/>
+      </geometry>
+      <material name="TopBlack">
+        <color rgba="0.038 0.038 0.038 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <gazebo reference="top_plate">
+    <material>Gazebo/Black</material>
+  </gazebo>
+  <joint name="base_top_joint" type="fixed">
+    <origin xyz="0.003 0 0.274" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="top_plate"/>
+  </joint>
+
+  <!-- ======================== Front sonar ======================== -->
+  <link name="front_sonar">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0"
+               izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_prefix}/front_sonar.stl"/>
+      </geometry>
+      <material name="SonarYellow">
+        <color rgba="0.715 0.583 0.210 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <gazebo reference="front_sonar">
+    <material>Gazebo/Yellow</material>
+  </gazebo>
+  <joint name="base_front_joint" type="fixed">
+    <origin xyz="0.193 0 0.25" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="front_sonar"/>
+  </joint>
+
+  <!-- ======================== Back sonar ======================== -->
+  <link name="back_sonar">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0"
+               izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_prefix}/back_sonar.stl"/>
+      </geometry>
+      <material name="SonarYellow">
+        <color rgba="0.715 0.583 0.210 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <gazebo reference="back_sonar">
+    <material>Gazebo/Yellow</material>
+  </gazebo>
+  <joint name="base_back_joint" type="fixed">
+    <origin xyz="-0.187 0 0.247" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="back_sonar"/>
+  </joint>
+
+  <!-- ======================== Drive side macro ======================== -->
+  <xacro:macro name="p3at_drive_side" params="side reflect">
+
+    <link name="p3at_front_${side}_axle">
+      <inertial>
+        <mass value="0.1"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0"
+                 izz="0.001"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/axle.stl"/>
+        </geometry>
+        <material name="AxleGrey">
+          <color rgba="0.5 0.5 0.5 1"/>
+        </material>
+      </visual>
+    </link>
+    <gazebo reference="p3at_front_${side}_axle">
+      <material>Gazebo/Grey</material>
+    </gazebo>
+    <joint name="base_front_${side}_axle_joint" type="fixed">
+      <origin xyz="0.135 ${reflect*0.156} 0.111" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="p3at_front_${side}_axle"/>
+    </joint>
+
+    <link name="p3at_front_${side}_hub">
+      <inertial>
+        <mass value="0.1"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0"
+                 izz="0.001"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/${side}_hubcap.stl"/>
+        </geometry>
+        <material name="HubcapYellow">
+          <color rgba="1.0 0.811 0.151 1.0"/>
+        </material>
+      </visual>
+    </link>
+    <gazebo reference="p3at_front_${side}_hub">
+      <material>Gazebo/Yellow</material>
+    </gazebo>
+    <joint name="base_front_${side}_hub_joint" type="fixed">
+      <origin xyz="0 ${reflect*0.041} 0" rpy="0 0 0"/>
+      <parent link="p3at_front_${side}_axle"/>
+      <child link="p3at_front_${side}_hub"/>
+    </joint>
+
+    <link name="p3at_front_${side}_wheel">
+      <inertial>
+        <mass value="1.2"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.012411765597" ixy="0" ixz="0"
+                 iyy="0.015218160428" iyz="0"
+                 izz="0.011763977943"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/wheel.stl"/>
+        </geometry>
+        <material name="WheelBlack">
+          <color rgba="0.117 0.117 0.117 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${-PI/2} 0 0"/>
+        <geometry>
+          <cylinder radius="0.111" length="0.075"/>
+        </geometry>
+      </collision>
+    </link>
+    <gazebo reference="p3at_front_${side}_wheel">
+      <material>Gazebo/Black</material>
+      <kp>1000000.0</kp>
+      <kd>100.0</kd>
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
+      <maxVel>1.0</maxVel>
+      <minDepth>0.00</minDepth>
+    </gazebo>
+    <joint name="p3at_front_${side}_wheel_joint" type="continuous">
+      <axis xyz="0 1 0"/>
+      <limit effort="100" velocity="100"/>
+      <joint_properties damping="0.7"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="p3at_front_${side}_hub"/>
+      <child link="p3at_front_${side}_wheel"/>
+    </joint>
+
+    <link name="p3at_back_${side}_axle">
+      <inertial>
+        <mass value="0.1"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0"
+                 izz="0.001"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/axle.stl"/>
+        </geometry>
+        <material name="AxleGrey">
+          <color rgba="0.5 0.5 0.5 1"/>
+        </material>
+      </visual>
+    </link>
+    <gazebo reference="p3at_back_${side}_axle">
+      <material>Gazebo/Grey</material>
+    </gazebo>
+    <joint name="p3at_back_${side}_axle_joint" type="fixed">
+      <origin xyz="-0.134 ${reflect*0.156} 0.111" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="p3at_back_${side}_axle"/>
+    </joint>
+
+    <link name="p3at_back_${side}_hub">
+      <inertial>
+        <mass value="0.1"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0"
+                 izz="0.001"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/${side}_hubcap.stl"/>
+        </geometry>
+        <material name="HubcapYellow">
+          <color rgba="1.0 0.811 0.151 1.0"/>
+        </material>
+      </visual>
+    </link>
+    <gazebo reference="p3at_back_${side}_hub">
+      <material>Gazebo/Yellow</material>
+    </gazebo>
+    <joint name="p3at_back_${side}_hub_joint" type="fixed">
+      <origin xyz="0 ${reflect*0.041} 0" rpy="0 0 0"/>
+      <parent link="p3at_back_${side}_axle"/>
+      <child link="p3at_back_${side}_hub"/>
+    </joint>
+
+    <link name="p3at_back_${side}_wheel">
+      <inertial>
+        <mass value="1.2"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.012411765597" ixy="0" ixz="0"
+                 iyy="0.015218160428" iyz="0"
+                 izz="0.011763977943"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_prefix}/wheel.stl"/>
+        </geometry>
+        <material name="WheelBlack">
+          <color rgba="0.117 0.117 0.117 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${-PI/2} 0 0"/>
+        <geometry>
+          <cylinder radius="0.111" length="0.075"/>
+        </geometry>
+      </collision>
+    </link>
+    <gazebo reference="p3at_back_${side}_wheel">
+      <material>Gazebo/Black</material>
+      <kp>1000000.0</kp>
+      <kd>100.0</kd>
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
+      <maxVel>1.0</maxVel>
+      <minDepth>0.00</minDepth>
+    </gazebo>
+    <joint name="p3at_back_${side}_wheel_joint" type="continuous">
+      <axis xyz="0 1 0"/>
+      <limit effort="100" velocity="100"/>
+      <joint_properties damping="0.7"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="p3at_back_${side}_hub"/>
+      <child link="p3at_back_${side}_wheel"/>
+    </joint>
+
+  </xacro:macro>
+
+  <xacro:p3at_drive_side side="left"  reflect="1"/>
+  <xacro:p3at_drive_side side="right" reflect="-1"/>
+
+  <!-- ======================== Gazebo Skid-Steer Drive Plugin ======================== -->
+  <gazebo>
+    <plugin name="skid_steer_drive" filename="libgazebo_ros_skid_steer_drive.so">
+      <robotNamespace>/</robotNamespace>
+      <leftFrontJoint>p3at_front_left_wheel_joint</leftFrontJoint>
+      <rightFrontJoint>p3at_front_right_wheel_joint</rightFrontJoint>
+      <leftRearJoint>p3at_back_left_wheel_joint</leftRearJoint>
+      <rightRearJoint>p3at_back_right_wheel_joint</rightRearJoint>
+      <wheelSeparation>0.4</wheelSeparation>
+      <wheelDiameter>0.222</wheelDiameter>
+      <torque>200</torque>
+      <updateRate>50</updateRate>
+      <commandTopic>cmd_vel</commandTopic>
+      <odometryTopic>odom</odometryTopic>
+      <odometryFrame>odom</odometryFrame>
+      <robotBaseFrame>base_footprint</robotBaseFrame>
+      <publishWheelTF>true</publishWheelTF>
+      <publishTf>true</publishTf>
+      <broadcastTF>true</broadcastTF>
+      <publishWheelJointState>true</publishWheelJointState>
+    </plugin>
+  </gazebo>
+
+  <!-- ======================== Unitree 4D Lidar L1 ======================== -->
+  <!--
+    Top plate joint is at z=0.274 from base_link.
+    Unitree cylinder height=0.050m, so center must be at z=0.274+0.025=0.299
+    to sit flush on the top plate (no floating gap).
+  -->
+  <xacro:include filename="$(find p3at_lms_description)/urdf/unitree_lidar_l1.urdf.xacro"/>
+
+  <xacro:unitree_lidar_l1 parent="base_link" prefix="unitree"
+                           xyz="0.0 0.0 0.299" rpy="0 0 0"
+                           sim_scan_topic="unitree/scan"
+                           sim_cloud_topic="unitree/cloud"
+                           sim_imu_topic="unitree/imu"
+                           enable_3d="true"/>
+
+</robot>

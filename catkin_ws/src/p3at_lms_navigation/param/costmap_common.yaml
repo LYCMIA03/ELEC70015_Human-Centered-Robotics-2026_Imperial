@@ -1,10 +1,11 @@
 # Common costmap parameters for P3-AT
-obstacle_range: 3.0
-raytrace_range: 4.0
+obstacle_range: 3.5
+raytrace_range: 5.0
 
-# Approximate footprint for P3-AT, tweak if needed
-footprint: [[0.30, 0.25], [0.30, -0.25], [-0.30, -0.25], [-0.30, 0.25]]
+# P3-AT footprint (padded 5 cm for conservative wall clearance)
+footprint: [[0.32, 0.27], [0.32, -0.27], [-0.32, -0.27], [-0.32, 0.27]]
+footprint_padding: 0.05
 inflation_radius: 0.50
-cost_scaling_factor: 3.0
+cost_scaling_factor: 5.0
 
-transform_tolerance: 0.3
+transform_tolerance: 0.4

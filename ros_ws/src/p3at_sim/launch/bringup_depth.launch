@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- 启动 Gazebo 空世界 -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find p3at_sim)/worlds/simple_world.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <!-- 加载机器人描述到参数服务器 -->
+  <param name="robot_description" 
+         command="$(find xacro)/xacro '$(find p3at_sim)/urdf/p3at_with_depth_camera.urdf.xacro'" />
+
+  <!-- 发布机器人状态(TF变换) -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+    <param name="publish_frequency" value="50.0"/>
+  </node>
+
+  <!-- 发布关节状态 -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" output="screen">
+    <param name="use_gui" value="false"/>
+  </node>
+
+  <!-- Spawn 机器人模型到 Gazebo -->
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="screen"
+        args="-param robot_description -urdf -model sim_p3at -x 0 -y 0 -z 0.1" />
+</launch>

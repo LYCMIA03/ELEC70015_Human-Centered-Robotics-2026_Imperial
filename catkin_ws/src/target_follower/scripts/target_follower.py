@@ -5,6 +5,7 @@ import actionlib
 
 from geometry_msgs.msg import PoseStamped, Quaternion
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from actionlib_msgs.msg import GoalStatus
 import tf2_ros
 
 # Pure-python quaternion helpers (no PyKDL required)
@@ -91,6 +92,8 @@ class TargetFollower:
         self.last_sent_goal = None
         self.last_target = None
         self.last_send_time = rospy.Time(0)
+        self._goal_active = False
+        self._target_lost_logged = False
 
         rospy.Subscriber(self.target_topic, PoseStamped, self.cb_target, queue_size=1)
 
@@ -101,6 +104,7 @@ class TargetFollower:
 
     def cb_target(self, msg):
         self.last_target = msg
+        self._target_lost_logged = False
 
     def _get_robot_pose_in_global(self):
         """Return (x, y) of robot in global_frame, or None on failure."""
@@ -121,7 +125,25 @@ class TargetFollower:
         """Convert a yaw angle (rad) to geometry_msgs/Quaternion."""
         return Quaternion(0.0, 0.0, math.sin(yaw / 2.0), math.cos(yaw / 2.0))
 
+    def _cancel_goal_if_active(self):
+        """Cancel the current move_base goal if one is active."""
+        if self._goal_active:
+            state = self.client.get_state()
+            if state in (GoalStatus.PENDING, GoalStatus.ACTIVE):
+                self.client.cancel_goal()
+                rospy.loginfo("Cancelled active move_base goal (target lost/stale)")
+            self._goal_active = False
+
+    def _reload_dynamic_params(self):
+        """Re-read parameters that can be changed at runtime via rosparam set."""
+        self.standoff_distance = float(rospy.get_param("~standoff_distance", self.standoff_distance))
+        self.face_target = bool(rospy.get_param("~face_target", self.face_target))
+        self.send_rate_hz = float(rospy.get_param("~send_rate_hz", self.send_rate_hz))
+        self.min_update_dist = float(rospy.get_param("~min_update_dist", self.min_update_dist))
+
     def maybe_send_goal(self):
+        self._reload_dynamic_params()
+
         if self.last_target is None:
             return
 
@@ -129,7 +151,13 @@ class TargetFollower:
         if self.last_target.header.stamp != rospy.Time(0):
             age = (now - self.last_target.header.stamp).to_sec()
             if age > self.target_timeout_s:
-                rospy.logwarn_throttle(2.0, "Target pose is stale (age=%.2fs), skipping", age)
+                if not self._target_lost_logged:
+                    rospy.logwarn(
+                        "Target pose stale (age=%.2fs > %.2fs), cancelling goal",
+                        age, self.target_timeout_s,
+                    )
+                    self._target_lost_logged = True
+                self._cancel_goal_if_active()
                 return
 
         try:
@@ -212,6 +240,7 @@ class TargetFollower:
                 goal.target_pose.pose.orientation = Quaternion(0.0, 0.0, 0.0, 1.0)
 
         self.client.send_goal(goal)
+        self._goal_active = True
         self.last_sent_goal = target_g
         self.last_send_time = now
 

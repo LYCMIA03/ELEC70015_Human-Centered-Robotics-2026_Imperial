@@ -1,1081 +1,651 @@
-# P3-AT + LMS200 Navigation System (ROS1 Noetic)
+# ELEC70015 Human-Centered Robotics 2026 — Imperial College London
 
-A ROS1 Noetic workspace for the **ELEC70015 Human-Centered Robotics** course at Imperial College London. It provides both **Gazebo simulation** and **real robot** launch files for a Pioneer 3-AT mobile robot equipped with a SICK LMS200 2D lidar.
+Pioneer 3-AT autonomous navigation + trash-detection demo system.  
+ROS1 Noetic · Ubuntu 20.04 · Docker (Jetson) · Raspberry Pi 4.
 
-The LMS200 lidar handles **all** mapping, localization, path planning, and local obstacle avoidance. A depth camera (Orbbec Femto Bolt) is reserved for future target detection only and is not involved in navigation.
-
-> **Note for WSL2 Users:** If the robot model displays correctly in RViz but the P3AT visual mesh does not appear in Gazebo, this may be due to GPU rendering limitations in WSL2. See the [Troubleshooting](#troubleshooting) section for solutions.
-
-The repository contains two workspaces:
-- **`catkin_ws/`** — LMS200 LiDAR navigation stack (this branch, documented below)
-- **`ros_ws/`** — Depth camera simulation with `depthimage_to_laserscan` (see `main` branch)
-
-Quick launcher guide: [`doc.md`](doc.md)
-
-## Demo v1 Guide (Current Branch)
-
-For `release/demo-v1`, use this three-part structure:
-
-1. Navigation + Raspberry Pi communication (ROS1 multi-machine)
-2. Trash detection (non-ROS host inference) + UDP bridge into ROS1 Docker
-3. Lidar-only part (TBD for this branch)
-
-Practical runbook is maintained in `doc.md`: [`doc.md`](doc.md)
-
-Key notes:
-- ROS master uses port `11311`.
-- Trash detection bridge uses UDP `TRASH_UDP_PORT` (default `16031`) from `scripts/deploy.env`.
-- Detection and navigation can run on the same branch, but in different runtimes (host + Docker).
-
-### Demo v1 Node Tree
-
-Current runtime split (`release/demo-v1`):
-- Host: only trash detection inference (non-ROS)
-- Docker: all ROS nodes
-
-```text
-Host (non-ROS)
-└── predict_15cls_rgbd.py
-    └── UDP JSON -> 127.0.0.1:${TRASH_UDP_PORT}  (default 16031)
-
-Docker (ROS1 Noetic)
-├── roscore / rosmaster
-├── sicklms (LMS200 driver)  [real robot]
-├── robot_state_publisher
-├── map_server + amcl        [nav mode]
-├── slam_gmapping            [mapping mode]
-├── move_base
-├── udp_target_bridge
-│   └── publishes /trash_detection/target_point (PointStamped)
-├── point_to_target_pose
-│   ├── subscribes /trash_detection/target_point
-│   └── publishes  /target_pose (PoseStamped)
-└── target_follower
-    ├── subscribes /target_pose
-    └── sends MoveBaseGoal to move_base (action)
-
-Raspberry Pi (external, real robot base)
-└── p3at_base/base.launch
-    ├── RosAria
-    │   ├── subscribes /cmd_vel
-    │   └── publishes  /RosAria/pose (odometry)
-    └── odom_republisher.py
-        ├── subscribes /RosAria/pose
-        └── publishes  /odom
-```
-
-Key topic/action flow:
-```text
-Host detector (UDP) -> /udp_target_bridge -> /trash_detection/target_point
--> /point_to_target_pose -> /target_pose -> /target_follower -> /move_base (action)
--> /cmd_vel -> RosAria (Raspberry Pi Base) -> /RosAria/pose -> /odom
-```
-
-If Raspberry Pi base is not connected/running, `/odom` may be missing in real-robot mode.
-
-## Table of Contents
-
-- [System Overview](#system-overview)
-- [Hardware](#hardware)
-- [Repository Structure](#repository-structure)
-- [Package Structure](#package-structure)
-- [Prerequisites](#prerequisites)
-- [Dependencies](#dependencies)
-- [Build](#build)
-- [Usage: Gazebo Simulation](#usage-gazebo-simulation)
-  - [Mapping + Manual Navigation (gmapping)](#1-mapping--manual-navigation-gmapping)
-  - [Navigation on a Saved Map (AMCL)](#2-navigation-on-a-saved-map-amcl)
-  - [Target Following](#3-target-following)
-  - [Testing Navigation (3-Waypoint Test)](#4-testing-navigation-3-waypoint-test)
-  - [Testing Target Follower Features (Unit Tests)](#5-testing-target-follower-features-unit-tests)
-- [Verifying the System](#verifying-the-system)
-- [Troubleshooting](#troubleshooting)
-- [Simulation Calibration Notes (Bug Fixes)](#simulation-calibration-notes-bug-fixes)
-- [Usage: Real Robot](#usage-real-robot)
-  - [Multi-Machine Setup](#multi-machine-setup)
-  - [Deployment Helper Scripts](#deployment-helper-scripts)
-  - [Step 1 - Start Base Driver (Raspberry Pi)](#step-1---start-base-driver-raspberry-pi)
-  - [Step 2a - Mapping (Jetson)](#step-2a---mapping-jetson)
-  - [Step 2b - Navigation (Jetson)](#step-2b---navigation-jetson)
-- [Key Topics and TF Frames](#key-topics-and-tf-frames)
-- [Parameter Tuning](#parameter-tuning)
-- [Connecting a YOLO Target Detector](#connecting-a-yolo-target-detector)
-- [Known Issues and Notes](#known-issues-and-notes)
-- [Git Workflow](#git-workflow)
-- [Resources](#resources)
-- [Post-Installation Checklist](#post-installation-checklist)
+> **Branch: `release/demo-v1`** — real-robot deployment branch.  
+> Unitree 4D Lidar L1 is the **primary** sensor. SICK LMS200 is the backup.  
+> No Gazebo in the production stack (RViz only). See [Simulation (Development Only)](#simulation-development-only) for local testing.  
+> Practical runbook: [`doc.md`](doc.md)
 
 ---
 
-## System Overview
+## Table of Contents
+
+1. [Branch Architecture](#branch-architecture)
+2. [Hardware Configuration](#hardware-configuration)
+3. [Repository & Package Structure](#repository--package-structure)
+4. [Prerequisites & Dependencies](#prerequisites--dependencies)
+5. [Build](#build)
+6. [Real Robot Deployment](#real-robot-deployment)
+   - [Network Setup](#network-setup)
+   - [Startup Order](#startup-order)
+   - [Option A — Unitree L1 (Primary)](#option-a--unitree-l1-primary)
+   - [Option B — SICK LMS200 (Backup)](#option-b--sick-lms200-backup)
+7. [Trash Detection Bridge (demo-v1)](#trash-detection-bridge-demo-v1)
+8. [Simulation (Development Only)](#simulation-development-only)
+9. [Key Topics & TF Reference](#key-topics--tf-reference)
+10. [Parameter Tuning Guide](#parameter-tuning-guide)
+11. [Known Issues and Notes](#known-issues-and-notes)
+12. [Git Workflow](#git-workflow)
+13. [Resources](#resources)
+14. [Status](#status)
+15. [Post-Installation Checklist](#post-installation-checklist)
+
+---
+
+## Branch Architecture
+
+### Runtime Split
 
 ```
-                        Gazebo Simulation                    Real Robot
-                        ─────────────────                    ──────────
-Lidar driver     :  Gazebo ray sensor plugin        sicktoolbox_wrapper (LMS200)
-Odometry         :  Gazebo skid-steer plugin        RosAria (P3-AT encoders)
-SLAM mapping     :  slam_gmapping                   slam_gmapping
-Localization     :  AMCL                            AMCL
-Path planning    :  move_base (NavfnROS + DWA)      move_base (NavfnROS + DWA)
-Target following :  target_follower node             target_follower node
+┌─────────────────────────────────────────────────────┐
+│   JETSON ORIN  (192.168.50.1)                       │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  ROS Noetic Docker  (--net=host)              │  │
+│  │                                               │  │
+│  │  roscore                                      │  │
+│  │  robot_state_publisher  ──►  /tf_static       │  │
+│  │  unitree_lidar_ros      ──►  /unitree/scan    │  │  ← Primary sensor
+│  │  slam_gmapping          ──►  /map, /tf        │  │
+│  │  move_base              ──►  /cmd_vel         │  │
+│  │  amcl                   ──►  /tf(map→odom)    │  │
+│  │  udp_target_bridge      ──►  /trash_detection/│  │
+│  │                               target_point    │  │
+│  │  point_to_target_pose   ──►  /target_pose     │  │
+│  │  target_follower        ──►  MoveBaseGoal     │  │
+│  └───────────────────────────────────────────────┘  │
+│          ▲  UDP JSON  127.0.0.1:${TRASH_UDP_PORT}   │
+│  ┌───────┴───────────────────────────────────────┐  │
+│  │  Host — Native Ubuntu 22.04                   │  │
+│  │  predict_15cls_rgbd.py  (non-ROS, GPU)        │  │
+│  │  Orbbec Femto Bolt SDK                        │  │
+│  └───────────────────────────────────────────────┘  │
+└──────────────────┬──────────────────────────────────┘
+                   │  Gigabit Ethernet  192.168.50.0/24
+                   │  /cmd_vel → Pi  |  /odom, /tf ← Pi
+┌──────────────────┴──────────────────────────────────┐
+│   RASPBERRY PI 4  (192.168.50.2)                    │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  ROS Noetic Docker  (--net=host)              │  │
+│  │  rosaria  ◄── /cmd_vel                        │  │
+│  │           ──► /odom, /tf(odom→base_link)      │  │
+│  └───────────────────────────────────────────────┘  │
+│   Serial USB → P3-AT chassis controller             │
+└─────────────────────────────────────────────────────┘
 ```
 
-## Hardware
+### Key Topic Flow
 
-| Component | Model | Role |
-|-----------|-------|------|
-| Mobile base | Pioneer 3-AT (P3-AT) | Skid-steer chassis, encoder odometry |
-| 2D Lidar | SICK LMS200 | Mapping, localization, obstacle avoidance (serial RS-232/422) |
-| Depth camera | Orbbec Femto Bolt | Future YOLO target detection (depth + RGB) |
-| Main compute | Jetson ORIN NANO | Runs lidar driver, SLAM, navigation, target detection |
-| Base compute | Raspberry Pi | Runs RosAria chassis driver, publishes /odom and /cmd_vel |
+```
+Host detector (UDP) → udp_target_bridge → /trash_detection/target_point
+    → point_to_target_pose → /target_pose → target_follower → /move_base (action)
+    → /cmd_vel → rosaria (Pi) → /RosAria/pose → /odom
 
-## Repository Structure
+unitree_lidar_ros → /unitree/scan → slam_gmapping → /map
+                                  → move_base → /cmd_vel
+```
+
+### Sensor Stack Comparison
+
+| | Stack A — Unitree (Primary) | Stack B — SICK (Backup) |
+|---|---|---|
+| **Sensor** | Unitree 4D Lidar L1 | SICK LMS200 |
+| **FOV** | 360° | 180° |
+| **Max range** | 30 m | 80 m |
+| **Scan topic** | `/unitree/scan` | `/scan` |
+| **Sensor frame** | `unitree_lidar` | `laser` |
+| **Param dir** | `param/unitree/` | `param/` |
+| **Priority** | **Use this first** | Fallback if Unitree unavailable |
+
+---
+
+## Hardware Configuration
+
+### Robot: Pioneer 3-AT
+
+| Property | Value |
+|----------|-------|
+| Drive | 4-wheel skid-steer |
+| Footprint | `[[0.32, 0.27], [0.32, -0.27], [-0.32, -0.27], [-0.32, 0.27]]` m |
+| Inscribed radius | 0.27 m |
+
+### Sensor A: Unitree 4D Lidar L1 (Primary)
+
+| Property | Value |
+|----------|-------|
+| FOV | 360° horizontal |
+| Range | 0.05 – 30 m |
+| Scan frequency | ~10 Hz |
+| ROS topic | `/unitree/scan` (`sensor_msgs/LaserScan`) |
+| Additional topics | `/unitree/cloud` (PointCloud2), `/unitree/imu` (Imu) |
+| TF frame | `unitree_lidar` |
+| Interface | USB Type-C (serial) |
+| Driver | `unitree_lidar_ros` (compiled from `unilidar_sdk`) |
+
+### Sensor B: SICK LMS200 (Backup)
+
+| Property | Value |
+|----------|-------|
+| FOV | 180° horizontal |
+| Range | 0.1 – 80 m |
+| Scan frequency | ~75 Hz |
+| ROS topic | `/scan` (`sensor_msgs/LaserScan`) |
+| TF frame | `laser` |
+| Interface | RS-232/RS-422 serial |
+| Driver | `sicktoolbox_wrapper` (built from source in `catkin_ws/src/`) |
+
+### Compute
+
+| Node | Hardware | Role |
+|------|----------|------|
+| Jetson | NVIDIA Jetson Orin Nano | ROS master, SLAM, navigation, Unitree driver |
+| Pi | Raspberry Pi 4 | P3-AT base driver (RosAria) |
+
+---
+
+## Repository & Package Structure
 
 ```
 ELEC70015_Human-Centered-Robotics-2026_Imperial/
-├── catkin_ws/                 # LMS200 LiDAR navigation workspace (this branch)
-│   ├── src/
-│   │   ├── p3at_lms_description/   # URDF/Xacro robot model (P3-AT + laser link)
-│   │   ├── p3at_lms_gazebo/        # Gazebo world, target model, simulation launch
-│   │   ├── p3at_lms_navigation/    # Navigation stack (gmapping, AMCL, move_base)
-│   │   ├── target_follower/        # Target following system
-│   │   └── p3at_base/              # Raspberry Pi base driver
-│   ├── build/                  # Build artifacts (not tracked)
-│   └── devel/                  # Development space (not tracked)
-├── ros_ws/                    # Depth camera simulation workspace (main branch)
-│   └── src/
-│       └── amr-ros-config/     # AMR configuration (git submodule)
-├── build_and_hint.sh          # Quick-build helper script
-├── .gitmodules                # Submodule declarations
-├── .gitignore
-└── README.md
+├── catkin_ws/src/
+│   ├── p3at_base/                    # Pi-side P3-AT base driver
+│   │   ├── launch/base.launch
+│   │   └── scripts/odom_republisher.py
+│   ├── p3at_lms_description/         # URDF/Xacro robot models
+│   │   ├── urdf/p3at_lms.urdf.xacro          (SICK model)
+│   │   ├── urdf/p3at_unitree.urdf.xacro       (Unitree model)
+│   │   └── urdf/unitree_lidar_l1.urdf.xacro   (Unitree sensor macro)
+│   ├── p3at_lms_gazebo/              # Gazebo worlds and launch (dev only)
+│   │   ├── launch/sim.launch
+│   │   ├── launch/sim_unitree.launch
+│   │   └── worlds/complex_maze.world
+│   ├── p3at_lms_navigation/          # Navigation stack (both sensors)
+│   │   ├── launch/
+│   │   │   ├── real_robot_mapping_unitree.launch  ← PRIMARY (real robot)
+│   │   │   ├── real_robot_nav_unitree.launch       ← PRIMARY (real robot)
+│   │   │   ├── real_robot_mapping.launch           (SICK backup)
+│   │   │   ├── real_robot_nav.launch               (SICK backup)
+│   │   │   ├── auto_mapping_unitree.launch         (sim dev)
+│   │   │   ├── auto_mapping.launch                 (sim dev)
+│   │   │   ├── auto_amcl_verify_unitree.launch     (sim dev)
+│   │   │   ├── auto_amcl_verify.launch             (sim dev)
+│   │   │   ├── mapping_unitree.launch              (sim dev)
+│   │   │   ├── mapping.launch                      (sim dev)
+│   │   │   ├── nav_unitree.launch                  (sim dev)
+│   │   │   └── nav.launch                          (sim dev)
+│   │   ├── param/                    # SICK default parameters
+│   │   ├── param/unitree/            # Unitree-tuned parameters
+│   │   │   ├── gmapping.yaml         # maxUrange: 10.0
+│   │   │   ├── costmap_common.yaml   # inflation 0.45 / scale 5.0
+│   │   │   ├── global_costmap.yaml   # source: /unitree/scan
+│   │   │   ├── local_costmap.yaml    # inflation 0.35 (split from global)
+│   │   │   ├── move_base.yaml        # clearing_rotation_allowed: false
+│   │   │   └── amcl.yaml
+│   │   ├── rviz/nav_unitree.rviz     # Unitree RViz config
+│   │   └── scripts/
+│   │       ├── autonomous_explorer.py
+│   │       ├── amcl_verifier.py
+│   │       └── waypoint_test.py
+│   ├── target_follower/
+│   │   └── scripts/
+│   │       ├── target_follower.py          # /target_pose → MoveBaseGoal
+│   │       ├── udp_target_bridge.py        # UDP JSON → /trash_detection/target_point
+│   │       ├── point_to_target_pose.py     # PointStamped → PoseStamped
+│   │       ├── mock_target_point_publisher.py
+│   │       ├── gazebo_target_publisher.py  # sim dev only
+│   │       ├── move_target.py              # sim dev only
+│   │       └── test_standoff_face.py       # unit tests
+│   ├── sicktoolbox/                  # SICK C++ library (source)
+│   └── sicktoolbox_wrapper/          # SICK ROS wrapper (source)
+├── tools/
+│   ├── source_ros.sh / source_ros.zsh
+│   ├── camera_info_pub.py
+│   ├── inspect_depth_once.py
+│   └── relay_camera_info.py
+├── setup_unitree_lidar.sh            # Unitree SDK install helper
+├── run_full_pipeline_unitree.sh      # Sim: Unitree mapping → AMCL verify
+├── run_full_pipeline.sh              # Sim: SICK mapping → AMCL verify
+├── build_and_hint.sh
+└── doc.md                            # Demo v1 runbook
 ```
 
-> **Two workspaces:** `catkin_ws/` uses a physical LMS200 LiDAR (simulated via Gazebo ray
-> sensor plugin) for mapping/navigation. `ros_ws/` (on the `main` branch) uses depth
-> camera data converted to laser scans via `depthimage_to_laserscan`. Both workspaces
-> share the same robot platform (Pioneer 3-AT).
+---
 
-## Package Structure
+## Prerequisites & Dependencies
 
-```
-catkin_ws/src/
-├── p3at_lms_description/    # URDF/Xacro robot model (P3-AT + laser link)
-│   └── urdf/p3at_lms.urdf.xacro
-├── p3at_lms_gazebo/         # Gazebo world, target model, simulation launch
-│   ├── launch/sim.launch
-│   └── worlds/p3at_lms.world
-├── p3at_lms_navigation/     # Navigation config, params, and all launch files
-│   ├── launch/
-│   │   ├── mapping.launch              # Sim: Gazebo + gmapping + move_base
-│   │   ├── nav.launch                  # Sim: Gazebo + AMCL + move_base
-│   │   ├── real_robot_mapping.launch   # Real: LMS200 + gmapping + move_base
-│   │   └── real_robot_nav.launch       # Real: LMS200 + AMCL + move_base
-│   ├── param/
-│   │   ├── gmapping.yaml           # gmapping SLAM parameters
-│   │   ├── amcl.yaml               # AMCL localization parameters
-│   │   ├── move_base.yaml          # NavfnROS + DWA planner config
-│   │   ├── costmap_common.yaml     # Shared costmap (footprint, inflation)
-│   │   ├── global_costmap.yaml     # Global costmap layers (obstacle + inflation)
-│   │   └── local_costmap.yaml      # Local costmap layers (obstacle + inflation)
-│   ├── scripts/
-│   │   └── waypoint_test.py        # Sequential 3-waypoint navigation test
-│   └── maps/                       # Saved maps (created by map_saver)
-├── target_follower/         # Target following system
-│   ├── scripts/
-│   │   ├── target_follower.py          # Subscribes /target_pose, sends MoveBaseGoal
-│   │   │                               #   (supports standoff_distance and face_target)
-│   │   ├── gazebo_target_publisher.py  # Publishes Gazebo model pose as /target_pose
-│   │   ├── goal_to_target_relay.py     # Relays RViz 2D Nav Goal to /target_pose
-│   │   └── test_standoff_face.py       # Unit tests for standoff & face_target logic
-│   └── launch/target_follow.launch
-└── p3at_base/               # Real robot base driver (runs on Raspberry Pi)
-    ├── launch/base.launch              # RosAria + odom republisher
-    └── scripts/odom_republisher.py     # Republishes /RosAria/pose as /odom
-```
+### Jetson Docker — ROS Navigation Packages
 
-## Prerequisites
-
-### System Requirements
-
-- **Ubuntu 20.04 LTS**
-- **Python 3.8+**
-- **ROS Noetic** (full desktop or ros-base)
-- **Gazebo 11** (for simulation)
-
-**Verify ROS installation:**
-```bash
-which roscore  # Should return: /opt/ros/noetic/bin/roscore
-gazebo --version  # Should be 11.x
-```
-
-### Python Dependencies
-
-Some scripts and tools require additional Python packages:
+The base image (`ros:noetic-ros-base`) does **not** include navigation packages. Install inside the container:
 
 ```bash
-pip install numpy>=1.24.4
-pip install matplotlib>=3.1.2
-pip install opencv-python>=4.13.0
-pip install opencv-contrib-python>=4.13.0
-pip install defusedxml  # Required for xacro URDF processing
-pip install scipy>=1.10.1
-pip install pillow>=10.4.0
-```
-
-**Optional:** Add Python user scripts to PATH:
-```bash
-# For bash users:
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
-
-# For zsh users:
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
-```
-
-### Clone Repository
-
-```bash
-git clone <your-repo-url> ELEC70015_Human-Centered-Robotics-2026_Imperial
-cd ELEC70015_Human-Centered-Robotics-2026_Imperial
-
-# Initialize submodules (amr-ros-config)
-git submodule update --init --recursive
-
-# Switch to the navigation branch
-git checkout real_robot_navigation
-```
-
-## Dependencies
-
-### ROS Packages (Simulation)
-
-```bash
-sudo apt update
-sudo apt install -y \
-  ros-noetic-gazebo-ros \
-  ros-noetic-gazebo-plugins \
-  ros-noetic-gazebo-msgs \
-  ros-noetic-xacro \
-  ros-noetic-robot-state-publisher \
-  ros-noetic-joint-state-publisher \
+sudo apt-get update && sudo apt-get install -y \
   ros-noetic-slam-gmapping \
   ros-noetic-move-base \
-  ros-noetic-map-server \
-  ros-noetic-amcl \
   ros-noetic-dwa-local-planner \
   ros-noetic-navfn \
+  ros-noetic-amcl \
+  ros-noetic-map-server \
+  ros-noetic-map-msgs \
+  ros-noetic-robot-state-publisher \
+  ros-noetic-joint-state-publisher \
+  ros-noetic-xacro \
   ros-noetic-tf2-ros \
   ros-noetic-tf2-geometry-msgs \
-  ros-noetic-rviz
+  ros-noetic-actionlib \
+  ros-noetic-rviz \
+  ros-noetic-teleop-twist-keyboard \
+  build-essential cmake libboost-dev
 ```
 
-### ROS Packages (Real Robot - Jetson)
+> No Gazebo packages needed for real-robot deployment.
 
-In addition to the packages above (excluding Gazebo if not needed):
+### Unitree L1 Driver (compile from source, inside Jetson Docker)
 
 ```bash
-sudo apt install -y ros-noetic-sicktoolbox-wrapper
+cd catkin_ws/src
+git clone https://github.com/unitreerobotics/unilidar_sdk.git
+ln -sf unilidar_sdk/unitree_lidar_ros unitree_lidar_ros
+cd ../.. && catkin_make
 ```
 
-If `sicktoolbox_wrapper` is not available via apt, build from source:
-```bash
-cd ~/catkin_ws/src
-git clone https://github.com/ros-drivers/sicktoolbox_wrapper.git
-cd ~/catkin_ws && catkin_make
-```
-
-### ROS Packages (Real Robot - Raspberry Pi)
+Or use the provided helper script:
 
 ```bash
-sudo apt install -y ros-noetic-rosaria
+./setup_unitree_lidar.sh
 ```
 
-If not available via apt, build RosAria from source with AriaCoda:
-```bash
-cd ~/catkin_ws/src
-git clone https://github.com/reedhedges/AriaCoda.git
-cd AriaCoda && make && sudo make install
-cd ~/catkin_ws/src
-git clone https://github.com/amor-ros-pkg/rosaria.git
-cd ~/catkin_ws && catkin_make
-```
+> ⚠️ The Unitree SDK needs **kernel modules compiled for your Jetson kernel**.  
+> Allow ~30 min on first setup. Jetson must be running its actual kernel (not a cross-compiled one).
 
-### Optional
+### Pi Docker
 
 ```bash
-sudo apt install -y ros-noetic-teleop-twist-keyboard
+sudo apt-get install -y ros-noetic-rosaria
+# Or build from source: https://github.com/amor-ros-pkg/rosaria
 ```
+
+### Jetson Native Ubuntu 22.04 (Trash Detection)
+
+```bash
+pip3 install ultralytics opencv-python numpy scipy pillow
+# Orbbec Femto Bolt SDK: https://github.com/orbbec/OrbbecSDK_ROS1
+```
+
+---
 
 ## Build
 
 ```bash
-cd ~/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws
+cd catkin_ws
 catkin_make
-source devel/setup.bash    # or setup.zsh for zsh users
+source devel/setup.zsh   # or devel/setup.bash
 ```
 
-Alternatively, use the provided helper script from the repository root:
+Verify:
+
 ```bash
-./build_and_hint.sh
+rospack find p3at_lms_navigation   # should print path
+rospack find unitree_lidar_ros     # must exist before real-robot use
 ```
 
-> You must `source devel/setup.bash` (or `.zsh`) in every new terminal before running any `roslaunch` or `rostopic` commands.
+Source helper (every new terminal):
 
-> **Important for zsh users:** ROS setup scripts have both `.bash` and `.zsh` versions. Always use `.zsh` files if you are using zsh shell.
-
-If `catkin_make` fails with missing dependencies:
 ```bash
-cd ~/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws
-rosdep install --from-paths src --ignore-src -r -y
-catkin_make
+source tools/source_ros.zsh   # zsh
+source tools/source_ros.sh    # bash
 ```
 
 ---
 
-## Usage: Gazebo Simulation
+## Real Robot Deployment
 
-All simulation launch files start Gazebo, spawn the robot, and open RViz automatically. Each step below runs in a separate terminal. Source the workspace at the start of each terminal:
+### Network Setup
 
+Direct Gigabit Ethernet link between Jetson and Pi on `192.168.50.0/24`.
+
+**Jetson Docker:**
 ```bash
-source ~/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.zsh
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
 ```
 
-### 1. Mapping + Manual Navigation (gmapping)
-
-#### Option A — Manual goal sending (recommended for testing)
-
-**Terminal 1** — Launch Gazebo + gmapping + move_base + RViz **without** target_follower:
-
+**Pi Docker:**
 ```bash
-roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=false
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.2
 ```
 
-> **Important**: pass `use_gazebo_target:=false` when you want to send goals manually or run
-> the waypoint test script. Without this flag, the `target_follower` node starts and will
-> cancel any manual goals after ~2 seconds.
-
-Wait ~30 seconds for Gazebo, gmapping, and move_base to fully initialise (you will see
-`odom received` and `Registering First Scan` messages in the terminal).
-
-**Send a single navigation goal from any sourced terminal:**
-
+Configure IPs in `scripts/deploy.env` (see `doc.md`):
 ```bash
-rostopic pub -1 /move_base_simple/goal geometry_msgs/PoseStamped \
-  '{header: {frame_id: "map"}, pose: {position: {x: 2.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}}'
+JETSON_IP=192.168.50.1
+RASPI_IP=192.168.50.2
+TRASH_UDP_PORT=16031
 ```
 
-Or click **"2D Nav Goal"** in RViz.
-
-#### Option B — Gazebo target following (default)
-
+Verify connectivity:
 ```bash
-roslaunch p3at_lms_navigation mapping.launch
+ping 192.168.50.2          # from Jetson
+rosnode list               # from Pi — should return /rosout
 ```
 
-This starts:
-- Gazebo with the P3-AT robot and two box obstacles (1.0 m tall)
-- `slam_gmapping` building a 2D occupancy grid map in real time
-- `move_base` (NavfnROS global planner + DWA local planner)
-- `target_follower` tracking a Gazebo model named "target"
-- RViz showing the live map, robot pose, and laser scan
+> Both Docker containers **must** use `--net=host`.
 
-Drive the robot by moving the **"target"** model in Gazebo:
-1. In Gazebo, click the model named **"target"** in the left panel
-2. Select the **Translate** tool (T key)
-3. Drag the target to a new position; the robot will navigate toward it
-
-#### Option C — Keyboard teleop
-
-```bash
-roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=false
-# In a second terminal:
-rosrun teleop_twist_keyboard teleop_twist_keyboard.py
-```
-Key bindings:
-```
-u  i  o        move forward + turn
-j  k  l        turn left / stop / turn right
-m  ,  .        move backward + turn
-
-q / z  : increase / decrease max linear speed
-w / x  : increase / decrease max angular speed
-```
-
-**Save the map** once coverage is complete (new terminal):
-```bash
-rosrun map_server map_saver -f $(rospack find p3at_lms_navigation)/maps/my_map
-```
-
-This creates `my_map.pgm` and `my_map.yaml` in `p3at_lms_navigation/maps/`.
-
-### 4. Testing Navigation (3-Waypoint Test)
-
-A Python script is provided to verify end-to-end navigation automatically:
-`p3at_lms_navigation/scripts/waypoint_test.py`
-
-**Prerequisites:**
-- The simulation is running: `roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=false`
-- Wait at least **30 seconds** after launch before running the test
-- Source the workspace in the terminal where you run the script
-
-```bash
-# From the catkin_ws directory:
-source devel/setup.zsh   # (or setup.bash)
-python3 src/p3at_lms_navigation/scripts/waypoint_test.py
-```
-
-**What the script does:**
-
-Sends three sequential `MoveBaseGoal` actions via the `actionlib` interface and reports
-progress and final position error for each waypoint:
-
-| Waypoint | Target (map frame) | Notes |
-|----------|--------------------|-------|
-| WP1 | (0.0, -2.0) | Open space south, ~2 m straight run |
-| WP2 | (3.5, 2.0) | North of obstacle_1 at (2, 1) — robot must navigate around |
-| WP3 | (5.0, 0.0) | Far east, past both obstacles — tests narrow-corridor traversal |
-
-**Expected output (verified on commit `5d9e4d2`):**
+### Startup Order
 
 ```
-Connected to move_base!
-
-========== Waypoint 1 [open south, ~2 m]: (0.0, -2.0) ==========
-  Start position : (0.000, 0.000)
-  RESULT: SUCCEEDED | Final pos: (...) | Error: 0.14 m
-
-========== Waypoint 2 [N of obstacle_1@(2,1), ~5 m total, must avoid]: (3.5, 2.0) ==========
-  RESULT: SUCCEEDED | Final pos: (...) | Error: 0.11 m
-
-========== Waypoint 3 [far east past both obstacles, ~7 m total]: (5.0, 0.0) ==========
-  RESULT: SUCCEEDED | Final pos: (...) | Error: 0.19 m
-
-========== SUMMARY ==========
-  WP1 [open south, ~2 m] : PASS
-  WP2 [N of obstacle_1@(2,1), ~5 m total, must avoid] : PASS
-  WP3 [far east past both obstacles, ~7 m total] : PASS
-```
-
-Each waypoint has a **65-second timeout**. The script prints position and action state every 5 seconds.
-If a waypoint is `ABORTED`, check `rostopic echo /move_base/status` and ensure the goal is not
-inside an obstacle inflation zone.
-
-### 5. Testing Target Follower Features (Unit Tests)
-
-A self-contained unit test script verifies the core maths of `standoff_distance` and `face_target`
-**without requiring a running ROS system or Gazebo**. It replicates the exact logic from
-`target_follower.py` and checks all edge cases with known inputs.
-
-Script: `target_follower/scripts/test_standoff_face.py`
-
-#### Running the tests
-
-```bash
-# No ROS sourcing needed — pure Python, no dependencies
-python3 catkin_ws/src/target_follower/scripts/test_standoff_face.py
-```
-
-#### What is tested (21 tests, all expected to PASS)
-
-| Group | Test | What is verified |
-|-------|------|------------------|
-| **Standoff geometry** | T1 | `standoff=0` → goal equals target exactly |
-| | T2a–d | `standoff=1.5`, robot at origin, target 4 m away → goal is exactly 1.5 m from target, lies on the robot→target line |
-| | T3 | Robot already inside standoff zone (d=1.0 < standoff=2.0) → returns `skip=True`, no goal sent |
-| | T4a–c | `standoff=1.0`, oblique direction → goal exactly 1 m from target, collinear with robot→target |
-| **face_target yaw** | F1 | Target due east → yaw = 0° |
-| | F2 | `standoff=1 m` + target due east → yaw still = 0° |
-| | F3 | Target due north → yaw = 90° |
-| | F4 | Target south-west → yaw = −135° |
-| | F5 | `standoff=2 m`, target NE at 45° → yaw = 45° |
-| | F6 | `yaw_to_quaternion` round-trip: recover original yaw from (z, w) |
-| **Edge cases** | E1 | `d == standoff` (exact boundary) → skip |
-| | E2 | `d < standoff` → skip |
-| | E3 | `d` just above `standoff` → no skip, goal exactly `standoff` metres from target |
-| | E4 | goal ≈ target (standoff ≈ 0) → falls back to robot→target direction for yaw |
-
-#### Expected output
-
-```
-════════════════════════════════════════════════════════════
-UNIT TEST: standoff_distance geometry
-════════════════════════════════════════════════════════════
-  [PASS] T1: standoff=0, no skip
-  [PASS] T1: standoff=0, goal == target  (goal=(3.0000,4.0000), target=(3.0,4.0))
-  [PASS] T2a: standoff=1.5, no skip (d=4 > 1.5)
-  [PASS] T2b: goal is exactly standoff distance from target  (dist=1.5000m (want 1.5m))
-  [PASS] T2c: goal is on the robot→target line  (goal=(2.5000,0.0000))
-  [PASS] T2d: goal_x = 4.0 - 1.5 = 2.5  (gx=2.5000)
-  [PASS] T3: inside standoff zone → skip=True  (d=1.0 <= standoff=2.0, skip=True)
-  ...
-════════════════════════════════════════════════════════════
-SUMMARY
-════════════════════════════════════════════════════════════
-  [PASS] ...  (×21)
-
-  21/21 unit tests passed
-  All unit tests PASSED ✓
-```
-
-> **Note:** The unit tests verify the mathematical correctness of the standoff and
-> face_target logic in isolation. End-to-end navigation tests (robot actually moving to
-> the computed goal) are covered by `waypoint_test.py` for the baseline case. Full
-> integration of `standoff_distance` + `face_target` was also verified manually in
-> Gazebo simulation (commit `7d87bbb`).
-
-### 2. Navigation on a Saved Map (AMCL)
-
-**Terminal 1** — Launch Gazebo + AMCL + move_base + RViz:
-
-```bash
-roslaunch p3at_lms_navigation nav.launch \
-  map_file:=$(rospack find p3at_lms_navigation)/maps/my_map.yaml
-```
-
-#### Initialize robot pose in RViz
-
-AMCL needs an approximate starting pose before it can localize.
-
-1. In RViz, click **"2D Pose Estimate"** in the top toolbar
-2. Click on the map at the robot's **actual current position**
-3. Hold and drag to set the **heading direction**, then release
-4. The green particle cloud should converge around the robot — localization is active
-
-If the particle cloud does not converge, drive the robot a short distance and repeat.
-
-#### Send a navigation goal in RViz
-
-1. In RViz, click **"2D Nav Goal"** in the top toolbar
-2. Click on the map at the **desired destination**
-3. Hold and drag to set the **goal heading**, then release
-4. Observe:
-   - A green global path appears in RViz
-   - The robot starts moving in Gazebo
-   - The path updates as the robot progresses
-
-To send a goal from the command line instead:
-```bash
-rostopic pub /target_pose geometry_msgs/PoseStamped "
-header:
-  frame_id: 'map'
-pose:
-  position:
-    x: 2.0
-    y: 1.0
-    z: 0.0
-  orientation:
-    w: 1.0" -1
-```
-
-### 3. Target Following
-
-**Gazebo model tracking** (default in `mapping.launch`): The `gazebo_target_publisher` reads the Gazebo "target" model pose and publishes it as `/target_pose`. The `target_follower` node converts this into a continuous stream of `MoveBaseGoal` actions.
-
-**RViz 2D Nav Goal relay**: Use RViz to set the target instead of a Gazebo model:
-```bash
-roslaunch p3at_lms_navigation mapping.launch \
-  use_gazebo_target:=false use_rviz_goal_relay:=true
-```
-Now every "2D Nav Goal" click in RViz is forwarded to `/target_pose` and triggers the follower.
-
-**Programmatic target** (e.g., from a YOLO detector): Publish to `/target_pose` from any node. The pose can be in `map`, `odom`, or `base_link` frame -- `target_follower` handles the TF transform automatically.
-
-#### Standoff Distance
-
-The `standoff_distance` parameter makes the robot stop a fixed distance *short* of the target instead of driving all the way to it. This is useful when following a person — you want the robot to keep a comfortable gap rather than crowd the target.
-
-```bash
-# Stop 1.5 m short of the target
-roslaunch p3at_lms_navigation mapping.launch standoff_distance:=1.5
-```
-
-**How it works:**
-- The robot computes the vector from its current position to the target.
-- The goal sent to `move_base` is placed `standoff_distance` metres back along that vector.
-- If the robot is already *inside* the standoff zone (current distance ≤ `standoff_distance`), no new goal is sent — the robot stays put.
-- The standoff goal is recomputed each time the target moves, so it tracks correctly as both robot and target move.
-
-```
-  Robot ──────── Goal ─ [standoff_distance] ─ Target
-```
-
-**Change at runtime** without restarting:
-```bash
-rosparam set /target_follower/standoff_distance 2.0
-```
-
-#### Face Target
-
-The `face_target` parameter orients the robot to face *toward* the target when it arrives at the goal pose. Without this, the robot keeps its current heading (default DWA behaviour).
-
-```bash
-# Robot faces the target at the goal
-roslaunch p3at_lms_navigation mapping.launch face_target:=true
-```
-
-**How it works:**
-- After computing the goal position (with or without standoff), the goal orientation is set to `atan2(target_y - goal_y, target_x - goal_x)`.
-- When `standoff_distance > 0`, the robot faces from the standoff goal toward the target — i.e., it points at the target from a distance.
-- When `standoff_distance = 0` and `face_target = true`, the robot faces the direction it approached from (robot → target vector).
-- The yaw is converted to a unit quaternion and passed directly to `move_base`; actual pointing accuracy is limited by DWA's `yaw_goal_tolerance` (0.5 rad ≈ 29°).
-
-**Change at runtime** without restarting:
-```bash
-rosparam set /target_follower/face_target true
-```
-
-#### Combined Example
-
-```bash
-# Stop 1.0 m from the target AND face it
-roslaunch p3at_lms_navigation mapping.launch \
-  standoff_distance:=1.0 face_target:=true
-```
-
-This is the recommended mode for human-following: the robot stops at a comfortable distance and turns to face the person.
-
-#### All `target_follower` Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `~target_topic` | string | `/target_pose` | Topic to subscribe for target pose |
-| `~global_frame` | string | `map` | Global reference frame for goals |
-| `~robot_frame` | string | `base_link` | Robot body frame (for standoff TF lookup) |
-| `~send_rate_hz` | float | `2.0` | Max rate at which new goals are sent (Hz) |
-| `~min_update_dist` | float | `0.3` | Min target movement (m) before re-sending goal |
-| `~target_timeout_s` | float | `1.0` | Ignore stale target poses older than this (s) |
-| `~use_target_orientation` | bool | `false` | Use the orientation from the target message |
-| `~standoff_distance` | float | `0.0` | Stop this many metres short of the target (0 = go all the way) |
-| `~face_target` | bool | `false` | Orient robot to face the target at the goal pose |
-
----
-
-## Verifying the System
-
-Use these commands in any sourced terminal to check that everything is running correctly.
-
-### Quick System Check
-
-```bash
-# List all active nodes (expect ~10 nodes with Gazebo + gmapping + move_base)
-rosnode list
-
-# List all active topics
-rostopic list
-```
-
-### Sensor Frequencies
-
-```bash
-# Check lidar data rate (should be ~10 Hz in simulation, ~75 Hz real LMS200)
-rostopic hz /scan
-
-# Check odometry rate (should be ~100 Hz)
-rostopic hz /odom
-
-# Check map update rate (~1 Hz during exploration, less when stationary)
-rostopic hz /map
-```
-
-### Navigation Status
-
-```bash
-# View the current robot pose estimate from AMCL
-rostopic echo /amcl_pose
-
-# Check move_base goal status
-rostopic echo /move_base/status
-
-# Monitor velocity commands (robot should be publishing when moving)
-timeout 5 rostopic echo /cmd_vel
-```
-
-### TF Tree
-
-```bash
-# Print the full TF tree to a PDF
-rosrun tf2_tools view_frames.py && evince frames.pdf
-
-# Check specific transforms
-rosrun tf tf_echo map odom
-rosrun tf tf_echo odom base_link
-rosrun tf tf_echo base_link laser
-```
-
-### Quick Diagnostic (one-liner)
-
-```bash
-echo "=== Nodes ===" && rosnode list && \
-echo "=== Scan Hz ===" && timeout 3 rostopic hz /scan && \
-echo "=== Odom Hz ===" && timeout 3 rostopic hz /odom && \
-echo "=== TF map->base_link ===" && rosrun tf tf_echo map base_link 2>&1 | head -5
+1. Jetson Docker:  roscore
+2. Pi Docker:      roslaunch p3at_base base.launch
+3. Jetson Docker:  roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch
+                   (or real_robot_nav_unitree.launch for navigation on saved map)
+4. Jetson Docker:  [optional] start udp_target_bridge for trash detection
 ```
 
 ---
 
-## Troubleshooting
+### Option A — Unitree L1 (Primary)
 
-| Symptom | Likely cause | Fix |
-|---------|-------------|-----|
-| RViz shows no map | `map_server` not running, or wrong `map_file` path | Check the `map_file` argument; ensure the `.yaml` and `.pgm` files exist |
-| Robot does not move after nav goal | AMCL not yet localized | Use "2D Pose Estimate" in RViz first, then resend the goal |
-| Navigation goal immediately aborted | Target is inside an obstacle or too close to a wall | Choose a goal in open space; increase `inflation_radius` if needed |
-| Manual goal cancelled after 2 s | `target_follower` is running and timing out | Launch with `use_gazebo_target:=false` to disable it |
-| All lidar readings < 0.15 m (self-hit) | `<collision>` on laser link causing ray self-hit | Already fixed in URDF; check no collision element was re-added |
-| Robot cannot see obstacles (detour missing) | Obstacles shorter than laser height (0.366 m) | Already fixed in world file; obstacles are now 1.0 m tall |
-| waypoint_test.py: `move_base not available` | Simulation not ready yet | Wait 30 s after launch start; ensure `use_gazebo_target:=false` |
-| Robot spins in place indefinitely | DWA planner cannot find a feasible velocity | Lower `max_vel_theta` or increase `sim_time` in `move_base.yaml` |
-| `roslaunch` reports package not found | Workspace not sourced | Run `source devel/setup.zsh` in that terminal |
-| Gazebo opens but robot falls through floor | Mesh collision geometry issue | Restart Gazebo; this is intermittent with complex STL meshes |
-| `catkin_make` fails with missing package | ROS dependency not installed | Run `rosdep install --from-paths src --ignore-src -r -y` |
-| P3AT mesh invisible in Gazebo (WSL2) | GPU rendering limitation in WSL2 | See [WSL2 GPU Acceleration Guide](https://zhuanlan.zhihu.com/p/19575977500); install WSL2 GPU drivers or configure X11 forwarding |
-| Processes not terminating cleanly | Stale ROS/Gazebo processes | `killall -9 gzserver gzclient roscore rosmaster roslaunch rviz; sleep 3` |
-| `evince` command not found | PDF viewer not installed | Use alternatives: `xdg-open frames.pdf`, `eog frames.pdf`, or `okular frames.pdf` |
+> **Use for all real-robot deployments unless Unitree hardware is unavailable.**
 
----
-
-## Simulation Calibration Notes (Bug Fixes)
-
-The following issues were identified and fixed during simulation testing (all changes committed in `5d9e4d2`):
-
-### 1 — Lidar Self-Collision (URDF)
-
-**Problem:** Gazebo merges fixed-joint child links into the parent link for physics simulation.
-This caused the `laser` link's collision geometry to be treated as part of `base_link`,
-so all 361 lidar rays were hitting the robot body (readings 0.05–0.14 m).
-
-**Fix:** Removed the `<collision>` element from the `laser` link in
-`p3at_lms_description/urdf/p3at_lms.urdf.xacro`. The visual and sensor elements are
-retained; only the collision box was removed.
-
-### 2 — Obstacles Below Laser Plane (World File)
-
-**Problem:** The two box obstacles were 0.5 m / 0.6 m tall. The laser is mounted at
-z = 0.366 m, so the obstacle tops were at 0.5 m / 0.6 m but the lidar plane swept above
-the shorter one. In practice **all scan rays passed over the obstacles** and the costmap
-had no obstacle markings.
-
-**Fix:** Raised both obstacle heights to **1.0 m** (centre at z = 0.5 m) in
-`p3at_lms_gazebo/worlds/p3at_lms.world`.
-
-### 3 — target_follower Cancelling Manual Goals
-
-**Problem:** `target_follower.py` subscribes to `/target_pose` and, if no message arrives
-within 2 seconds, cancels any active move_base goal. This silently cancelled every
-manually-sent goal and made it impossible to test navigation without the Gazebo target.
-
-**Fix:** Added `use_target_follower` argument to `mapping.launch`; the node is wrapped in
-`<group if="$(arg use_target_follower)">`. It defaults to off when
-`use_gazebo_target:=false`.
-
-### 4 — DWA Goal Tolerance Too Large
-
-**Problem:** `xy_goal_tolerance: 0.30` with `latch_xy_goal_tolerance: true` caused
-move_base to declare success while the robot was still 0.3 m from the target. With `yaw_goal_tolerance: 3.14` the orientation was irrelevant.
-
-**Fix (move_base.yaml):** `xy_goal_tolerance: 0.10`, `yaw_goal_tolerance: 0.5`,
-`latch_xy_goal_tolerance: false`.
-
-### 5 — TF Frame Mismatch in Costmap
-
-**Problem:** `robot_base_frame: base_link` in both costmap YAML files, but the skid-steer
-Gazebo plugin publishes odometry with `child_frame_id: base_footprint`. This caused a TF
-lookup failure that prevented the local costmap from updating.
-
-**Fix:** Set `robot_base_frame: base_footprint` in both `global_costmap.yaml` and
-`local_costmap.yaml`.
-
-### 6 — Missing obstacle_layer in Global Costmap
-
-**Problem:** `global_costmap.yaml` only had a `static_layer`. Without an `obstacle_layer`,
-the planner could not see live sensor obstacles — it only knew about walls from the static
-map. Newly-seen obstacles (the two boxes) were never inscribed into the global costmap.
-
-**Fix:** Added explicit `obstacle_layer` and `inflation_layer` configurations to both
-`global_costmap.yaml` and `local_costmap.yaml`.
-
----
-
-## Usage: Real Robot
-
-The real robot system is split across two machines:
-- **Raspberry Pi**: Runs the P3-AT chassis driver (`p3at_base`)
-- **Jetson ORIN NANO**: Runs the lidar driver, SLAM/localization, and navigation stack
-
-### Multi-Machine Setup
-
-On the **Raspberry Pi**, configure ROS networking before launching:
-```bash
-export ROS_MASTER_URI=http://<jetson_ip>:11311
-export ROS_IP=<raspi_ip>
-```
-
-On the **Jetson** (runs `roscore`):
-```bash
-export ROS_MASTER_URI=http://<jetson_ip>:11311
-export ROS_IP=<jetson_ip>
-```
-
-### Deployment Helper Scripts
-
-To avoid repeatedly typing `source` and long launch commands, helper scripts are provided in `scripts/`.
-
-1. Copy and edit IP config:
-```bash
-cp scripts/deploy.env.example scripts/deploy.env
-```
-
-2. Fill in `JETSON_IP`, `RASPI_IP`, `LAPTOP_IP` in `scripts/deploy.env`.
-
-3. Run with wrappers (from repo root or any directory):
-```bash
-# Local WSL simulation (laptop as ROS master)
-scripts/start_master.sh laptop
-scripts/start_sim_mapping.sh
-# or
-scripts/start_sim_nav.sh
-
-# Real robot topology (Jetson as ROS master)
-# Jetson terminal 1:
-scripts/start_master.sh jetson
-# Jetson terminal 2:
-scripts/start_real_mapping.sh
-# or
-scripts/start_real_nav.sh map_file:=/absolute/path/to/my_map.yaml
-# Real target following (local RGBD+YOLO sends UDP JSON x/y/z):
-scripts/start_real_nav.sh map_file:=/absolute/path/to/my_map.yaml use_target_follower:=true use_udp_target_bridge:=true point_target_frame:=camera_link
-# RasPi terminal:
-scripts/start_base.sh
-```
-
-Notes:
-- `scripts/env.sh` is the single environment entrypoint and is sourced by all `start_*.sh` scripts.
-- `MASTER_HOST` can be overridden when needed, for example:
-  `MASTER_HOST=laptop scripts/start_base.sh`
-- `scripts/deploy.env` is git-ignored by default so each machine can keep its own local IP config.
-
-### Step 1 - Start Base Driver (Raspberry Pi)
-
-Connect the P3-AT via serial cable, then launch:
+#### Pi — Start Base Driver
 
 ```bash
 roslaunch p3at_base base.launch
-# Or specify a different serial port:
-roslaunch p3at_base base.launch serial_port:=/dev/ttyUSB0
 ```
 
-This starts:
-- `RosAria` node: reads encoder odometry, accepts velocity commands
-- `odom_republisher`: republishes `/RosAria/pose` as the standard `/odom` topic
-- TF broadcast: `odom` -> `base_link` (published by RosAria with `publish_aria_tf=true`)
-- Topic remapping: `/RosAria/cmd_vel` remapped to `/cmd_vel`
+Publishes: `/odom`, `/tf (odom→base_link)`, `/battery_voltage`  
+Subscribes: `/cmd_vel`
 
-### Step 2a - Mapping (Jetson)
-
-Connect the LMS200 via serial (typically `/dev/ttyUSB0`), then launch:
+#### Jetson — Mapping
 
 ```bash
-roslaunch p3at_lms_navigation real_robot_mapping.launch
+roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch
 ```
 
-Launch arguments:
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `lms200_port` | `/dev/ttyUSB0` | LMS200 serial port |
-| `lms200_baud` | `38400` | LMS200 baud rate |
-| `use_rviz` | `true` | Start RViz |
-| `use_target_follower` | `false` | Enable target following |
-| `use_rviz_goal_relay` | `false` | Relay RViz 2D Nav Goal to /target_pose |
-| `standoff_distance` | `0.0` | Stop this many metres short of target (see [Standoff Distance](#standoff-distance)) |
-| `face_target` | `false` | Orient robot to face the target at goal (see [Face Target](#face-target)) |
+| `unitree_port` | `/dev/ttyUSB0` | Unitree L1 USB port |
+| `use_rviz` | `true` | Open RViz |
+| `use_target_follower` | `false` | Enable target following during mapping |
 
-This starts:
-- `sicklms` (sicktoolbox_wrapper): LMS200 driver publishing `/scan` in the `laser` frame
-- `robot_state_publisher`: publishes URDF-based TF (including `base_link` -> `laser`)
-- `slam_gmapping`: builds the occupancy grid map
-- `move_base`: path planning and obstacle avoidance
-- RViz (optional)
+Starts: `unitree_lidar_ros` + `robot_state_publisher` + `slam_gmapping` + `move_base` + RViz.
 
-Save the map after mapping:
-```bash
-rosrun map_server map_saver -f $(rospack find p3at_lms_navigation)/maps/my_map
-```
-
-### Step 2b - Navigation (Jetson)
-
-After mapping, use the saved map for AMCL-based navigation:
+**Optional — autonomous frontier exploration:**
 
 ```bash
-roslaunch p3at_lms_navigation real_robot_nav.launch map_file:=/absolute/path/to/my_map.yaml
+rosrun p3at_lms_navigation autonomous_explorer.py \
+  _exploration_timeout:=300 \
+  _robot_radius:=0.25 \
+  _goal_timeout:=30.0
 ```
 
-Launch arguments are the same as mapping, plus:
-| Argument | Default | Description |
-|----------|---------|-------------|
-| `map_file` | `...maps/demo_map.yaml` | Path to the saved map YAML |
-| `standoff_distance` | `0.0` | Stop this many metres short of target |
-| `face_target` | `false` | Orient robot to face the target at goal |
+**Save map:**
 
-This starts: `sicklms`, `robot_state_publisher`, `map_server`, `amcl`, `move_base`, and optionally RViz.
+```bash
+rosrun map_server map_saver -f $HOME/maps/real_robot_map
+```
+
+#### Jetson — Navigation
+
+```bash
+roslaunch p3at_lms_navigation real_robot_nav_unitree.launch \
+  map_file:=$HOME/maps/real_robot_map.yaml
+```
+
+1. RViz → **"2D Pose Estimate"** → set initial robot pose
+2. Wait for AMCL particle cloud to converge
+3. RViz → **"2D Nav Goal"**, or:
+
+```bash
+rostopic pub -1 /move_base_simple/goal geometry_msgs/PoseStamped \
+  "{header: {frame_id: 'map'}, pose: {position: {x: 2.0, y: 1.0, z: 0.0}, orientation: {w: 1.0}}}"
+```
+
+#### Unitree Parameter Files
+
+| File | Key Values |
+|------|-----------|
+| `param/unitree/costmap_common.yaml` | `inflation_radius: 0.45`, `cost_scaling_factor: 5.0` |
+| `param/unitree/global_costmap.yaml` | Obstacle source: `/unitree/scan`, frame `unitree_lidar` |
+| `param/unitree/local_costmap.yaml` | `inflation_radius: 0.35` (smaller than global) |
+| `param/unitree/move_base.yaml` | `clearing_rotation_allowed: false` (**anti-tip — do not change**) |
+| `param/unitree/gmapping.yaml` | `maxUrange: 10.0` (30 m sensor) |
 
 ---
 
-## Key Topics and TF Frames
+### Option B — SICK LMS200 (Backup)
 
-### Topics
+> **Use only if Unitree hardware is unavailable.**
 
-| Topic | Type | Publisher | Description |
-|-------|------|-----------|-------------|
-| `/scan` | `sensor_msgs/LaserScan` | Gazebo plugin / sicklms | 2D lidar scan |
-| `/odom` | `nav_msgs/Odometry` | Gazebo plugin / odom_republisher | Robot odometry |
-| `/cmd_vel` | `geometry_msgs/Twist` | move_base | Velocity commands |
-| `/map` | `nav_msgs/OccupancyGrid` | gmapping / map_server | Occupancy grid map |
-| `/target_pose` | `geometry_msgs/PoseStamped` | gazebo_target_publisher / YOLO node | Target position for following |
-| `/move_base/goal` | `move_base_msgs/MoveBaseActionGoal` | target_follower | Navigation goal |
-
-### TF Tree
-
-```
-map -> odom -> base_footprint -> base_link -> laser
-                                           -> (4x wheel links)
+```bash
+sudo chmod 666 /dev/ttyUSB0
+roslaunch p3at_lms_navigation real_robot_mapping.launch    # mapping
+roslaunch p3at_lms_navigation real_robot_nav.launch \     # navigation
+  map_file:=$HOME/maps/sick_map.yaml
 ```
 
-- `map` -> `odom`: Published by gmapping (during mapping) or AMCL (during navigation)
-- `odom` -> `base_footprint`: Published by Gazebo skid-steer plugin / RosAria
-- `base_footprint` -> `base_link`: Static, from URDF (identity transform)
-- `base_link` -> `laser`: Static, from URDF
+LMS200 firmware settings to verify: baud 38400–500000 bps, measuring units cm, resolution 0.5°, FOV 180°.
 
-## Parameter Tuning
+---
 
-Key parameter files are in `p3at_lms_navigation/param/`:
+## Trash Detection Bridge (demo-v1)
 
-**gmapping.yaml** - SLAM parameters:
-- `particles: 30` - number of particles (increase for larger environments)
-- `delta: 0.05` - map resolution (meters/pixel)
-- `maxUrange: 8.0` - max usable range
-- `linearUpdate: 0.2` / `angularUpdate: 0.2` - minimum movement before scan processing
+The detection pipeline runs on **Jetson native Ubuntu 22.04** (not inside Docker) because the Orbbec SDK requires kernel-level USB access.
 
-**move_base.yaml** - Planner parameters:
-- `max_vel_x: 0.6` - maximum forward velocity (m/s)
-- `max_vel_theta: 1.2` - maximum rotational velocity (rad/s)
-- `xy_goal_tolerance: 0.10` - position tolerance at goal (m) — tightened from 0.30
-- `yaw_goal_tolerance: 0.50` - orientation tolerance at goal (rad) — tightened from 3.14
-- `latch_xy_goal_tolerance: false` - re-evaluate tolerance each iteration
-- `recovery_behavior_enabled: true` - enabled; `clearing_rotation_allowed: true`
-- `planner_patience: 10.0` / `controller_patience: 10.0` - allow planning retries
-- NavfnROS: `allow_unknown: true`, `default_tolerance: 0.10`
+### Pipeline
 
-**costmap_common.yaml** - Costmap parameters:
-- `footprint: [[0.30, 0.25], [0.30, -0.25], [-0.30, -0.25], [-0.30, 0.25]]` - P3-AT footprint (m)
-- `inflation_radius: 0.50` - inflation around obstacles (m)
+```
+[Jetson — Native Ubuntu 22.04]
+  predict_15cls_rgbd.py
+  → UDP JSON → 127.0.0.1:${TRASH_UDP_PORT}   (default 16031)
+      {"x": 1.2, "y": -0.3, "z": 0.0, "frame_id": "camera_link", "stamp": ...}
 
-**amcl.yaml** - Localization parameters:
-- `min_particles: 300` / `max_particles: 2000`
-- `laser_model_type: likelihood_field`
-- `odom_model_type: diff`
+[Jetson — ROS Docker]
+  udp_target_bridge.py
+  ← UDP JSON on 0.0.0.0:16031
+  → /trash_detection/target_point  (geometry_msgs/PointStamped)
 
-These parameters are tuned for simulation. Adjust them for real hardware based on actual robot dynamics and LMS200 characteristics.
+  point_to_target_pose.py
+  ← /trash_detection/target_point
+  → /target_pose  (geometry_msgs/PoseStamped)
 
-## Connecting a YOLO Target Detector
+  target_follower.py
+  ← /target_pose
+  → MoveBaseAction goal → move_base → /cmd_vel
+```
 
-The `target_follower` node subscribes to `/target_pose` (`geometry_msgs/PoseStamped`). To integrate a YOLO-based detector:
+### Starting the Bridge (Jetson Docker)
 
-1. Create a node that:
-   - Subscribes to the depth camera RGB + depth topics
-   - Runs YOLO inference to detect the target object
-   - Computes the 3D position from the depth image
-   - Publishes a `PoseStamped` to `/target_pose`
+```bash
+rosrun target_follower udp_target_bridge.py \
+  _bind_port:=16031 \
+  _default_frame:=camera_link
 
-2. Enable target following in the launch file:
-   ```bash
-   roslaunch p3at_lms_navigation real_robot_nav.launch use_target_follower:=true
-   ```
+rosrun target_follower point_to_target_pose.py \
+  _in_point_topic:=/trash_detection/target_point \
+  _out_target_topic:=/target_pose
+```
 
-3. If your detector publishes `geometry_msgs/PointStamped` (for example a 3D point in camera frame), enable the bridge node:
-   ```bash
-   roslaunch p3at_lms_navigation real_robot_nav.launch \
-     use_target_follower:=true \
-     use_point_target_bridge:=true \
-     point_target_topic:=/trash_detection/target_point
-   ```
-   The bridge converts `PointStamped` to `PoseStamped` on `/target_pose`.  
-   `target_follower` will transform it to `map` using TF and publish `move_base` goals.
+### Manual Test (no hardware)
 
-4. Manual test without a detector (`PoseStamped` directly):
-   ```bash
-   rostopic pub -r 5 /target_pose geometry_msgs/PoseStamped \
-     "{header: {frame_id: 'map'}, pose: {position: {x: 2.0, y: 1.0, z: 0.0}, orientation: {w: 1.0}}}"
-   ```
+```bash
+python3 -c "
+import socket, json, time
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.sendto(json.dumps({'x':2.0,'y':0.0,'z':0.0,
+                     'frame_id':'map','stamp':time.time()}).encode(),
+         ('127.0.0.1', 16031))"
+# Then check: rostopic echo /target_pose
+```
 
-5. Manual test detector-like input (`PointStamped`):
-   ```bash
-   rostopic pub -r 5 /trash_detection/target_point geometry_msgs/PointStamped \
-     "{header: {frame_id: 'base_link'}, point: {x: 2.0, y: 0.0, z: 0.0}}"
-   ```
+---
 
-6. Mock detector mode (no depth camera required):
-   ```bash
-   roslaunch p3at_lms_navigation mapping.launch \
-     use_gazebo_target:=false \
-     use_target_follower:=true \
-     use_mock_detector:=true \
-     use_point_target_bridge:=true \
-     point_target_topic:=/trash_detection/target_point \
-     mock_target_frame:=base_link \
-     mock_mode:=fixed \
-     mock_x:=2.0 mock_y:=0.0 mock_z:=0.0 \
-     standoff_distance:=0.6 face_target:=true
-   ```
-   `mock_mode:=circle` is also supported for moving-target stress tests.
+## Simulation (Development Only)
+
+> Production deployment does **not** use Gazebo. Use simulation for algorithm development and parameter tuning on a developer machine.
+
+### Autonomous Exploration
+
+```bash
+# Unitree stack (primary)
+roslaunch p3at_lms_navigation auto_mapping_unitree.launch exploration_timeout:=300 gui:=true
+
+# SICK stack (backup)
+roslaunch p3at_lms_navigation auto_mapping.launch exploration_timeout:=300 gui:=true
+```
+
+### AMCL Verification
+
+```bash
+roslaunch p3at_lms_navigation auto_amcl_verify_unitree.launch gui:=true
+```
+
+### Full Pipeline Script
+
+```bash
+bash run_full_pipeline_unitree.sh   # Unitree: map → AMCL verify
+bash run_full_pipeline.sh           # SICK: map → AMCL verify
+```
+
+### Unit Tests (no ROS required)
+
+```bash
+python3 catkin_ws/src/target_follower/scripts/test_standoff_face.py
+# Expected: 21/21 PASS
+```
+
+---
+
+## Key Topics & TF Reference
+
+### Core Topics — Unitree Stack (Real Robot)
+
+| Topic | Type | Publisher | Subscriber |
+|-------|------|-----------|------------|
+| `/unitree/scan` | `sensor_msgs/LaserScan` | `unitree_lidar_ros` | `slam_gmapping`, `move_base`, RViz |
+| `/unitree/cloud` | `sensor_msgs/PointCloud2` | `unitree_lidar_ros` | (optional) |
+| `/unitree/imu` | `sensor_msgs/Imu` | `unitree_lidar_ros` | (optional) |
+| `/odom` | `nav_msgs/Odometry` | `rosaria` (Pi) | `move_base` |
+| `/cmd_vel` | `geometry_msgs/Twist` | `move_base` | `rosaria` (Pi) |
+| `/map` | `nav_msgs/OccupancyGrid` | `slam_gmapping` / `map_server` | `move_base`, RViz |
+| `/trash_detection/target_point` | `geometry_msgs/PointStamped` | `udp_target_bridge` | `point_to_target_pose` |
+| `/target_pose` | `geometry_msgs/PoseStamped` | `point_to_target_pose` | `target_follower` |
+| `/move_base/goal` | `MoveBaseActionGoal` | `target_follower` | `move_base` |
+
+### TF Tree (Real Robot — Unitree)
+
+```
+map
+└── odom               [slam_gmapping (mapping) or amcl (nav)  ~20 Hz]
+    └── base_footprint [rosaria on Pi  ~50 Hz]
+        └── base_link  [robot_state_publisher  static]
+            └── unitree_lidar  [robot_state_publisher  static]
+```
+
+| Edge | Broadcaster | Notes |
+|------|-------------|-------|
+| `map → odom` | `slam_gmapping` or `amcl` | Switches between mapping / nav phases |
+| `odom → base_footprint` | `rosaria` (Pi) | Cross-machine via TCPROS |
+| `base_footprint → base_link` | `robot_state_publisher` | Static, identity |
+| `base_link → unitree_lidar` | `robot_state_publisher` | Static, mount offset from URDF |
+
+**SICK stack:** identical with `laser` replacing `unitree_lidar`, `/scan` replacing `/unitree/scan`.
+
+---
+
+## Parameter Tuning Guide
+
+### Why Split Global/Local Costmap Inflation
+
+Global costmap (`inflation_radius: 0.45 m`) → NavFn plans a conservative path away from walls.  
+Local costmap (`inflation_radius: 0.35 m`) → DWA has more room to find trajectories in tight corridors.  
+Without this split, DWA frequently aborts in corridors even when the global plan is valid.
+
+### `move_base.yaml` — Critical Settings (Unitree)
+
+```yaml
+clearing_rotation_allowed: false   # SAFETY: prevents P3-AT tipping with Unitree on top
+DWAPlannerROS:
+  max_vel_x: 0.4
+  max_vel_theta: 0.4
+  vx_samples: 20            # better trajectory search in corridors
+  vtheta_samples: 40        # richer turning decisions
+  xy_goal_tolerance: 0.55   # generous for large robot
+  occdist_scale: 0.02       # allows close approach in tight spaces
+NavfnROS:
+  allow_unknown: true        # plan through unknown cells (essential for exploration)
+  default_tolerance: 0.3
+```
+
+### `gmapping.yaml` — Unitree vs SICK
+
+| Parameter | SICK | Unitree | Reason |
+|-----------|------|---------|--------|
+| `maxUrange` | 8.0 m | 10.0 m | Unitree L1 range is 30 m |
+| `particles` | 30 | 30 | Same |
+| `delta` | 0.05 m | 0.05 m | Same map resolution |
+
+### `target_follower` — Key Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `~standoff_distance` | `0.0` m | Stop this far short of target |
+| `~face_target` | `false` | Orient robot toward target at goal |
+| `~send_rate_hz` | `2.0` Hz | Max rate for new goals |
+| `~min_update_dist` | `0.3` m | Min target movement before re-sending goal |
+| `~target_timeout` | `2.0` s | Stale target timeout — cancels move_base goal |
+
+---
 
 ## Known Issues and Notes
 
-- **Simulation fidelity**: The URDF model and Gazebo dynamics are approximate. Real P3-AT behavior (especially skid-steer turning) will differ.
-- **LMS200 FOV**: The real LMS200 has a 180-degree field of view. The Gazebo simulation uses a similar configuration. Verify `resolution` and `measuring_units` match your LMS200 firmware settings.
-- **move_base recovery**: Recovery behaviors are enabled (`recovery_behavior_enabled: true`) with clearing rotations. If the robot gets stuck during mapping, disable with `recovery_behavior_enabled: false` in `move_base.yaml`.
-- **Conda environments**: If running inside a conda Python environment, avoid nodes that require `PyKDL`. The `target_follower` in this workspace uses pure-Python quaternion math and does not depend on PyKDL.
-- **Gazebo reference frame**: The `target_follow.launch` uses `base_footprint` as the Gazebo reference frame (not `base_link`) because Gazebo merges fixed joints -- the frame `p3at::base_link` does not exist in the Gazebo model, only `p3at::base_footprint`.
+- **`clearing_rotation_allowed: false` is safety-critical**: In-place rotation recovery has caused the P3-AT to tip over with Unitree L1 on top (high CoM). Do not re-enable without anti-tip analysis.
+
+- **Unitree kernel module on Jetson**: The SDK requires kernel modules compiled for your specific Jetson kernel. Allow ~30 min on first setup (`./setup_unitree_lidar.sh`).
+
+- **Narrow corridor margins**: P3-AT is ~0.54 m wide; after inflation (0.35–0.45 m), margins in 1 m corridors are very tight. Reduce `inflation_radius` to 0.30 m if the robot gets stuck frequently, but expect more wall contacts.
+
+- **Pi `/odom` latency**: Cross-machine TCPROS `/odom` has ~1–5 ms latency. If TF lookup fails, increase `transform_tolerance` in costmap YAMLs (currently 0.4 s).
+
+- **`gazebo_target_publisher.py` and `move_target.py`** are simulation-only and are **not** started by real-robot launch files.
+
+- **Conda environments**: Avoid nodes requiring `PyKDL`. All scripts in this branch (`udp_target_bridge.py`, `target_follower.py`, `autonomous_explorer.py`) use pure-Python math only.
 
 ---
 
 ## Git Workflow
 
+### Branch Strategy
+
+| Branch | Purpose |
+|--------|---------|
+| `main` | Simulation development + algorithm validation |
+| `release/demo-v1` | Real-robot deployment (this branch) |
+
 ### What's Tracked
 
-- Source packages: `catkin_ws/src/` (all navigation, description, gazebo, target_follower, base packages)
-- Launch files, URDF/Xacro models, RViz configs
-- Navigation parameters: `param/` YAML files
-- Test scripts: `waypoint_test.py`, `test_standoff_face.py`
-- Submodule: `ros_ws/src/amr-ros-config/` (MobileRobots AMR configuration)
-- Helper scripts: `build_and_hint.sh`
-- Documentation: `README.md`
+- `catkin_ws/src/` — all package source
+- `param/` and `param/unitree/` YAML files
+- `tools/` helper scripts
+- `doc.md`, `README.md`
 
-### What's Ignored (`.gitignore`)
+### What's Ignored
 
-- Build artifacts: `catkin_ws/build/`, `catkin_ws/devel/`, `ros_ws/build/`, `ros_ws/devel/`
-- Generated maps: `*.pgm`, `*.yaml` in `maps/` (optional: commit reference maps)
-- TF frame outputs: `frames.gv`, `frames.pdf`
-- Python caches: `__pycache__/`
-- Catkin workspace marker: `.catkin_workspace`
+- `catkin_ws/build/`, `catkin_ws/devel/`, `ros_ws/build/`, `ros_ws/devel/`
+- Maps: `*.pgm`, `*.yaml` in `maps/`
+- `Log/`, `__pycache__/`, `.catkin_workspace`
 
 ### Setup After Clone
 
 ```bash
-# 1. Clone repository
 git clone <repo-url> ELEC70015_Human-Centered-Robotics-2026_Imperial
 cd ELEC70015_Human-Centered-Robotics-2026_Imperial
-
-# 2. Initialize submodules
+git checkout release/demo-v1
 git submodule update --init --recursive
-
-# 3. Switch to navigation branch
-git checkout real_robot_navigation
-
-# 4. Build workspace
-cd catkin_ws
-catkin_make
-source devel/setup.bash  # or setup.zsh
+cd catkin_ws && catkin_make
+source devel/setup.zsh
 ```
 
 ---
@@ -1083,73 +653,81 @@ source devel/setup.bash  # or setup.zsh
 ## Resources
 
 - [ROS Noetic Documentation](http://wiki.ros.org/noetic)
-- [Gazebo Tutorials](http://gazebosim.org/tutorials)
 - [GMapping SLAM](http://wiki.ros.org/gmapping)
 - [AMCL Localization](http://wiki.ros.org/amcl)
 - [move_base Navigation](http://wiki.ros.org/move_base)
 - [DWA Local Planner](http://wiki.ros.org/dwa_local_planner)
-- [NavfnROS Global Planner](http://wiki.ros.org/navfn)
-- [map_server Package](http://wiki.ros.org/map_server)
-- [URDF Tutorial](http://wiki.ros.org/urdf/Tutorials)
-- [depthimage_to_laserscan Package](http://wiki.ros.org/depthimage_to_laserscan) (used on `main` branch)
 - [sicktoolbox_wrapper (LMS200)](http://wiki.ros.org/sicktoolbox_wrapper)
 - [RosAria (P3-AT driver)](http://wiki.ros.org/ROSARIA)
-- [REP-103: Coordinate Frames](https://www.ros.org/reps/rep-0103.html)
+- [Orbbec Femto Bolt SDK](https://github.com/orbbec/OrbbecSDK_ROS1)
 - [REP-105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/rep-0105.html)
-- [WSL2 GPU Rendering Guide](https://zhuanlan.zhihu.com/p/19575977500)
+- [Docker Host Networking](https://docs.docker.com/network/host/)
 
 ---
 
 ## Status
 
-- [x] Gazebo simulation (gmapping + move_base + target following) -- verified
-- [x] Simulation laser self-collision bug fixed -- verified (commit `5d9e4d2`)
-- [x] Obstacle detection (obstacle_layer, inflation_layer in costmap) -- verified
-- [x] 3-waypoint sequential navigation test -- all SUCCEEDED (errors < 0.2 m)
-- [x] Map saving and loading (map_server + AMCL) -- verified
-- [x] `standoff_distance` feature -- implemented and verified (commit `7d87bbb`, 21/21 unit tests pass)
-- [x] `face_target` feature -- implemented and verified (commit `7d87bbb`, 21/21 unit tests pass)
-- [x] Unit test suite for standoff + face_target logic -- 21/21 pass (commit `8e189ba`)
-- [x] Real robot launch files (mapping + navigation) -- created, pending hardware test
-- [x] Raspberry Pi base driver package (p3at_base) -- created, pending hardware test
-- [ ] YOLO target detection node -- not started
-- [ ] Multi-machine network configuration scripts -- not started
-- [ ] Real hardware parameter tuning -- not started
+### Simulation (verified on `main`, available in this branch via merge)
+- [x] Gazebo simulation (gmapping + move_base + target following) — verified
+- [x] Autonomous frontier exploration — best 12.6% coverage / 300 s in `complex_maze.world`
+- [x] AMCL accuracy verifier — mean pos error 0.089 m, convergence 1.0 s
+- [x] `standoff_distance` + `face_target` — 21/21 unit tests pass
+- [x] Dynamic moving target (`move_target.py`) — verified in Gazebo
+- [x] Unitree costmap split inflation (0.45 vs 0.35 m) — done
+- [x] `clearing_rotation_allowed: false` — anti-tip, done
+- [x] `param/unitree/` parameter directory — created and tuned
+
+### Real Robot (demo-v1)
+- [x] Real robot launch files — all 4 variants (mapping + nav, Unitree + SICK) — created
+- [x] Raspberry Pi base driver (`p3at_base`) — created
+- [x] UDP trash detection bridge (`udp_target_bridge.py` + `point_to_target_pose.py`) — created
+- [x] Multi-machine network architecture — documented
+- [ ] `unitree_lidar_ros` compiled in Jetson Docker — **pending**
+- [ ] Docker navigation ROS packages installed — **pending**
+- [ ] `tools/yolo_target_detector.py` — not started
+- [ ] End-to-end YOLO → `/target_pose` → `target_follower` real-robot test — not started
+- [ ] Real hardware parameter tuning — not started
+- [ ] End-to-end real robot navigation test — Unitree (primary) — not started
+- [ ] End-to-end real robot navigation test — SICK (backup) — not started
 
 ---
 
 ## Post-Installation Checklist
 
-Verify everything works after cloning and building:
+### Build
+- [ ] `cd catkin_ws && catkin_make` — no errors
+- [ ] `source devel/setup.zsh && rospack find p3at_lms_navigation` — path returned
+- [ ] `rospack find unitree_lidar_ros` — found (requires SDK clone + build)
 
-### Environment Setup
-- [ ] Workspace builds without errors: `catkin_make`
-- [ ] ROS sourcing works: `source devel/setup.zsh && rospack find p3at_lms_navigation`
-- [ ] Submodule initialized: `ls ros_ws/src/amr-ros-config/`
+### Docker Environment (Jetson)
+- [ ] Navigation ROS packages installed (`gmapping`, `move_base`, `amcl`, `rviz` …)
+- [ ] `--net=host` confirmed: `docker inspect -f '{{.HostConfig.NetworkMode}}' <container>`
+- [ ] `roscore` running: `ss -lntp | grep 11311`
 
-### Gazebo Simulation
-- [ ] Gazebo launches: `roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=false`
-- [ ] Robot spawns in simulation (no errors in terminal)
-- [ ] Wait ~30 seconds, then verify core nodes: `rosnode list`
-- [ ] Lidar scan publishes at ~10 Hz: `rostopic hz /scan`
-- [ ] Odometry publishes at ~100 Hz: `rostopic hz /odom`
-- [ ] Map is being built: `rostopic hz /map`
-- [ ] TF tree complete: `rosrun tf tf_echo map base_link`
-- [ ] RViz shows robot model, laser scan, and map
+### Network
+- [ ] Jetson `eth0`: `192.168.50.1`
+- [ ] Pi `eth0`: `192.168.50.2`
+- [ ] Ping both directions succeed
+- [ ] `rosnode list` from Pi returns `/rosout`
 
-### Navigation
-- [ ] Manual goal succeeds: send a `2D Nav Goal` in RViz or publish to `/move_base_simple/goal`
-- [ ] Robot moves toward the goal and stops near it
-- [ ] Waypoint test passes: `python3 src/p3at_lms_navigation/scripts/waypoint_test.py`
-- [ ] Map saving works: `rosrun map_server map_saver -f /tmp/test_map`
+### Unitree Hardware
+- [ ] `ls /dev/ttyUSB*` shows device after connecting Unitree L1
+- [ ] `roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch` — no errors
+- [ ] `rostopic hz /unitree/scan` — ~10 Hz
+- [ ] RViz shows `unitree_lidar` frame and scan data
 
-### Target Following
-- [ ] Target follower works: `roslaunch p3at_lms_navigation mapping.launch` (default mode)
-- [ ] Drag "target" model in Gazebo; robot follows
-- [ ] Unit tests pass: `python3 catkin_ws/src/target_follower/scripts/test_standoff_face.py` (21/21)
+### Trash Detection Bridge
+- [ ] `python3 tools/inspect_depth_once.py` — Orbbec frame received (native host)
+- [ ] UDP mock send → `rostopic echo /trash_detection/target_point` — message received
+- [ ] `rostopic echo /target_pose` — publishing when UDP messages arrive
 
-### AMCL Navigation (requires a saved map)
-- [ ] AMCL launches: `roslaunch p3at_lms_navigation nav.launch map_file:=<path_to_map.yaml>`
-- [ ] Set initial pose with "2D Pose Estimate" in RViz
-- [ ] Particle cloud converges around robot
-- [ ] Navigation goal succeeds with AMCL localization
+### Navigation (Unitree)
+- [ ] `rostopic hz /map` — map building during mapping launch
+- [ ] Map saved: `rosrun map_server map_saver -f ~/maps/unitree_map`
+- [ ] AMCL particle cloud converges after "2D Pose Estimate"
+- [ ] Navigation goal SUCCEEDED
+
+### Navigation (SICK — backup only)
+- [ ] `roslaunch p3at_lms_navigation real_robot_mapping.launch` — no errors
+- [ ] `rostopic hz /scan` — ~75 Hz
+- [ ] Map saved and navigation goal SUCCEEDED

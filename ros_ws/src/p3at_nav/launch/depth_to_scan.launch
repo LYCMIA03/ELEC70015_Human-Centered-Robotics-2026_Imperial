@@ -1,0 +1,18 @@
+<launch>
+  <!-- Generate camera_info from depth image (perfect sync) -->
+  <node pkg="p3at_nav" type="depth_camera_info_from_image.py" name="depth_camera_info_generator" output="screen"/>
+
+  <!-- Depth to LaserScan conversion -->
+  <node pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" name="depth_to_scan" output="screen">
+    <!-- 使用完整的 depth/depth 路径 -->
+    <remap from="image"       to="/sim_p3at/camera/depth/depth/image_raw"/>
+    <remap from="camera_info" to="/sim_p3at/camera/depth/depth/camera_info"/>
+    <remap from="scan"        to="/scan"/>
+
+    <param name="output_frame_id" value="base_link"/>
+    <param name="scan_time" value="0.033"/>
+    <param name="range_min" value="0.2"/>
+    <param name="range_max" value="10.0"/>
+    <param name="scan_height" value="10"/>
+  </node>
+</launch>

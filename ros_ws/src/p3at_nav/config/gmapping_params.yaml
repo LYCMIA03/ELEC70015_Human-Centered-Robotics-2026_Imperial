@@ -1,0 +1,47 @@
+# GMapping SLAM parameters for P3AT with depth camera
+# Reference: http://wiki.ros.org/gmapping
+
+# Laser scan parameters
+maxUrange: 9.5           # Maximum usable range (slightly less than 10m depth camera range)
+maxRange: 10.0           # Maximum range of the sensor
+
+# Map parameters
+map_update_interval: 2.0  # Update map every 2 seconds
+xmin: -15.0              # Initial map size
+ymin: -15.0
+xmax: 15.0
+ymax: 15.0
+delta: 0.05              # Map resolution (5cm)
+
+# Frame parameters
+odom_frame: odom
+base_frame: base_link
+map_frame: map
+
+# SLAM algorithm parameters
+particles: 30            # Number of particles in the filter
+linearUpdate: 0.2        # Process a scan if robot moved 0.2m
+angularUpdate: 0.2       # Process a scan if robot rotated 0.2 rad
+temporalUpdate: 3.0      # Process scan if 3 seconds passed
+
+# Likelihood sampling (used in scan matching)
+llsamplerange: 0.01
+llsamplestep: 0.01
+lasamplerange: 0.005
+lasamplestep: 0.005
+
+# Scan matcher parameters
+sigma: 0.05              # Standard deviation for the matching
+kernelSize: 1            # Kernel size for the correlation computation
+lstep: 0.05              # Linear step for scan matching
+astep: 0.05              # Angular step for scan matching
+iterations: 5            # Number of iterations for scan matching
+lsigma: 0.075            # Standard deviation for the linear update
+ogain: 3.0               # Gain for odometry
+srr: 0.01                # Odometry error in translation as a function of translation
+srt: 0.02                # Odometry error in translation as a function of rotation
+str: 0.01                # Odometry error in rotation as a function of translation
+stt: 0.02                # Odometry error in rotation as a function of rotation
+
+# Motion model parameters
+minimumScore: 50         # Minimum score for considering the outcome of scan matching

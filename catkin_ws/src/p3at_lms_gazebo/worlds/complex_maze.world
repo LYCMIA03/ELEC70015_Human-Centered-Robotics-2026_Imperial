@@ -1,0 +1,330 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="complex_maze">
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- Physics settings for stable simulation -->
+    <physics type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+    <!-- ============================================================ -->
+    <!--   Complex maze environment for autonomous mapping & AMCL     -->
+    <!--   Outer boundary: 12 m x 12 m                               -->
+    <!--   Robot spawns at origin (0,0), which is roughly center      -->
+    <!-- ============================================================ -->
+
+    <!-- === Outer walls (12 x 12 m boundary) === -->
+    <!-- North wall -->
+    <model name="wall_north">
+      <static>true</static>
+      <pose>0 6 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>12.2 0.2 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>12.2 0.2 1.0</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- South wall -->
+    <model name="wall_south">
+      <static>true</static>
+      <pose>0 -6 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>12.2 0.2 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>12.2 0.2 1.0</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- East wall -->
+    <model name="wall_east">
+      <static>true</static>
+      <pose>6 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 12.2 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 12.2 1.0</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- West wall -->
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-6 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 12.2 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 12.2 1.0</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- === Internal walls creating rooms and corridors === -->
+
+    <!-- Horizontal divider - upper section left, gap x=-1.25..+1.25 (2.5m wide) -->
+    <model name="wall_h1">
+      <static>true</static>
+      <pose>-3.625 3 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>4.75 0.2 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>4.75 0.2 1.0</size></box></geometry>
+          <material><ambient>0.8 0.7 0.5 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Horizontal divider - upper section right, gap x=-1.25..+1.25 (2.5m wide) -->
+    <model name="wall_h1b">
+      <static>true</static>
+      <pose>3.625 3 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>4.75 0.2 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>4.75 0.2 1.0</size></box></geometry>
+          <material><ambient>0.8 0.7 0.5 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Vertical divider - splits upper rooms (Room A left, Room B right) -->
+    <model name="wall_v1">
+      <static>true</static>
+      <pose>0.5 4.75 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 2.5 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 2.5 1.0</size></box></geometry>
+          <material><ambient>0.8 0.7 0.5 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Horizontal divider - lower section left, gap x=-1.25..+1.25 (2.5m wide) -->
+    <model name="wall_h2">
+      <static>true</static>
+      <pose>-3.625 -2.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>4.75 0.2 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>4.75 0.2 1.0</size></box></geometry>
+          <material><ambient>0.8 0.7 0.5 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Horizontal divider - lower section right, gap x=-1.25..+1.25 (2.5m wide) -->
+    <model name="wall_h2b">
+      <static>true</static>
+      <pose>3.625 -2.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>4.75 0.2 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>4.75 0.2 1.0</size></box></geometry>
+          <material><ambient>0.8 0.7 0.5 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Vertical wall - lower left partition -->
+    <model name="wall_v2">
+      <static>true</static>
+      <pose>-3 -4.25 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 3.5 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 3.5 1.0</size></box></geometry>
+          <material><ambient>0.8 0.7 0.5 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- L-shaped corridor wall segment (x=2.5 to give 1.8m corridor width) -->
+    <model name="wall_L1">
+      <static>true</static>
+      <pose>2.5 0.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 3.0 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 3.0 1.0</size></box></geometry>
+          <material><ambient>0.5 0.5 0.7 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- L-shaped corridor wall horizontal continuation -->
+    <model name="wall_L2">
+      <static>true</static>
+      <pose>4.0 -1.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>4.0 0.2 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>4.0 0.2 1.0</size></box></geometry>
+          <material><ambient>0.5 0.5 0.7 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Left corridor wall (x=-2.5, corridor width 1.8m from center) -->
+    <model name="wall_deadend">
+      <static>true</static>
+      <pose>-2.5 0.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 3.0 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 3.0 1.0</size></box></geometry>
+          <material><ambient>0.5 0.5 0.7 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- === Obstacles inside rooms === -->
+
+    <!-- Table-like obstacle in Room A (top-left) -->
+    <model name="obstacle_table_A">
+      <static>true</static>
+      <pose>-3.5 4.5 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>1.0 0.6 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1.0 0.6 0.8</size></box></geometry>
+          <material><ambient>0.6 0.3 0.1 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Cylinder obstacle in Room B (top-right) -->
+    <model name="obstacle_pillar_B">
+      <static>true</static>
+      <pose>3 4.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.25</radius><length>1.0</length></cylinder></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.25</radius><length>1.0</length></cylinder></geometry>
+          <material><ambient>0.3 0.5 0.3 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Small box obstacle - placed clear of spawn origin and doorways -->
+    <model name="obstacle_box_center">
+      <static>true</static>
+      <pose>0.0 -1.0 0.3 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.4 0.4 0.6</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.4 0.4 0.6</size></box></geometry>
+          <material><ambient>0.8 0.2 0.2 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Pillar in lower-right area -->
+    <model name="obstacle_pillar_D">
+      <static>true</static>
+      <pose>4 -4 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><cylinder><radius>0.3</radius><length>1.0</length></cylinder></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.3</radius><length>1.0</length></cylinder></geometry>
+          <material><ambient>0.4 0.4 0.6 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Narrow passage obstacle -->
+    <model name="obstacle_narrow">
+      <static>true</static>
+      <pose>-4.5 -4 0.4 0 0 0.3</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>1.2 0.3 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1.2 0.3 0.8</size></box></geometry>
+          <material><ambient>0.7 0.5 0.2 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Obstacle in the L-corridor -->
+    <model name="obstacle_Lcorridor">
+      <static>true</static>
+      <pose>4.5 -3.5 0.3 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.5 0.5 0.6</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.5 0.5 0.6</size></box></geometry>
+          <material><ambient>0.2 0.6 0.6 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Short vertical wall in upper-left room (replaces problematic angled wall) -->
+    <model name="wall_room_A_divider">
+      <static>true</static>
+      <pose>-4.5 4.0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 2.0 1.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 2.0 1.0</size></box></geometry>
+          <material><ambient>0.7 0.7 0.4 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>
