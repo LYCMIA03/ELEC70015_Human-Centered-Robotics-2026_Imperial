@@ -1,0 +1,663 @@
+[02/24 18:18:14.205434][info][13426][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[02/24 18:18:14.205945][info][13426][DeviceManager.cpp:25] Current found device(s): (1)
+[02/24 18:18:14.205975][info][13426][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:18:14.206010][info][13426][DeviceManager.cpp:339] Enable net device enumeration: true
+[02/24 18:18:16.218295][info][13426][DeviceManager.cpp:25] Current device(s) list: (1)
+[02/24 18:18:16.218655][info][13426][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:18:16.287124][info][13426][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[02/24 18:18:16.287544][info][13426][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAAF67495F0
+[02/24 18:18:16.304481][info][13426][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[02/24 18:18:16.678105][info][13479][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:18:17.109015][info][13426][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[02/24 18:18:17.109213][info][13426][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[02/24 18:18:17.109263][info][13426][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 1920, height: 1080, fps: 30}
+[02/24 18:18:17.109303][info][13426][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[02/24 18:18:17.109339][info][13426][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 1920, height: 1080, fps: 30}
+[02/24 18:18:17.115068][info][13426][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:18:17.115150][info][13426][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[02/24 18:18:17.115182][info][13426][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:18:17.685689][info][13426][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[02/24 18:18:17.685932][info][13426][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[02/24 18:18:17.937707][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 261815, nRows: 1028
+[02/24 18:18:17.952325][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 720304, nRows: 0
+[02/24 18:18:17.954186][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744072666908556, frameDataSize: 130938, nRows: 36494
+[02/24 18:18:17.967546][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1885094250, frameDataSize: 654903, nRows: 4875
+[02/24 18:18:17.970008][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 833193216, frameDataSize: 65322, nRows: 52672
+[02/24 18:18:17.982952][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2419043124, frameDataSize: 654666, nRows: 5387
+[02/24 18:18:17.984328][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744065933830420, frameDataSize: 65484, nRows: 33089
+[02/24 18:18:17.997522][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1661411136, frameDataSize: 523896, nRows: 4124
+[02/24 18:18:17.998889][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744069438574544, frameDataSize: 65370, nRows: 47547
+[02/24 18:18:18.000260][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 411460560, frameDataSize: 65432, nRows: 772
+[02/24 18:18:18.013780][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1152142836, frameDataSize: 589223, nRows: 29263
+[02/24 18:18:18.014651][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 191589168, frameDataSize: 65416, nRows: 50118
+[02/24 18:18:18.017459][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 82561250, frameDataSize: 65301, nRows: 1285
+[02/24 18:18:18.027617][info][13490][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[02/24 18:18:18.033812][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2602692960, frameDataSize: 589355, nRows: 47051
+[02/24 18:18:18.035110][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 44384928, frameDataSize: 65339, nRows: 1028
+[02/24 18:18:18.036485][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744067570365056, frameDataSize: 65412, nRows: 51921
+[02/24 18:18:18.052375][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 654713, nRows: 1028
+[02/24 18:18:18.053871][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2410950420, frameDataSize: 65402, nRows: 41118
+[02/24 18:18:18.070381][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 654331, nRows: 0
+[02/24 18:18:18.071518][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 12014165280, frameDataSize: 65406, nRows: 1534
+[02/24 18:18:18.072887][error][13491][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2641960, frameDataSize: 65403, nRows: 514
+[02/24 18:18:18.250035][warning][13496][ObException.hpp:48] Update data size(7041490) > data buffer size! (6666240)
+[02/24 18:18:18.261714][warning][13496][ObLibuvcDevicePort.cpp:465] Execute failure! A libobsensor_exception has occurred!
+ - where: ObLibuvcDevicePort.cpp(465):onFrameCallback
+ - msg: Update data size(7041490) > data buffer size! (6666240)
+ - type: N11libobsensor16memory_exceptionE
+[02/24 18:18:18.458752][info][13491][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[02/24 18:19:05.099288][info][13730][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[02/24 18:19:05.099775][info][13730][DeviceManager.cpp:25] Current found device(s): (1)
+[02/24 18:19:05.099810][info][13730][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:19:05.099846][info][13730][DeviceManager.cpp:339] Enable net device enumeration: true
+[02/24 18:19:07.113448][info][13730][DeviceManager.cpp:25] Current device(s) list: (1)
+[02/24 18:19:07.113841][info][13730][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:19:07.166359][info][13730][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[02/24 18:19:07.166870][info][13730][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAB05907C50
+[02/24 18:19:09.677064][info][13730][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[02/24 18:19:09.690458][error][13803][RawPhaseStreamer.cpp:504] Frame data size error: 65534
+[02/24 18:19:09.696453][info][13803][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 0, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:19:09.895313][error][13803][RawPhaseStreamer.cpp:504] Frame data size error: 589365
+[02/24 18:19:09.915800][info][13803][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:19:10.359019][info][13730][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[02/24 18:19:10.359484][info][13730][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[02/24 18:19:10.359558][info][13730][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 1920, height: 1080, fps: 30}
+[02/24 18:19:10.359617][info][13730][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[02/24 18:19:10.359675][info][13730][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 1920, height: 1080, fps: 30}
+[02/24 18:19:10.366579][info][13730][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:19:10.366666][info][13730][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[02/24 18:19:10.366694][info][13730][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:19:10.901546][info][13730][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[02/24 18:19:10.902358][info][13730][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[02/24 18:19:11.273386][warning][13805][VideoSensor.cpp:184] [CL8CA5300G0] This frame will be dropped because jpg format verification failure! @Color
+[02/24 18:19:11.310896][info][13805][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[02/24 18:19:11.444210][info][13806][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[02/24 18:19:17.164583][info][13907][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[02/24 18:19:17.165070][info][13907][DeviceManager.cpp:25] Current found device(s): (1)
+[02/24 18:19:17.165108][info][13907][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:19:17.165142][info][13907][DeviceManager.cpp:339] Enable net device enumeration: true
+[02/24 18:19:19.175751][info][13907][DeviceManager.cpp:25] Current device(s) list: (1)
+[02/24 18:19:19.176114][info][13907][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:19:19.231722][info][13907][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[02/24 18:19:19.232091][info][13907][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAAEB5F5C50
+[02/24 18:19:21.776953][info][13907][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[02/24 18:19:21.813292][info][13995][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:19:22.247930][info][13907][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[02/24 18:19:22.248374][info][13907][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[02/24 18:19:22.248437][info][13907][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 1920, height: 1080, fps: 30}
+[02/24 18:19:22.248495][info][13907][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[02/24 18:19:22.248546][info][13907][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 1920, height: 1080, fps: 30}
+[02/24 18:19:22.255704][info][13907][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:19:22.255806][info][13907][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[02/24 18:19:22.255833][info][13907][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:19:22.790024][info][13907][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[02/24 18:19:22.790347][info][13907][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[02/24 18:19:23.126559][warning][14003][VideoSensor.cpp:184] [CL8CA5300G0] This frame will be dropped because jpg format verification failure! @Color
+[02/24 18:19:23.141965][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 598739400, frameDataSize: 261775, nRows: 2562
+[02/24 18:19:23.163102][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 720252, nRows: 0
+[02/24 18:19:23.165989][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073325895040, frameDataSize: 130960, nRows: 35211
+[02/24 18:19:23.169494][info][14003][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[02/24 18:19:23.179903][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 654864, nRows: 1028
+[02/24 18:19:23.182737][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 528392, frameDataSize: 65377, nRows: 514
+[02/24 18:19:23.200128][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744057026638848, frameDataSize: 654690, nRows: 13100
+[02/24 18:19:23.201514][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1177490916, frameDataSize: 65484, nRows: 38749
+[02/24 18:19:23.214613][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 26419600, frameDataSize: 523948, nRows: 1028
+[02/24 18:19:23.215857][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744071912819656, frameDataSize: 65368, nRows: 45225
+[02/24 18:19:23.217258][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65439, nRows: 0
+[02/24 18:19:23.231268][warning][14023][ObException.cpp:8] Timestamp anomaly detected, timestamp: 2414456000, cacheTimestamp: 18446744073709551615 ,currentDiff: 18446744071295095615, maxValidTimestampDiff: 5000000
+[02/24 18:19:23.232527][warning][14023][SensorBase.cpp:418] [CL8CA5300G0] Execute failure! A libobsensor_exception has occurred!
+ - where: SensorBase.cpp(418):outputFrame
+ - msg: Timestamp anomaly detected, timestamp: 2414456000, cacheTimestamp: 18446744073709551615 ,currentDiff: 18446744071295095615, maxValidTimestampDiff: 5000000
+ - type: N11libobsensor23invalid_value_exceptionE
+[02/24 18:19:23.232569][error][14023][SensorBase.cpp:418] [CL8CA5300G0] Timestamp anomaly detected, frame: 2414456000, sensor: Color
+[02/24 18:19:23.234436][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 5155918001, frameDataSize: 589239, nRows: 6173
+[02/24 18:19:23.235636][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 528392, frameDataSize: 65407, nRows: 514
+[02/24 18:19:23.238533][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744069566760038, frameDataSize: 65298, nRows: 51397
+[02/24 18:19:23.251577][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 589312, nRows: 1028
+[02/24 18:19:23.252948][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 44384928, frameDataSize: 65345, nRows: 1028
+[02/24 18:19:23.254378][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 62833960, frameDataSize: 65438, nRows: 4886
+[02/24 18:19:23.272217][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 730913764, frameDataSize: 654703, nRows: 32589
+[02/24 18:19:23.273234][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073582245688, frameDataSize: 65416, nRows: 40348
+[02/24 18:19:23.287707][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 414309510, frameDataSize: 654426, nRows: 38815
+[02/24 18:19:23.289062][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 5592848352, frameDataSize: 65406, nRows: 65533
+[02/24 18:19:23.291087][error][14004][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744071565805440, frameDataSize: 65400, nRows: 26732
+[02/24 18:19:23.471756][warning][14021][ObException.hpp:48] Update data size(7041512) > data buffer size! (6666240)
+[02/24 18:19:23.472068][warning][14021][ObLibuvcDevicePort.cpp:465] Execute failure! A libobsensor_exception has occurred!
+ - where: ObLibuvcDevicePort.cpp(465):onFrameCallback
+ - msg: Update data size(7041512) > data buffer size! (6666240)
+ - type: N11libobsensor16memory_exceptionE
+[02/24 18:19:23.668785][info][14004][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[02/24 18:23:03.216443][info][14709][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[02/24 18:23:03.216973][info][14709][DeviceManager.cpp:25] Current found device(s): (1)
+[02/24 18:23:03.217127][info][14709][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:23:03.217168][info][14709][DeviceManager.cpp:339] Enable net device enumeration: true
+[02/24 18:23:05.228402][info][14709][DeviceManager.cpp:25] Current device(s) list: (1)
+[02/24 18:23:05.229212][info][14709][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:23:05.288486][info][14709][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[02/24 18:23:05.288750][info][14709][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAB0CE044F0
+[02/24 18:23:07.664469][info][14709][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[02/24 18:23:07.701639][info][14802][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:23:08.136058][info][14709][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[02/24 18:23:08.136827][info][14709][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[02/24 18:23:08.137247][info][14709][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 1920, height: 1080, fps: 30}
+[02/24 18:23:08.137346][info][14709][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[02/24 18:23:08.137427][info][14709][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 1920, height: 1080, fps: 30}
+[02/24 18:23:08.144228][info][14709][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:23:08.144329][info][14709][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[02/24 18:23:08.144373][info][14709][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:23:08.688392][info][14709][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[02/24 18:23:08.688725][info][14709][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[02/24 18:23:08.924157][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 65515, nRows: 1028
+[02/24 18:23:08.926609][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65299, nRows: 0
+[02/24 18:23:08.927968][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744070883666164, frameDataSize: 65500, nRows: 3339
+[02/24 18:23:08.933962][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 196608, nRows: 0
+[02/24 18:23:08.935135][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744071032139676, frameDataSize: 65482, nRows: 41409
+[02/24 18:23:08.938044][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 362118624, frameDataSize: 196348, nRows: 1288
+[02/24 18:23:08.944016][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 352921536, frameDataSize: 261429, nRows: 1296
+[02/24 18:23:08.954126][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 392991, nRows: 0
+[02/24 18:23:08.955254][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744069106168328, frameDataSize: 65396, nRows: 29314
+[02/24 18:23:08.964003][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 392789, nRows: 1028
+[02/24 18:23:08.965330][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 19022112, frameDataSize: 65423, nRows: 1028
+[02/24 18:23:08.995124][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1275470756, frameDataSize: 1178690, nRows: 29555
+[02/24 18:23:08.995627][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 196468, nRows: 0
+[02/24 18:23:08.996968][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 132098, frameDataSize: 65393, nRows: 257
+[02/24 18:23:09.006233][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073648143734, frameDataSize: 458421, nRows: 13615
+[02/24 18:23:09.016665][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 392934, nRows: 0
+[02/24 18:23:09.018641][warning][14804][VideoSensor.cpp:184] [CL8CA5300G0] This frame will be dropped because jpg format verification failure! @Color
+[02/24 18:23:09.018912][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65323, nRows: 0
+[02/24 18:23:09.025998][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 261828, nRows: 1028
+[02/24 18:23:09.030200][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 130849, nRows: 0
+[02/24 18:23:09.031679][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65496, nRows: 0
+[02/24 18:23:09.040532][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 393029, nRows: 0
+[02/24 18:23:09.043341][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 130871, nRows: 0
+[02/24 18:23:09.046474][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 130958, nRows: 1028
+[02/24 18:23:09.049342][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65388, nRows: 0
+[02/24 18:23:09.060865][info][14804][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[02/24 18:23:09.062862][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 327492, nRows: 0
+[02/24 18:23:09.064161][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 65349, nRows: 1028
+[02/24 18:23:09.065461][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073309640640, frameDataSize: 65460, nRows: 19794
+[02/24 18:23:09.066919][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2231138304, frameDataSize: 65496, nRows: 5652
+[02/24 18:23:09.068347][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 130730, nRows: 0
+[02/24 18:23:09.072602][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 131072, nRows: 0
+[02/24 18:23:09.074053][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65335, nRows: 0
+[02/24 18:23:09.077324][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073037084622, frameDataSize: 196325, nRows: 22863
+[02/24 18:23:09.079420][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65523, nRows: 0
+[02/24 18:23:09.082519][error][14805][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744069141092032, frameDataSize: 47786, nRows: 13872
+[02/24 18:23:09.281511][info][14805][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[02/24 18:23:10.690980][warning][14709][Pipeline.cpp:305] [CL8CA5300G0] Wait for frame timeout, you can try to increase the wait time! current timeout=1000
+[02/24 18:34:09.771274][info][16619][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[02/24 18:34:09.771514][info][16619][DeviceManager.cpp:25] Current found device(s): (1)
+[02/24 18:34:09.771544][info][16619][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:34:09.771570][info][16619][DeviceManager.cpp:339] Enable net device enumeration: true
+[02/24 18:34:11.779568][info][16619][DeviceManager.cpp:25] Current device(s) list: (1)
+[02/24 18:34:11.779887][info][16619][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:34:11.835444][info][16619][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[02/24 18:34:11.835829][info][16619][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAB2A6C2210
+[02/24 18:34:14.217206][info][16619][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[02/24 18:34:14.233489][error][16707][RawPhaseStreamer.cpp:504] Frame data size error: 65534
+[02/24 18:34:14.239031][info][16707][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 0, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:34:14.438714][error][16707][RawPhaseStreamer.cpp:504] Frame data size error: 589365
+[02/24 18:34:14.459629][info][16707][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:34:14.895373][info][16619][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[02/24 18:34:14.895795][info][16619][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[02/24 18:34:14.895868][info][16619][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 2560, height: 1440, fps: 30}
+[02/24 18:34:14.895929][info][16619][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[02/24 18:34:14.896000][info][16619][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 2560, height: 1440, fps: 30}
+[02/24 18:34:14.903391][info][16619][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:34:14.903485][info][16619][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[02/24 18:34:14.903523][info][16619][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:34:15.445163][info][16619][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[02/24 18:34:15.445554][info][16619][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[02/24 18:34:15.775924][info][16719][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[02/24 18:34:16.001914][info][16720][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[02/24 18:34:27.943369][info][16784][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[02/24 18:34:27.943574][info][16784][DeviceManager.cpp:25] Current found device(s): (1)
+[02/24 18:34:27.943609][info][16784][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:34:27.943639][info][16784][DeviceManager.cpp:339] Enable net device enumeration: true
+[02/24 18:34:29.952213][info][16784][DeviceManager.cpp:25] Current device(s) list: (1)
+[02/24 18:34:29.952541][info][16784][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:34:30.013493][info][16784][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[02/24 18:34:30.014564][info][16784][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAB23F59670
+[02/24 18:34:32.485618][info][16784][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[02/24 18:34:32.520426][info][16892][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:34:32.957630][info][16784][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[02/24 18:34:32.958014][info][16784][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[02/24 18:34:32.958079][info][16784][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 2560, height: 1440, fps: 30}
+[02/24 18:34:32.958628][info][16784][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[02/24 18:34:32.958720][info][16784][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 2560, height: 1440, fps: 30}
+[02/24 18:34:32.967282][info][16784][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:34:32.967361][info][16784][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[02/24 18:34:32.967388][info][16784][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:34:33.507223][info][16784][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[02/24 18:34:33.507555][info][16784][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[02/24 18:34:33.751131][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 3245221980, frameDataSize: 131033, nRows: 6435
+[02/24 18:34:33.751582][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073598735104, frameDataSize: 65352, nRows: 31368
+[02/24 18:34:33.757538][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 401355396, frameDataSize: 261650, nRows: 6436
+[02/24 18:34:33.759935][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2644530, frameDataSize: 131063, nRows: 1029
+[02/24 18:34:33.765557][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 248411280, frameDataSize: 261948, nRows: 3092
+[02/24 18:34:33.767041][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 3299880, frameDataSize: 65429, nRows: 1284
+[02/24 18:34:33.769960][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 998444720, frameDataSize: 130804, nRows: 3082
+[02/24 18:34:33.771382][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 6069696048, frameDataSize: 65504, nRows: 18761
+[02/24 18:34:33.787673][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1433084184, frameDataSize: 654525, nRows: 3364
+[02/24 18:34:33.787885][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2245666, frameDataSize: 65479, nRows: 257
+[02/24 18:34:33.802851][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073067920896, frameDataSize: 654364, nRows: 18240
+[02/24 18:34:33.804596][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1312036800, frameDataSize: 130819, nRows: 1830
+[02/24 18:34:33.816761][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 10567840, frameDataSize: 523471, nRows: 1028
+[02/24 18:34:33.817507][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 11400925320, frameDataSize: 65532, nRows: 59892
+[02/24 18:34:33.818989][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 34675725, frameDataSize: 65425, nRows: 1285
+[02/24 18:34:33.820403][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 65385, nRows: 1028
+[02/24 18:34:33.823346][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 130965, nRows: 1028
+[02/24 18:34:33.824775][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2641960, frameDataSize: 65511, nRows: 1028
+[02/24 18:34:33.832071][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744072322351664, frameDataSize: 327206, nRows: 52424
+[02/24 18:34:33.834854][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 56141650, frameDataSize: 130827, nRows: 1285
+[02/24 18:34:33.848101][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 589157, nRows: 0
+[02/24 18:34:33.850744][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 56141650, frameDataSize: 130800, nRows: 1285
+[02/24 18:34:33.863987][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 588956, nRows: 0
+[02/24 18:34:33.866572][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 132098, frameDataSize: 130765, nRows: 257
+[02/24 18:34:33.868021][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 29560348, frameDataSize: 65534, nRows: 3847
+[02/24 18:34:33.873227][warning][16894][VideoSensor.cpp:184] [CL8CA5300G0] This frame will be dropped because jpg format verification failure! @Color
+[02/24 18:34:33.874844][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 660490, frameDataSize: 196406, nRows: 257
+[02/24 18:34:33.890219][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 452255040, frameDataSize: 589028, nRows: 15156
+[02/24 18:34:33.891445][error][16895][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744068117035568, frameDataSize: 65438, nRows: 43532
+[02/24 18:34:33.943626][info][16894][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[02/24 18:34:34.064160][warning][16897][ObException.hpp:48] Update data size(6975576) > data buffer size! (6666240)
+[02/24 18:34:34.064381][warning][16897][ObLibuvcDevicePort.cpp:465] Execute failure! A libobsensor_exception has occurred!
+ - where: ObLibuvcDevicePort.cpp(465):onFrameCallback
+ - msg: Update data size(6975576) > data buffer size! (6666240)
+ - type: N11libobsensor16memory_exceptionE
+[02/24 18:34:34.256204][info][16895][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[02/24 18:34:44.363205][info][16952][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[02/24 18:34:44.363433][info][16952][DeviceManager.cpp:25] Current found device(s): (1)
+[02/24 18:34:44.363471][info][16952][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:34:44.363503][info][16952][DeviceManager.cpp:339] Enable net device enumeration: true
+[02/24 18:34:46.373297][info][16952][DeviceManager.cpp:25] Current device(s) list: (1)
+[02/24 18:34:46.373759][info][16952][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:34:46.438007][info][16952][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[02/24 18:34:46.438241][info][16952][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAB0C514330
+[02/24 18:34:49.004841][info][16952][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[02/24 18:34:49.017859][error][17041][RawPhaseStreamer.cpp:504] Frame data size error: 65534
+[02/24 18:34:49.023964][info][17041][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 0, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:34:49.242938][warning][17041][ObException.hpp:48] Update data size(1637941) > data buffer size! (1048576)
+[02/24 18:34:49.243661][warning][17041][ObLibuvcDevicePort.cpp:465] Execute failure! A libobsensor_exception has occurred!
+ - where: ObLibuvcDevicePort.cpp(465):onFrameCallback
+ - msg: Update data size(1637941) > data buffer size! (1048576)
+ - type: N11libobsensor16memory_exceptionE
+[02/24 18:34:49.445667][info][17041][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:34:49.881927][info][16952][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[02/24 18:34:49.882380][info][16952][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[02/24 18:34:49.882446][info][16952][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 2560, height: 1440, fps: 30}
+[02/24 18:34:49.882507][info][16952][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[02/24 18:34:49.882582][info][16952][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 2560, height: 1440, fps: 30}
+[02/24 18:34:49.889793][info][16952][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:34:49.889888][info][16952][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[02/24 18:34:49.890054][info][16952][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:34:50.428897][info][16952][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[02/24 18:34:50.429262][info][16952][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[02/24 18:34:50.673201][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2067332300, frameDataSize: 131032, nRows: 10021
+[02/24 18:34:50.673749][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2245666, frameDataSize: 65349, nRows: 257
+[02/24 18:34:50.680695][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 261621, nRows: 0
+[02/24 18:34:50.682702][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2115624, frameDataSize: 131056, nRows: 1028
+[02/24 18:34:50.688757][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 261917, nRows: 4
+[02/24 18:34:50.691065][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 148992428, frameDataSize: 130945, nRows: 49311
+[02/24 18:34:50.692519][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 5681421900, frameDataSize: 65514, nRows: 10527
+[02/24 18:34:50.693983][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 56141650, frameDataSize: 65507, nRows: 1285
+[02/24 18:34:50.709340][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1387029, frameDataSize: 654506, nRows: 257
+[02/24 18:34:50.709888][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2245666, frameDataSize: 65483, nRows: 257
+[02/24 18:34:50.724727][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 654293, nRows: 1028
+[02/24 18:34:50.728033][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 660490, frameDataSize: 130830, nRows: 257
+[02/24 18:34:50.741940][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 4844936520, frameDataSize: 654287, nRows: 10015
+[02/24 18:34:50.743568][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2224840096, frameDataSize: 65382, nRows: 59104
+[02/24 18:34:50.745907][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 130959, nRows: 1028
+[02/24 18:34:50.747318][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 56141650, frameDataSize: 65527, nRows: 1285
+[02/24 18:34:50.754588][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1475261280, frameDataSize: 327191, nRows: 44492
+[02/24 18:34:50.757410][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 56141650, frameDataSize: 130854, nRows: 1285
+[02/24 18:34:50.770591][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 143774980, frameDataSize: 589212, nRows: 28797
+[02/24 18:34:50.773560][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 744581250, frameDataSize: 130804, nRows: 36485
+[02/24 18:34:50.787710][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 588960, nRows: 0
+[02/24 18:34:50.789705][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744071354887906, frameDataSize: 130768, nRows: 33685
+[02/24 18:34:50.790872][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 248990256, frameDataSize: 65534, nRows: 3592
+[02/24 18:34:50.793764][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 660490, frameDataSize: 130879, nRows: 257
+[02/24 18:34:50.798446][warning][17053][VideoSensor.cpp:184] [CL8CA5300G0] This frame will be dropped because jpg format verification failure! @Color
+[02/24 18:34:50.814073][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 654338, nRows: 0
+[02/24 18:34:50.815329][error][17054][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744072805299968, frameDataSize: 130938, nRows: 16448
+[02/24 18:34:50.835490][info][17053][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[02/24 18:34:50.989734][warning][17059][ObException.hpp:48] Update data size(6910226) > data buffer size! (6666240)
+[02/24 18:34:50.989917][warning][17059][ObLibuvcDevicePort.cpp:465] Execute failure! A libobsensor_exception has occurred!
+ - where: ObLibuvcDevicePort.cpp(465):onFrameCallback
+ - msg: Update data size(6910226) > data buffer size! (6666240)
+ - type: N11libobsensor16memory_exceptionE
+[02/24 18:34:51.191406][info][17054][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[02/24 18:35:13.487220][info][17164][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[02/24 18:35:13.487454][info][17164][DeviceManager.cpp:25] Current found device(s): (1)
+[02/24 18:35:13.487486][info][17164][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:35:13.487516][info][17164][DeviceManager.cpp:339] Enable net device enumeration: true
+[02/24 18:35:15.496638][info][17164][DeviceManager.cpp:25] Current device(s) list: (1)
+[02/24 18:35:15.496982][info][17164][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:35:15.552422][info][17164][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[02/24 18:35:15.552752][info][17164][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAB1C5E9880
+[02/24 18:35:18.004621][info][17164][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[02/24 18:35:18.018293][error][17268][RawPhaseStreamer.cpp:504] Frame data size error: 65534
+[02/24 18:35:18.023859][info][17268][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 0, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:35:18.242957][warning][17268][ObException.hpp:48] Update data size(1637941) > data buffer size! (1048576)
+[02/24 18:35:18.243771][warning][17268][ObLibuvcDevicePort.cpp:465] Execute failure! A libobsensor_exception has occurred!
+ - where: ObLibuvcDevicePort.cpp(465):onFrameCallback
+ - msg: Update data size(1637941) > data buffer size! (1048576)
+ - type: N11libobsensor16memory_exceptionE
+[02/24 18:35:18.445660][info][17268][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:35:18.881615][info][17164][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[02/24 18:35:18.881945][info][17164][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[02/24 18:35:18.882006][info][17164][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 2560, height: 1440, fps: 30}
+[02/24 18:35:18.882058][info][17164][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[02/24 18:35:18.882127][info][17164][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 2560, height: 1440, fps: 30}
+[02/24 18:35:18.889284][info][17164][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:35:18.889382][info][17164][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[02/24 18:35:18.889422][info][17164][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:35:19.429113][info][17164][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[02/24 18:35:19.429491][info][17164][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[02/24 18:35:19.672598][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 9476208846, frameDataSize: 131045, nRows: 9747
+[02/24 18:35:19.675438][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 6868775040, frameDataSize: 130916, nRows: 44468
+[02/24 18:35:19.676206][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 4827163858, frameDataSize: 65512, nRows: 7691
+[02/24 18:35:19.677689][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 13222650, frameDataSize: 65351, nRows: 1029
+[02/24 18:35:19.679150][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073179467664, frameDataSize: 65498, nRows: 57574
+[02/24 18:35:19.682133][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 131050, nRows: 1028
+[02/24 18:35:19.687872][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 261902, nRows: 0
+[02/24 18:35:19.690687][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 10225822464, frameDataSize: 130945, nRows: 10296
+[02/24 18:35:19.692132][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 22192464, frameDataSize: 65491, nRows: 1028
+[02/24 18:35:19.693570][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 65337, nRows: 1028
+[02/24 18:35:19.709654][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1387029, frameDataSize: 654103, nRows: 257
+[02/24 18:35:19.709807][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2245666, frameDataSize: 65481, nRows: 257
+[02/24 18:35:19.724440][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 6035214174, frameDataSize: 588962, nRows: 14895
+[02/24 18:35:19.724527][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65479, nRows: 0
+[02/24 18:35:19.725556][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 660490, frameDataSize: 65303, nRows: 257
+[02/24 18:35:19.726967][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744071841656048, frameDataSize: 65312, nRows: 42712
+[02/24 18:35:19.729775][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2347891520, frameDataSize: 130789, nRows: 4876
+[02/24 18:35:19.731209][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 65469, nRows: 1028
+[02/24 18:35:19.738612][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 327224, nRows: 1028
+[02/24 18:35:19.739892][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1211294700, frameDataSize: 65526, nRows: 54450
+[02/24 18:35:19.741297][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744068153696256, frameDataSize: 65460, nRows: 61440
+[02/24 18:35:19.742746][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 65387, nRows: 1028
+[02/24 18:35:19.744267][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1277896790, frameDataSize: 65472, nRows: 4115
+[02/24 18:35:19.745663][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 56141650, frameDataSize: 65479, nRows: 1285
+[02/24 18:35:19.752952][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 327313, nRows: 1028
+[02/24 18:35:19.757172][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 12598511760, frameDataSize: 196222, nRows: 58598
+[02/24 18:35:19.760188][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744070948893968, frameDataSize: 131049, nRows: 29054
+[02/24 18:35:19.762990][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 9173355832, frameDataSize: 131047, nRows: 24940
+[02/24 18:35:19.770204][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 327428, nRows: 1028
+[02/24 18:35:19.773024][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 56141650, frameDataSize: 130781, nRows: 1285
+[02/24 18:35:19.774468][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65487, nRows: 0
+[02/24 18:35:19.777431][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744070561555168, frameDataSize: 130816, nRows: 38300
+[02/24 18:35:19.787335][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2097152, frameDataSize: 392726, nRows: 1024
+[02/24 18:35:19.788972][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 132098, frameDataSize: 130721, nRows: 257
+[02/24 18:35:19.790347][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 634988376, frameDataSize: 65526, nRows: 3348
+[02/24 18:35:19.793278][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 10567840, frameDataSize: 130920, nRows: 1028
+[02/24 18:35:19.808074][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 803095020, frameDataSize: 392700, nRows: 2065
+[02/24 18:35:19.811213][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 44957010, frameDataSize: 65531, nRows: 1285
+[02/24 18:35:19.813241][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1681873292, frameDataSize: 65490, nRows: 8741
+[02/24 18:35:19.817095][info][17270][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[02/24 18:35:19.819856][error][17271][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 8982664, frameDataSize: 261780, nRows: 514
+[02/24 18:35:20.012134][warning][17273][ObException.hpp:48] Update data size(6910249) > data buffer size! (6666240)
+[02/24 18:35:20.012344][warning][17273][ObLibuvcDevicePort.cpp:465] Execute failure! A libobsensor_exception has occurred!
+ - where: ObLibuvcDevicePort.cpp(465):onFrameCallback
+ - msg: Update data size(6910249) > data buffer size! (6666240)
+ - type: N11libobsensor16memory_exceptionE
+[02/24 18:35:20.213824][info][17271][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[02/24 18:40:54.551296][info][18011][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[02/24 18:40:54.551513][info][18011][DeviceManager.cpp:25] Current found device(s): (1)
+[02/24 18:40:54.551546][info][18011][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:40:54.551573][info][18011][DeviceManager.cpp:339] Enable net device enumeration: true
+[02/24 18:40:56.560961][info][18011][DeviceManager.cpp:25] Current device(s) list: (1)
+[02/24 18:40:56.561340][info][18011][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 18:40:56.613960][info][18011][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[02/24 18:40:56.614339][info][18011][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAB0646E970
+[02/24 18:40:59.149776][info][18011][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[02/24 18:40:59.184458][info][18109][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 18:40:59.620562][info][18011][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[02/24 18:40:59.621008][info][18011][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[02/24 18:40:59.621072][info][18011][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 1280, height: 720, fps: 30}
+[02/24 18:40:59.621129][info][18011][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[02/24 18:40:59.621200][info][18011][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 1280, height: 720, fps: 30}
+[02/24 18:40:59.628690][info][18011][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:40:59.628936][info][18011][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[02/24 18:40:59.628975][info][18011][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 18:41:00.165704][info][18011][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[02/24 18:41:00.166015][info][18011][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[02/24 18:41:00.411920][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 196480, nRows: 1028
+[02/24 18:41:00.413620][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1221095040, frameDataSize: 65460, nRows: 64528
+[02/24 18:41:00.418311][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 130851, nRows: 0
+[02/24 18:41:00.420829][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2639904, frameDataSize: 131027, nRows: 1284
+[02/24 18:41:00.428514][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1534778280, frameDataSize: 327391, nRows: 6180
+[02/24 18:41:00.429515][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744067887927616, frameDataSize: 65424, nRows: 43681
+[02/24 18:41:00.430931][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 22192464, frameDataSize: 65527, nRows: 1028
+[02/24 18:41:00.432344][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 56141650, frameDataSize: 65501, nRows: 1285
+[02/24 18:41:00.433770][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 660490, frameDataSize: 65439, nRows: 257
+[02/24 18:41:00.435247][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 533956250, frameDataSize: 65502, nRows: 4625
+[02/24 18:41:00.444206][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 7495319160, frameDataSize: 392771, nRows: 11298
+[02/24 18:41:00.445343][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65489, nRows: 0
+[02/24 18:41:00.446751][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65517, nRows: 0
+[02/24 18:41:00.448252][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 4096534512, frameDataSize: 65480, nRows: 31372
+[02/24 18:41:00.451202][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 82561250, frameDataSize: 130890, nRows: 1285
+[02/24 18:41:00.452604][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 65471, nRows: 1028
+[02/24 18:41:00.463507][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1166452416, frameDataSize: 458204, nRows: 5142
+[02/24 18:41:00.466161][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 118888200, frameDataSize: 131037, nRows: 1542
+[02/24 18:41:00.477600][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744068793417176, frameDataSize: 523796, nRows: 40348
+[02/24 18:41:00.480037][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 5548116, frameDataSize: 65407, nRows: 514
+[02/24 18:41:00.482906][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 56141650, frameDataSize: 65409, nRows: 1285
+[02/24 18:41:00.484366][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 44384928, frameDataSize: 65495, nRows: 1028
+[02/24 18:41:00.485811][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 3302450, frameDataSize: 65517, nRows: 1285
+[02/24 18:41:00.493490][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744071598038022, frameDataSize: 392685, nRows: 39127
+[02/24 18:41:00.495908][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 130912, nRows: 0
+[02/24 18:41:00.498822][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 12869685360, frameDataSize: 65380, nRows: 11320
+[02/24 18:41:00.509209][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 30813870, frameDataSize: 523553, nRows: 19751
+[02/24 18:41:00.510362][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744071141442944, frameDataSize: 65488, nRows: 39568
+[02/24 18:41:00.511853][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 8174719800, frameDataSize: 65506, nRows: 10790
+[02/24 18:41:00.527147][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 654410, nRows: 1028
+[02/24 18:41:00.533245][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 660490, frameDataSize: 196177, nRows: 257
+[02/24 18:41:00.533317][warning][18111][VideoSensor.cpp:184] [CL8CA5300G0] This frame will be dropped because jpg format verification failure! @Color
+[02/24 18:41:00.541786][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 392705, nRows: 0
+[02/24 18:41:00.543222][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 3558923874, frameDataSize: 65364, nRows: 5137
+[02/24 18:41:00.547549][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 83849920, frameDataSize: 196234, nRows: 1804
+[02/24 18:41:00.550536][error][18112][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 8795841888, frameDataSize: 130963, nRows: 17480
+[02/24 18:41:00.566016][info][18111][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[02/24 18:41:00.715308][warning][18119][ObException.hpp:48] Update data size(6910339) > data buffer size! (6666240)
+[02/24 18:41:00.716091][warning][18119][ObLibuvcDevicePort.cpp:465] Execute failure! A libobsensor_exception has occurred!
+ - where: ObLibuvcDevicePort.cpp(465):onFrameCallback
+ - msg: Update data size(6910339) > data buffer size! (6666240)
+ - type: N11libobsensor16memory_exceptionE
+[02/24 18:41:00.939717][info][18112][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[02/24 18:41:03.178988][warning][18011][Pipeline.cpp:305] [CL8CA5300G0] Wait for frame timeout, you can try to increase the wait time! current timeout=500
+[02/24 18:41:05.536174][info][18111][VideoSensor.cpp:153] [CL8CA5300G0] Color backend frame callback, frameRate=30.181892fps
+[02/24 18:41:05.584962][info][18124][SensorBase.cpp:370] [CL8CA5300G0] Color Streaming... frameRate=30.181892fps
+[02/24 18:41:06.055684][info][18112][VideoSensor.cpp:153] [CL8CA5300G0] Depth backend frame callback, frameRate=6.841282fps
+[02/24 18:41:06.056397][info][18127][SensorBase.cpp:370] [CL8CA5300G0] Depth Streaming... frameRate=6.842620fps
+[02/24 18:41:06.182071][warning][18011][Pipeline.cpp:305] [CL8CA5300G0] Wait for frame timeout, you can try to increase the wait time! current timeout=500 [**6 logs in 3003ms**]
+[02/24 18:41:09.186881][info][18011][Pipeline.cpp:336] [CL8CA5300G0] Try to stop pipeline!
+[02/24 18:41:09.187311][info][18011][Pipeline.cpp:312] [CL8CA5300G0] Try to stop streams!
+[02/24 18:41:09.187584][info][18011][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPING@Depth
+[02/24 18:41:09.857078][info][18011][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPED@Depth
+[02/24 18:41:09.857800][info][18011][Pipeline.cpp:326] [CL8CA5300G0] Sensor stream stopped, sensorType=Depth
+[02/24 18:41:09.857922][info][18011][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPING@Color
+[02/24 18:41:11.861214][info][18011][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPED@Color
+[02/24 18:41:11.862443][info][18011][Pipeline.cpp:326] [CL8CA5300G0] Sensor stream stopped, sensorType=Color
+[02/24 18:41:11.862574][info][18011][Pipeline.cpp:332] [CL8CA5300G0] Stop streams done!
+[02/24 18:41:11.862843][info][18011][Pipeline.cpp:356] [CL8CA5300G0] Stop pipeline done!
+[02/24 18:41:11.878458][info][18011][Pipeline.cpp:53] [CL8CA5300G0] Pipeline destroyed! @0xAAAB0646E970
+[02/24 18:41:11.891871][info][18011][SensorBase.cpp:47] [CL8CA5300G0] SensorBase is destroyed
+[02/24 18:41:11.905301][info][18011][ObLibuvcDevicePort.cpp:87] uvc_close done.
+[02/24 18:41:11.905362][info][18011][ObLibuvcDevicePort.cpp:88] ~ObLibuvcDevicePort done
+[02/24 18:41:11.905513][info][18011][SensorBase.cpp:47] [CL8CA5300G0] SensorBase is destroyed
+[02/24 18:41:11.979977][info][18011][ObLibuvcDevicePort.cpp:87] uvc_close done.
+[02/24 18:41:11.980195][info][18011][ObLibuvcDevicePort.cpp:88] ~ObLibuvcDevicePort done
+[02/24 18:41:11.999722][warning][18178][Pipeline.cpp:305] [CL8CA5300G0] Wait for frame timeout, you can try to increase the wait time! current timeout=500 [**6 logs in 5817ms, last: 18:41:09.186462**]
+[02/24 19:20:19.484850][info][13839][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[02/24 19:20:19.485419][info][13839][DeviceManager.cpp:25] Current found device(s): (1)
+[02/24 19:20:19.485454][info][13839][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 19:20:19.485482][info][13839][DeviceManager.cpp:339] Enable net device enumeration: true
+[02/24 19:20:21.494765][info][13839][DeviceManager.cpp:25] Current device(s) list: (1)
+[02/24 19:20:21.495073][info][13839][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 19:20:21.564232][info][13839][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[02/24 19:20:21.564394][info][13839][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAB146C8B60
+[02/24 19:20:21.581835][info][13839][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[02/24 19:20:21.953898][info][13941][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 19:20:22.388365][info][13839][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[02/24 19:20:22.388707][info][13839][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[02/24 19:20:22.388768][info][13839][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 2560, height: 1440, fps: 30}
+[02/24 19:20:22.388822][info][13839][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[02/24 19:20:22.388891][info][13839][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 2560, height: 1440, fps: 30}
+[02/24 19:20:22.395818][info][13839][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 19:20:22.395916][info][13839][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[02/24 19:20:22.395949][info][13839][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 19:20:22.932144][info][13839][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[02/24 19:20:22.932453][info][13839][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[02/24 19:20:23.180401][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 5027332752, frameDataSize: 196450, nRows: 7956
+[02/24 19:20:23.182180][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 130926, nRows: 0
+[02/24 19:20:23.185922][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 13502083392, frameDataSize: 130871, nRows: 13386
+[02/24 19:20:23.187459][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 5516840000, frameDataSize: 65512, nRows: 4880
+[02/24 19:20:23.195409][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 392759, nRows: 0
+[02/24 19:20:23.197374][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744066706248616, frameDataSize: 65336, nRows: 50126
+[02/24 19:20:23.198852][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 9544919800, frameDataSize: 65488, nRows: 20555
+[02/24 19:20:23.200284][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 56141650, frameDataSize: 65507, nRows: 1285
+[02/24 19:20:23.201745][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744069716670080, frameDataSize: 65436, nRows: 6932
+[02/24 19:20:23.203216][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 3929649120, frameDataSize: 65526, nRows: 11052
+[02/24 19:20:23.212236][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 7587508880, frameDataSize: 392780, nRows: 25707
+[02/24 19:20:23.213517][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65386, nRows: 1544
+[02/24 19:20:23.214925][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 3474364676, frameDataSize: 65440, nRows: 58330
+[02/24 19:20:23.219560][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744071495522726, frameDataSize: 196417, nRows: 25969
+[02/24 19:20:23.233267][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 588998, nRows: 0
+[02/24 19:20:23.236295][info][13943][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[02/24 19:20:23.236989][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 10567840, frameDataSize: 130957, nRows: 1028
+[02/24 19:20:23.239768][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1703251620, frameDataSize: 130999, nRows: 5903
+[02/24 19:20:23.240884][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 34675725, frameDataSize: 65527, nRows: 1285
+[02/24 19:20:23.249606][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1048204960, frameDataSize: 392784, nRows: 22087
+[02/24 19:20:23.253647][error][13944][RawPhaseStreamer.cpp:316] Process frame failed! Error code:1
+[02/24 19:20:23.263010][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 228610536, frameDataSize: 458059, nRows: 50620
+[02/24 19:20:23.266144][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 4755528, frameDataSize: 65401, nRows: 1542
+[02/24 19:20:23.270356][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65311, nRows: 0
+[02/24 19:20:23.271847][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65525, nRows: 0
+[02/24 19:20:23.273264][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 4324440120, frameDataSize: 65534, nRows: 777
+[02/24 19:20:23.282305][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 392985, nRows: 1028
+[02/24 19:20:23.283336][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744062353734908, frameDataSize: 65408, nRows: 25478
+[02/24 19:20:23.296636][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073267162152, frameDataSize: 523450, nRows: 36492
+[02/24 19:20:23.300352][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2024021488, frameDataSize: 65520, nRows: 23901
+[02/24 19:20:23.307327][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 562060044, frameDataSize: 130924, nRows: 4637
+[02/24 19:20:23.316130][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 392708, nRows: 0
+[02/24 19:20:23.317455][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65361, nRows: 0
+[02/24 19:20:23.321767][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 196308, nRows: 1028
+[02/24 19:20:23.323227][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1629065412, frameDataSize: 65416, nRows: 27255
+[02/24 19:20:23.330259][error][13944][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 56141650, frameDataSize: 309341, nRows: 1285
+[02/24 19:20:23.537676][info][13944][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[02/24 19:22:34.338044][info][14349][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[02/24 19:22:34.338293][info][14349][DeviceManager.cpp:25] Current found device(s): (1)
+[02/24 19:22:34.338325][info][14349][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 19:22:34.338352][info][14349][DeviceManager.cpp:339] Enable net device enumeration: true
+[02/24 19:22:36.349053][info][14349][DeviceManager.cpp:25] Current device(s) list: (1)
+[02/24 19:22:36.349374][info][14349][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB2.1
+[02/24 19:22:36.402593][info][14349][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[02/24 19:22:36.402959][info][14349][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAAEB37B350
+[02/24 19:22:38.907426][info][14349][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[02/24 19:22:38.942078][info][14455][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[02/24 19:22:39.377892][info][14349][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[02/24 19:22:39.378270][info][14349][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[02/24 19:22:39.378328][info][14349][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 1280, height: 720, fps: 30}
+[02/24 19:22:39.378383][info][14349][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[02/24 19:22:39.378450][info][14349][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 1280, height: 720, fps: 30}
+[02/24 19:22:39.385016][info][14349][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 19:22:39.385106][info][14349][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[02/24 19:22:39.385137][info][14349][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[02/24 19:22:39.930683][info][14349][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[02/24 19:22:39.931021][info][14349][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[02/24 19:22:40.170966][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 384507240, frameDataSize: 196443, nRows: 2060
+[02/24 19:22:40.172607][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073117512762, frameDataSize: 130914, nRows: 33137
+[02/24 19:22:40.175371][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 7438698992, frameDataSize: 65534, nRows: 49112
+[02/24 19:22:40.176447][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2120817244, frameDataSize: 65408, nRows: 62425
+[02/24 19:22:40.177926][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744070819481216, frameDataSize: 65346, nRows: 24918
+[02/24 19:22:40.182348][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 196209, nRows: 1028
+[02/24 19:22:40.183716][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65531, nRows: 0
+[02/24 19:22:40.185189][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1022010, frameDataSize: 130971, nRows: 1793
+[02/24 19:22:40.188097][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073216036496, frameDataSize: 65340, nRows: 45766
+[02/24 19:22:40.189606][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 22192464, frameDataSize: 65423, nRows: 1028
+[02/24 19:22:40.194376][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 16512250, frameDataSize: 196195, nRows: 1285
+[02/24 19:22:40.203296][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 392615, nRows: 1028
+[02/24 19:22:40.204107][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1005480, frameDataSize: 65378, nRows: 270
+[02/24 19:22:40.205534][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1188882, frameDataSize: 65447, nRows: 257
+[02/24 19:22:40.209950][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744062248425058, frameDataSize: 196316, nRows: 29597
+[02/24 19:22:40.212817][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 8669820304, frameDataSize: 130876, nRows: 15964
+[02/24 19:22:40.214281][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1307553280, frameDataSize: 65366, nRows: 25976
+[02/24 19:22:40.221605][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 327314, nRows: 1028
+[02/24 19:22:40.225889][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 613773966, frameDataSize: 196320, nRows: 35983
+[02/24 19:22:40.227385][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 3219285888, frameDataSize: 131003, nRows: 8736
+[02/24 19:22:40.230236][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744072406995896, frameDataSize: 65404, nRows: 31614
+[02/24 19:22:40.236144][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 13318744960, frameDataSize: 327554, nRows: 11840
+[02/24 19:22:40.241890][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 4755528, frameDataSize: 196007, nRows: 514
+[02/24 19:22:40.243344][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744073090294888, frameDataSize: 130831, nRows: 15167
+[02/24 19:22:40.246160][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 132098, frameDataSize: 65403, nRows: 257
+[02/24 19:22:40.250550][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744066560449924, frameDataSize: 196510, nRows: 29805
+[02/24 19:22:40.251956][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 1188882, frameDataSize: 65525, nRows: 257
+[02/24 19:22:40.256337][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 4755528, frameDataSize: 65401, nRows: 1542
+[02/24 19:22:40.256450][info][14457][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[02/24 19:22:40.259232][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 12811600662, frameDataSize: 65300, nRows: 6689
+[02/24 19:22:40.260879][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 8982664, frameDataSize: 130784, nRows: 514
+[02/24 19:22:40.267984][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 262017, nRows: 1028
+[02/24 19:22:40.272142][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 18446744069770663440, frameDataSize: 65420, nRows: 37028
+[02/24 19:22:40.275052][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 227710224, frameDataSize: 65520, nRows: 6168
+[02/24 19:22:40.276455][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 5152766304, frameDataSize: 65510, nRows: 47032
+[02/24 19:22:40.285431][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 6032713232, frameDataSize: 327033, nRows: 58357
+[02/24 19:22:40.287636][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 627822080, frameDataSize: 65530, nRows: 4120
+[02/24 19:22:40.289766][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2245666, frameDataSize: 65521, nRows: 257
+[02/24 19:22:40.304047][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 35930656, frameDataSize: 523664, nRows: 1028
+[02/24 19:22:40.304486][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 0, frameDataSize: 65399, nRows: 0
+[02/24 19:22:40.307258][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 2113568, frameDataSize: 196508, nRows: 1028
+[02/24 19:22:40.310088][error][14458][RawPhaseStreamer.cpp:267] Frame data size error: rawFrameSize: 34675725, frameDataSize: 65305, nRows: 1285
+[02/24 19:22:40.480945][warning][14460][ObException.hpp:48] Update data size(6975674) > data buffer size! (6666240)
+[02/24 19:22:40.495060][warning][14460][ObLibuvcDevicePort.cpp:465] Execute failure! A libobsensor_exception has occurred!
+ - where: ObLibuvcDevicePort.cpp(465):onFrameCallback
+ - msg: Update data size(6975674) > data buffer size! (6666240)
+ - type: N11libobsensor16memory_exceptionE
+[02/24 19:22:40.667981][info][14458][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[02/24 19:22:43.738086][warning][14349][Pipeline.cpp:305] [CL8CA5300G0] Wait for frame timeout, you can try to increase the wait time! current timeout=500
+[02/24 19:22:45.260000][info][14457][VideoSensor.cpp:153] [CL8CA5300G0] Color backend frame callback, frameRate=30.181892fps
+[02/24 19:22:45.278224][info][14462][SensorBase.cpp:370] [CL8CA5300G0] Color Streaming... frameRate=30.169830fps
+[02/24 19:22:45.705906][info][14458][VideoSensor.cpp:153] [CL8CA5300G0] Depth backend frame callback, frameRate=6.748710fps
+[02/24 19:22:45.706579][info][14480][SensorBase.cpp:370] [CL8CA5300G0] Depth Streaming... frameRate=6.748710fps
+[02/24 19:22:46.740234][warning][14349][Pipeline.cpp:305] [CL8CA5300G0] Wait for frame timeout, you can try to increase the wait time! current timeout=500 [**6 logs in 3002ms**]
+[02/24 19:22:50.264615][info][14457][VideoSensor.cpp:153] [CL8CA5300G0] Color backend frame callback, frameRate=29.970030fps
+[02/24 19:22:50.282793][info][14462][SensorBase.cpp:370] [CL8CA5300G0] Color Streaming... frameRate=29.976019fps
+[02/24 19:22:50.777996][info][14458][VideoSensor.cpp:153] [CL8CA5300G0] Depth backend frame callback, frameRate=6.506309fps
+[02/24 19:22:50.779749][info][14480][SensorBase.cpp:370] [CL8CA5300G0] Depth Streaming... frameRate=6.505027fps
+[02/24 19:22:52.767067][warning][14349][Pipeline.cpp:305] [CL8CA5300G0] Wait for frame timeout, you can try to increase the wait time! current timeout=500 [**12 logs in 6026ms**]
+[02/24 19:22:55.270664][info][14457][VideoSensor.cpp:153] [CL8CA5300G0] Color backend frame callback, frameRate=29.964043fps
+[02/24 19:22:55.290701][info][14462][SensorBase.cpp:370] [CL8CA5300G0] Color Streaming... frameRate=29.952078fps
+[02/24 19:22:55.804259][info][14458][VideoSensor.cpp:153] [CL8CA5300G0] Depth backend frame callback, frameRate=6.564551fps
+[02/24 19:22:55.804656][info][14480][SensorBase.cpp:370] [CL8CA5300G0] Depth Streaming... frameRate=6.567164fps
+[02/24 19:23:00.275974][info][14457][VideoSensor.cpp:153] [CL8CA5300G0] Color backend frame callback, frameRate=29.970030fps
+[02/24 19:23:00.295718][info][14462][SensorBase.cpp:370] [CL8CA5300G0] Color Streaming... frameRate=29.970030fps
+[02/24 19:23:00.862352][info][14458][VideoSensor.cpp:153] [CL8CA5300G0] Depth backend frame callback, frameRate=6.524318fps
+[02/24 19:23:00.863039][info][14480][SensorBase.cpp:370] [CL8CA5300G0] Depth Streaming... frameRate=6.523028fps
+[02/24 19:23:04.798916][warning][14349][Pipeline.cpp:305] [CL8CA5300G0] Wait for frame timeout, you can try to increase the wait time! current timeout=500 [**24 logs in 12031ms**]
+[02/24 19:23:05.280092][info][14457][VideoSensor.cpp:153] [CL8CA5300G0] Color backend frame callback, frameRate=29.976019fps
+[02/24 19:23:05.300731][info][14462][SensorBase.cpp:370] [CL8CA5300G0] Color Streaming... frameRate=29.970030fps
+[02/24 19:23:05.909879][info][14458][VideoSensor.cpp:153] [CL8CA5300G0] Depth backend frame callback, frameRate=6.538538fps
+[02/24 19:23:05.910869][info][14480][SensorBase.cpp:370] [CL8CA5300G0] Depth Streaming... frameRate=6.538538fps
+[02/24 19:23:10.284455][info][14457][VideoSensor.cpp:153] [CL8CA5300G0] Color backend frame callback, frameRate=29.970030fps
+[02/24 19:23:10.304124][info][14462][SensorBase.cpp:370] [CL8CA5300G0] Color Streaming... frameRate=29.976019fps
+[02/24 19:23:10.961345][info][14458][VideoSensor.cpp:153] [CL8CA5300G0] Depth backend frame callback, frameRate=6.532066fps
+[02/24 19:23:10.962885][info][14480][SensorBase.cpp:370] [CL8CA5300G0] Depth Streaming... frameRate=6.532066fps
+[02/24 19:23:15.288914][info][14457][VideoSensor.cpp:153] [CL8CA5300G0] Color backend frame callback, frameRate=29.976019fps
+[02/24 19:23:15.309649][info][14462][SensorBase.cpp:370] [CL8CA5300G0] Color Streaming... frameRate=29.970030fps
+[02/24 19:23:15.350003][info][14349][Pipeline.cpp:336] [CL8CA5300G0] Try to stop pipeline!
+[02/24 19:23:15.350270][info][14349][Pipeline.cpp:312] [CL8CA5300G0] Try to stop streams!
+[02/24 19:23:15.350466][info][14349][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPING@Depth
+[02/24 19:23:16.094526][info][14349][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPED@Depth
+[02/24 19:23:16.095477][info][14349][Pipeline.cpp:326] [CL8CA5300G0] Sensor stream stopped, sensorType=Depth
+[02/24 19:23:16.095616][info][14349][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPING@Color
+[02/24 19:23:17.967133][info][14349][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPED@Color
+[02/24 19:23:17.968746][info][14349][Pipeline.cpp:326] [CL8CA5300G0] Sensor stream stopped, sensorType=Color
+[02/24 19:23:17.968805][info][14349][Pipeline.cpp:332] [CL8CA5300G0] Stop streams done!
+[02/24 19:23:17.969025][info][14349][Pipeline.cpp:356] [CL8CA5300G0] Stop pipeline done!
+[02/24 19:23:17.982278][info][14349][Pipeline.cpp:53] [CL8CA5300G0] Pipeline destroyed! @0xAAAAEB37B350
+[02/24 19:23:17.985839][info][14349][SensorBase.cpp:47] [CL8CA5300G0] SensorBase is destroyed
+[02/24 19:23:18.002713][info][14349][ObLibuvcDevicePort.cpp:87] uvc_close done.
+[02/24 19:23:18.002786][info][14349][ObLibuvcDevicePort.cpp:88] ~ObLibuvcDevicePort done
+[02/24 19:23:18.002899][info][14349][SensorBase.cpp:47] [CL8CA5300G0] SensorBase is destroyed
+[02/24 19:23:18.075258][info][14349][ObLibuvcDevicePort.cpp:87] uvc_close done.
+[02/24 19:23:18.075616][info][14349][ObLibuvcDevicePort.cpp:88] ~ObLibuvcDevicePort done
+[02/24 19:23:18.095973][warning][14653][Pipeline.cpp:305] [CL8CA5300G0] Wait for frame timeout, you can try to increase the wait time! current timeout=500 [**21 logs in 13297ms, last: 19:23:15.349643**]

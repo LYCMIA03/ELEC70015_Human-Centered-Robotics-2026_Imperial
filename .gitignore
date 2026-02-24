@@ -11,8 +11,10 @@ ros_ws/devel/
 .catkin_workspace
 
 # Generated maps (auto-produced at runtime, not source files)
-catkin_ws/src/**/maps/*.pgm
-catkin_ws/src/**/maps/*.yaml
+# Keep reference maps (.yaml + .pgm) tracked; ignore runtime-only outputs
 catkin_ws/src/**/maps/*.json
 catkin_ws/src/**/maps/*.txt
+# Uncomment below to ignore all maps:
+# catkin_ws/src/**/maps/*.pgm
+# catkin_ws/src/**/maps/*.yaml
 

@@ -10,9 +10,90 @@ ROS1 Noetic · Ubuntu 20.04 · Docker (Jetson) · Raspberry Pi 4.
 
 ---
 
+## Quick Start — Docker Environment
+
+All ROS nodes run inside a Docker container on Jetson. The image `ros_noetic:nav` contains ROS Noetic + all navigation packages pre-installed.
+
+### Docker Image Info
+
+| Image | Tag | Arch | Size | Contents |
+|-------|-----|------|------|----------|
+| `ros_noetic` | `nav` | arm64 (Jetson native) | ~4.4 GB | ROS Noetic desktop-full + gmapping, move_base, amcl, map_server, DWA, NavfnROS, RViz, Gazebo 11, xacro, tf2, actionlib |
+
+### Start the Container
+
+```bash
+# First time — create from saved image
+docker run -it --net=host --privileged \
+  -e DISPLAY=$DISPLAY \
+  -e QT_X11_NO_MITSHM=1 \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  -v /home/frank/work:/home/frank/work \
+  -v /dev:/dev \
+  -v /etc/passwd:/etc/passwd:ro \
+  -v /etc/group:/etc/group:ro \
+  --user $(id -u):$(id -g) \
+  --name ros_noetic \
+  ros_noetic:nav \
+  bash
+```
+
+### Enter a Running Container
+
+```bash
+# Start if stopped
+docker start ros_noetic
+
+# Open a new shell in the running container
+docker exec -it ros_noetic bash
+```
+
+### Inside the Container — Source & Build
+
+```bash
+# Source ROS
+source /opt/ros/noetic/setup.bash
+
+# Go to workspace and build (first time only)
+cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws
+catkin_make
+source devel/setup.bash
+
+# Verify
+rospack find p3at_lms_navigation   # should print the package path
+```
+
+> **Every new shell** inside the container needs both `source` commands:
+> ```bash
+> source /opt/ros/noetic/setup.bash
+> source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash
+> ```
+
+### Save Container Changes
+
+After installing new packages or making persistent changes inside the container:
+
+```bash
+docker commit ros_noetic ros_noetic:nav
+```
+
+### Container Lifecycle Cheat Sheet
+
+| Action | Command |
+|--------|---------|
+| Start stopped container | `docker start ros_noetic` |
+| Enter running container | `docker exec -it ros_noetic bash` |
+| Stop container | `docker stop ros_noetic` |
+| Check status | `docker ps -a` |
+| Save changes to image | `docker commit ros_noetic ros_noetic:nav` |
+| Remove and recreate | `docker rm ros_noetic` then `docker run ...` (see above) |
+
+---
+
 ## Table of Contents
 
-1. [Branch Architecture](#branch-architecture)
+1. [Quick Start — Docker Environment](#quick-start--docker-environment)
+2. [Branch Architecture](#branch-architecture)
 2. [Hardware Configuration](#hardware-configuration)
 3. [Repository & Package Structure](#repository--package-structure)
 4. [Prerequisites & Dependencies](#prerequisites--dependencies)

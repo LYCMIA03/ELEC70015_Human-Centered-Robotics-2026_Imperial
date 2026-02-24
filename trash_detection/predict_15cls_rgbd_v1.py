@@ -12,13 +12,13 @@
   python trash_detection/predict_15cls_rgbd.py --max-depth 3      # 只显示 3m 内并标距离
   python trash_detection/predict_15cls_rgbd.py --color-res 1080p # 彩色流 1080p（多数 Orbbec 支持）
   python trash_detection/predict_15cls_rgbd.py --nearest-person   # 每帧输出「离最近垃圾最近的人」的 XYZ（米）
-  python trash_detection/predict_15cls_rgbd.py --nearest-person --person-hz 5  # 人检测低频，垃圾检测高频
   --nearest-person 时：15 类模型禁用 Human，人由 YOLOv8 预训练模型(yolov8m.pt)检测并用于跟随。
   重叠框：agnostic_nms=False 且默认 iou=0.65，重叠的垃圾/人框更易保留。
 """
 import argparse
 import json
 import os
+import socket
 import socket
 import sys
 import time
@@ -42,38 +42,23 @@ except (ModuleNotFoundError, ImportError) as e:
     print("未找到 pyorbbecsdk:", e)
     sys.exit(1)
 
+from ultralytics import YOLO
+from ultralytics.models.yolo.detect.predict import DetectionPredictor
 from ultralytics.utils.nms import TorchNMS
 
 # Jetson 上 torchvision 与 PyTorch 的 C++ 扩展不兼容时，nms 会报 "Couldn't load custom C++ ops"
 # 对 torchvision.ops.nms 做回退：失败则用 ultralytics 自带的 TorchNMS.nms
-# try:
-#     import torchvision.ops as _tv_ops
-#     _orig_tv_nms = _tv_ops.nms
-#     def _nms_fallback(boxes, scores, iou_threshold):
-#         try:
-#             return _orig_tv_nms(boxes, scores, iou_threshold)
-#         except RuntimeError:
-#             return TorchNMS.nms(boxes, scores, iou_threshold)
-#     _tv_ops.nms = _nms_fallback
-# except Exception:
-#     pass
-
 try:
     import torchvision.ops as _tv_ops
-    from ultralytics.utils.nms import TorchNMS
-
-    def _safe_nms(boxes, scores, iou_threshold):
-        return TorchNMS.nms(boxes, scores, iou_threshold)
-
-    _tv_ops.nms = _safe_nms
-    print("✓ Using Ultralytics TorchNMS (torchvision C++ bypassed)")
-except Exception as e:
-    print("TorchNMS patch failed:", e)
-    
-    
-from ultralytics import YOLO
-from ultralytics.models.yolo.detect.predict import DetectionPredictor
-
+    _orig_tv_nms = _tv_ops.nms
+    def _nms_fallback(boxes, scores, iou_threshold):
+        try:
+            return _orig_tv_nms(boxes, scores, iou_threshold)
+        except RuntimeError:
+            return TorchNMS.nms(boxes, scores, iou_threshold)
+    _tv_ops.nms = _nms_fallback
+except Exception:
+    pass
 
 # 与 predict_15cls 一致
 ROOT = Path(__file__).resolve().parent
@@ -228,16 +213,6 @@ def depth_pixel_to_xyz_m(px, py, depth_mm, fx=DEPTH_FX, fy=DEPTH_FY, cx=DEPTH_CX
 
 def _dist_sq_xyz(a, b):
     return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
-
-
-def _is_cuda_allocator_error(exc):
-    msg = str(exc)
-    return (
-        "CUDACachingAllocator" in msg
-        or "NVML" in msg
-        or "NvMapMemAllocInternalTagged" in msg
-        or "cuda out of memory" in msg.lower()
-    )
 
 
 def get_nearest_waste_and_person_xyz(results, names_list, depth_mm, depth_h, depth_w, conf_threshold=0.25, max_range_mm=5000):
@@ -423,17 +398,16 @@ def main():
     p = argparse.ArgumentParser(description="15 类垃圾检测 RGB-D")
     p.add_argument("--weights", "-w", default=str(MODEL_PATH), help="权重路径")
     p.add_argument("--conf", type=float, default=CONF_THRESHOLD, help="置信度阈值")
-    p.add_argument("--imgsz", type=int, default=640, help="YOLO 推理输入尺寸（默认 640，性能优先）")
+    p.add_argument("--imgsz", type=int, default=1280, help="YOLO 推理输入尺寸（1440p 流默认 1280）")
     p.add_argument("--show-human", action="store_true", help="画出 Human 框")
     p.add_argument("--agnostic-nms", action="store_true", help="NMS 不区分类别")
     p.add_argument("--iou", type=float, default=NMS_IOU_OVERLAP, help="NMS IoU 阈值，越大重叠框越易保留，默认 %.2f" % NMS_IOU_OVERLAP)
     p.add_argument("--no-depth-window", action="store_true", help="不显示深度图窗口")
     p.add_argument("--max-depth", type=float, default=None, help="仅在框上显示该距离(m)内的深度，不设则都显示框不标距离")
-    p.add_argument("--color-res", choices=["720p", "1080p", "1440p"], default="1080p", help="彩色流分辨率，默认 1080p")
+    p.add_argument("--color-res", choices=["720p", "1080p", "1440p"], default="1440p", help="彩色流分辨率，默认 1440p")
     p.add_argument("--nearest-person", action="store_true", help="每帧输出「离最近垃圾最近的人」的 XYZ；人用 YOLOv8 预训练检测")
     p.add_argument("--nearest-range", type=float, default=5.0, help="参与最近垃圾/人的深度范围(m)，默认 5")
     p.add_argument("--person-weights", default=PERSON_MODEL_DEFAULT, help="检测人用的 YOLO 权重，默认 yolov8m.pt（COCO person）")
-    p.add_argument("--person-hz", type=float, default=5.0, help="人检测更新频率(Hz)，默认 5（垃圾检测仍每帧）")
     p.add_argument("--print-xyz", action="store_true", help="每帧在终端打印最近垃圾/人的 XYZ（适合 SSH 无界面）")
     p.add_argument("--headless", action="store_true", help="无界面模式：不弹窗，仅推理并打印 XYZ，用 Ctrl+C 退出（适合 SSH）")
     p.add_argument("--device", choices=["cuda", "cpu", "auto"], default="auto", help="YOLO 推理设备：cuda/cpu/auto，默认 auto（有 GPU 用 cuda）")
@@ -483,29 +457,17 @@ def main():
     if getattr(args, "nearest_person", False):
         person_weights = getattr(args, "person_weights", PERSON_MODEL_DEFAULT)
         person_model = YOLO(person_weights)
-        print(
-            "人检测模型: %s (COCO class 0 = person)，使用设备: %s，更新频率: %.2f Hz"
-            % (person_weights, yolo_device, max(getattr(args, "person_hz", 5.0), 0.1))
-        )
+        print("人检测模型: %s (COCO class 0 = person)，使用设备: %s" % (person_weights, yolo_device))
 
     # CUDA 时在开相机前先做一次小图推理，预占 GPU 显存，减轻与 Orbbec/深度管线争用导致的分配器错误
     if yolo_device == "cuda":
-        try:
-            dummy = np.zeros((480, 640, 3), dtype=np.uint8)
-            model.predict(dummy, imgsz=min(640, args.imgsz), verbose=False, device=yolo_device)
-            if person_model is not None:
-                person_model.predict(dummy, imgsz=min(640, args.imgsz), verbose=False, device=yolo_device)
-            if torch.cuda.is_available():
-                torch.cuda.synchronize()
-            print("YOLO CUDA 预热完成")
-        except RuntimeError as e:
-            if _is_cuda_allocator_error(e):
-                print("CUDA 预热失败（显存/分配器异常），自动切换到 CPU:", e)
-                yolo_device = "cpu"
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-            else:
-                raise
+        dummy = np.zeros((480, 640, 3), dtype=np.uint8)
+        model.predict(dummy, imgsz=min(640, args.imgsz), verbose=False, device=yolo_device)
+        if person_model is not None:
+            person_model.predict(dummy, imgsz=min(640, args.imgsz), verbose=False, device=yolo_device)
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        print("YOLO CUDA 预热完成")
 
     max_depth_mm = int(args.max_depth * 1000) if args.max_depth is not None else None
 
@@ -565,9 +527,6 @@ def main():
     locked_person_xyz = None
     locked_waste_xyz = None
     follow_max_m = 2.0
-    person_interval_s = 1.0 / max(getattr(args, "person_hz", 5.0), 0.1)
-    person_last_infer_t = -1e9
-    results_person_cached = None
 
     # FPS 统计：每秒打印一次 循环 FPS 与 YOLO 推理 FPS
     fps_interval_start = time.perf_counter()
@@ -611,19 +570,12 @@ def main():
             if (color_img.shape[0], color_img.shape[1]) != (dh, dw):
                 frame = cv2.resize(color_img, (dw, dh), interpolation=cv2.INTER_LINEAR)
             else:
-                frame = color_img
+                frame = color_img.copy()
 
             nms_iou = getattr(args, "iou", NMS_IOU_OVERLAP)
             t_yolo_start = time.perf_counter()
-            now_t = time.perf_counter()
-            should_update_person = (
-                person_model is not None and (
-                    results_person_cached is None or (now_t - person_last_infer_t) >= person_interval_s
-                )
-            )
             # Jetson 上 CUDA 分配器有时会间歇性 NVML 断言，同帧重试几次往往能通过
             max_yolo_retries = 3 if yolo_device == "cuda" else 1
-            results_person = results_person_cached
             for _yolo_attempt in range(max_yolo_retries):
                 try:
                     results_waste = model.predict(
@@ -636,43 +588,19 @@ def main():
                         verbose=False,
                         device=yolo_device,
                     )[0]
-                    if should_update_person:
+                    results_person = None
+                    if person_model is not None:
                         results_person = person_model.predict(
                             frame, conf=args.conf, imgsz=args.imgsz, iou=nms_iou, classes=[COCO_PERSON_CLASS_ID],
                             verbose=False,
                             device=yolo_device,
                         )[0]
-                        results_person_cached = results_person
-                        person_last_infer_t = time.perf_counter()
                     break
                 except RuntimeError as e:
-                    if _yolo_attempt < max_yolo_retries - 1 and yolo_device == "cuda" and _is_cuda_allocator_error(e):
+                    err_msg = str(e)
+                    if _yolo_attempt < max_yolo_retries - 1 and yolo_device == "cuda" and ("CUDACachingAllocator" in err_msg or "NVML" in err_msg):
                         time.sleep(0.15 * (_yolo_attempt + 1))
                         continue
-                    if yolo_device == "cuda" and _is_cuda_allocator_error(e):
-                        print("CUDA 推理失败（显存/分配器异常），自动切换到 CPU 继续运行:", e)
-                        yolo_device = "cpu"
-                        if torch.cuda.is_available():
-                            torch.cuda.empty_cache()
-                        results_waste = model.predict(
-                            frame,
-                            conf=args.conf,
-                            imgsz=args.imgsz,
-                            iou=nms_iou,
-                            agnostic_nms=agnostic_nms,
-                            classes=trash_class_ids,
-                            verbose=False,
-                            device=yolo_device,
-                        )[0]
-                        if should_update_person and person_model is not None:
-                            results_person = person_model.predict(
-                                frame, conf=args.conf, imgsz=args.imgsz, iou=nms_iou, classes=[COCO_PERSON_CLASS_ID],
-                                verbose=False,
-                                device=yolo_device,
-                            )[0]
-                            results_person_cached = results_person
-                            person_last_infer_t = time.perf_counter()
-                        break
                     raise
             yolo_time_sum += time.perf_counter() - t_yolo_start
 
