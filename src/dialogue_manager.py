@@ -14,7 +14,7 @@ from src.utils.nlu_intent import Intent, IntentClassifier
 from src.utils.speech_to_text import load_model, recognize_from_mic, recognize_from_wav
 
 ROBOT_PROMPT_INITIAL_WAV = "voice_data/robot_prompt_*.wav"
-ROBOT_PROMPT_CLARIFICATION_WAV = "voice_data/robot_prompt_*.wav"
+ROBOT_PROMPT_CLARIFICATION_WAV = "voice_data/robot_repeat_*.wav"
 ROBOT_ACTION_PROCEED_WAV = "voice_data/robot_proceed_*.wav"
 ROBOT_ACTION_DECLINE_WAV = "voice_data/robot_leave_*.wav"
 
