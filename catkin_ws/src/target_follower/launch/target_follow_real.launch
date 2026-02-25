@@ -1,0 +1,75 @@
+<launch>
+  <!--
+    真机目标追踪 — Target Following Overlay (Real Robot)
+    
+    功能：
+      1. udp_target_bridge        接收 YOLO 检测结果 (UDP JSON → /trash_detection/target_point)
+      2. point_to_target_pose     PointStamped → PoseStamped (/target_pose)
+      3. target_follower          /target_pose → MoveBaseGoal (带 standoff + face_target)
+      4. static TF                base_link → camera_link
+    
+    前提：
+      - 导航栈已启动 (real_robot_nav_unitree.launch 或 real_robot_mapping_unitree.launch)
+      - YOLO 检测已在 host 上运行 (predict_15cls_rgbd.py ‑‑udp-enable)
+    
+    启动：
+      roslaunch target_follower target_follow_real.launch
+      roslaunch target_follower target_follow_real.launch standoff_distance:=0.6 face_target:=true
+    
+    结果 topic：
+      /target_follower/result  (std_msgs/Bool)   — True=到达目标, False=失败/丢失
+      /target_follower/status  (std_msgs/String)  — 当前状态: IDLE|TRACKING|REACHED|LOST|FAILED
+  -->
+
+  <!-- ========== 参数 ========== -->
+  <arg name="udp_port"               default="16031"
+       doc="UDP 端口, 与 predict_15cls_rgbd.py ‑‑udp-port 一致"/>
+  <arg name="standoff_distance"      default="0.5"
+       doc="在距目标多远处停下 (m). 0=直接到达目标位置"/>
+  <arg name="face_target"            default="true"
+       doc="到达后机器人是否朝向目标"/>
+  <arg name="target_timeout"         default="5.0"
+       doc="目标消失多久后取消导航 (s)"/>
+  <arg name="send_rate_hz"           default="2.0"
+       doc="向 move_base 发送新目标的最大频率 (Hz)"/>
+  <arg name="min_update_dist"        default="0.2"
+       doc="目标移动多远才重发目标 (m)"/>
+
+  <!-- ========== Static TF: base_link → camera_link (identity) ========== -->
+  <!--
+    相机坐标系与机器人坐标系一致，发布 identity TF 即可。
+    target_follower 通过此 TF 将 camera_link 下的目标坐标变换到 map 系。
+  -->
+  <!-- camera frame 与 robot frame 一致 → identity TF -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_tf"
+        args="0 0 0 0 0 0 1 base_link camera_link"/>
+
+  <!-- ========== UDP Bridge: YOLO detection → ROS ========== -->
+  <node pkg="target_follower" type="udp_target_bridge.py" name="udp_target_bridge" output="screen">
+    <param name="bind_host"     value="0.0.0.0"/>
+    <param name="bind_port"     value="$(arg udp_port)"/>
+    <param name="default_frame" value="camera_link"/>
+    <param name="out_topic"     value="/trash_detection/target_point"/>
+    <param name="stamp_now"     value="true"/>
+  </node>
+
+  <!-- ========== PointStamped → PoseStamped 转换 ========== -->
+  <node pkg="target_follower" type="point_to_target_pose.py" name="point_to_target_pose" output="screen">
+    <param name="in_point_topic"  value="/trash_detection/target_point"/>
+    <param name="out_target_topic" value="/target_pose"/>
+    <param name="stamp_now"       value="true"/>
+  </node>
+
+  <!-- ========== Target Follower: /target_pose → move_base goal ========== -->
+  <node pkg="target_follower" type="target_follower.py" name="target_follower" output="screen">
+    <param name="target_topic"          value="/target_pose"/>
+    <param name="global_frame"          value="map"/>
+    <param name="robot_frame"           value="base_link"/>
+    <param name="send_rate_hz"          value="$(arg send_rate_hz)"/>
+    <param name="min_update_dist"       value="$(arg min_update_dist)"/>
+    <param name="use_target_orientation" value="false"/>
+    <param name="target_timeout_s"      value="$(arg target_timeout)"/>
+    <param name="standoff_distance"     value="$(arg standoff_distance)"/>
+    <param name="face_target"           value="$(arg face_target)"/>
+  </node>
+</launch>

@@ -6,6 +6,7 @@ import actionlib
 from geometry_msgs.msg import PoseStamped, Quaternion
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
+from std_msgs.msg import Bool, String
 import tf2_ros
 
 # Pure-python quaternion helpers (no PyKDL required)
@@ -97,10 +98,19 @@ class TargetFollower:
 
         rospy.Subscriber(self.target_topic, PoseStamped, self.cb_target, queue_size=1)
 
+        # --- Result / status publishers (for downstream e.g. dialogue trigger) ---
+        self.result_pub = rospy.Publisher("~result", Bool, queue_size=1, latch=True)
+        self.status_pub = rospy.Publisher("~status", String, queue_size=1)
+        # States: IDLE | TRACKING | REACHED | LOST | FAILED
+        self._state = "IDLE"
+        self._last_status_time = rospy.Time(0)
+
         if self.standoff_distance > 0:
             rospy.loginfo("standoff_distance = %.2f m", self.standoff_distance)
         if self.face_target:
             rospy.loginfo("face_target enabled")
+        rospy.loginfo("Result topic: %s/result (std_msgs/Bool)", rospy.get_name())
+        rospy.loginfo("Status topic: %s/status (std_msgs/String)", rospy.get_name())
 
     def cb_target(self, msg):
         self.last_target = msg
@@ -134,6 +144,32 @@ class TargetFollower:
                 rospy.loginfo("Cancelled active move_base goal (target lost/stale)")
             self._goal_active = False
 
+    def _set_state(self, new_state):
+        """Transition state and log."""
+        if new_state != self._state:
+            rospy.loginfo("[TargetFollower] %s -> %s", self._state, new_state)
+            self._state = new_state
+
+    def _publish_result(self, success):
+        """Publish Bool result (True=REACHED, False=FAILED/LOST)."""
+        self.result_pub.publish(Bool(data=success))
+        rospy.loginfo(
+            "[TargetFollower] Published result: %s",
+            "REACHED (True)" if success else "FAILED (False)",
+        )
+
+    def _goal_done_cb(self, status, result):
+        """Called by actionlib when a move_base goal reaches a terminal state."""
+        self._goal_active = False
+        if status == GoalStatus.SUCCEEDED:
+            if self._state != "REACHED":
+                self._set_state("REACHED")
+                self._publish_result(True)
+        elif status in (GoalStatus.ABORTED, GoalStatus.REJECTED):
+            if self._state not in ("REACHED", "LOST"):
+                self._set_state("FAILED")
+                self._publish_result(False)
+
     def _reload_dynamic_params(self):
         """Re-read parameters that can be changed at runtime via rosparam set."""
         self.standoff_distance = float(rospy.get_param("~standoff_distance", self.standoff_distance))
@@ -158,6 +194,10 @@ class TargetFollower:
                     )
                     self._target_lost_logged = True
                 self._cancel_goal_if_active()
+                # Publish LOST result once
+                if self._state in ("TRACKING",):
+                    self._set_state("LOST")
+                    self._publish_result(False)
                 return
 
         try:
@@ -200,7 +240,11 @@ class TargetFollower:
 
             if self.standoff_distance > 0:
                 if d <= self.standoff_distance:
-                    # Already within standoff range — no need to send a new goal.
+                    # Already within standoff range — stop and report REACHED.
+                    if self._state != "REACHED":
+                        self._cancel_goal_if_active()
+                        self._set_state("REACHED")
+                        self._publish_result(True)
                     return
                 # Place goal standoff_distance metres back along the robot→target vector.
                 ratio = (d - self.standoff_distance) / d
@@ -239,15 +283,22 @@ class TargetFollower:
             else:
                 goal.target_pose.pose.orientation = Quaternion(0.0, 0.0, 0.0, 1.0)
 
-        self.client.send_goal(goal)
+        self.client.send_goal(goal, done_cb=self._goal_done_cb)
         self._goal_active = True
         self.last_sent_goal = target_g
         self.last_send_time = now
+        if self._state != "TRACKING":
+            self._set_state("TRACKING")
 
     def spin(self):
         r = rospy.Rate(20)
         while not rospy.is_shutdown():
             self.maybe_send_goal()
+            # Publish status at ~2 Hz
+            now = rospy.Time.now()
+            if (now - self._last_status_time).to_sec() >= 0.5:
+                self._last_status_time = now
+                self.status_pub.publish(String(data=self._state))
             r.sleep()
 
 

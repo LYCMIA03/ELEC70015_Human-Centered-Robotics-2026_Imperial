@@ -4,7 +4,8 @@ This branch is organized around three practical parts:
 
 1. Navigation + Raspberry Pi communication (ROS1 core stack)
 2. Trash detection (non-ROS on host) + UDP bridge to ROS1 in Docker
-3. Lidar-only workflow (TBD)
+3. Dialogue action bridge (navigation_success -> voice decision -> trash_action)
+4. Lidar-only workflow (TBD)
 
 ## 1. Navigation + RasPi Communication
 
@@ -17,6 +18,8 @@ JETSON_IP=192.168.50.1
 RASPI_IP=192.168.50.2
 LAPTOP_IP=<your_lan_ip>
 TRASH_UDP_PORT=16031
+DIALOGUE_TRIGGER_UDP_PORT=16041
+DIALOGUE_ACTION_UDP_PORT=16032
 ```
 
 Notes:
@@ -55,7 +58,9 @@ rostopic hz /scan
 ## 2. Trash Detection + UDP Bridge
 
 Architecture:
-- Host runs only `trash_detection/predict_15cls_rgbd.py` (non-ROS, GPU inference).
+- Host runs one detector on host (non-ROS, GPU inference):
+  - `trash_detection/predict_15cls_rgbd.py` (default)
+  - `handobj_detection/handobj_detection_rgbd.py` (`--detector handobj`)
 - All ROS chain runs inside Docker:
   - `udp_target_bridge.py` publishes `/trash_detection/target_point`
   - `point_to_target_pose.py` converts to `/target_pose`
@@ -91,19 +96,32 @@ docker exec -it ros_noetic bash -lc 'source /opt/ros/noetic/setup.bash && rostop
 
 ### 2.2 Start host detection sender
 
-Default launcher:
+Default launcher (trash detector):
 ```bash
 ./scripts/start_trash_detection_rgbd.sh
 ```
 
-Equivalent explicit command:
+Switch to hand-object detector:
+```bash
+./scripts/start_trash_detection_rgbd.sh --detector handobj
+```
+
+Equivalent explicit command (trash):
 ```bash
 python3 trash_detection/predict_15cls_rgbd.py \
   --nearest-person --print-xyz --headless \
   --udp-enable --udp-host 127.0.0.1 --udp-port 16031
 ```
 
+Equivalent explicit command (handobj):
+```bash
+python3 handobj_detection/handobj_detection_rgbd.py \
+  --print-xyz --headless \
+  --udp-enable --udp-host 127.0.0.1 --udp-port 16031
+```
+
 Current default behavior:
+- Launcher default is `--detector trash`.
 - UDP sends `person` target by default.
 - Override when needed:
 ```bash
@@ -118,7 +136,69 @@ python3 trash_detection/examples/send_target_udp.py --port 16031 --rate 2 --coun
 
 If Terminal D prints `PointStamped`, bridge chain is healthy.
 
-## 3. Lidar Part (TBD)
+## 3. Dialogue Action Bridge
+
+Goal:
+- ROS in Docker publishes `/navigation_success` (`std_msgs/Bool`).
+- A ROS->UDP bridge sends this trigger to host.
+- Host runs dialogue module when trigger is `1`, gets `decline/proceed`.
+- Host sends back `decline=0`, `proceed=1` via UDP.
+- A UDP->ROS bridge in Docker publishes `/trash_action` (`std_msgs/Bool`).
+
+### 3.1 Start ROS bridges (inside Docker)
+
+Terminal E (`/navigation_success` -> UDP trigger):
+```bash
+docker exec -it ros_noetic bash -lc '
+source /opt/ros/noetic/setup.bash
+python3 /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/navigation_success_udp_bridge.py \
+  _in_topic:=/navigation_success _out_host:=127.0.0.1 _out_port:=16041
+'
+```
+
+Terminal F (UDP action -> `/trash_action`):
+```bash
+docker exec -it ros_noetic bash -lc '
+source /opt/ros/noetic/setup.bash
+python3 /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/udp_trash_action_bridge.py \
+  _bind_port:=16032 _out_topic:=/trash_action
+'
+```
+
+Terminal G (observe output):
+```bash
+docker exec -it ros_noetic bash -lc 'source /opt/ros/noetic/setup.bash && rostopic echo /trash_action'
+```
+
+### 3.2 Start host dialogue runner
+
+Microphone mode:
+```bash
+./scripts/start_dialogue_udp_runner.sh --device 24
+```
+
+Simulation mode:
+```bash
+./scripts/start_dialogue_udp_runner.sh --sim \
+  --first-user-wav dialogue/voice_data/sim_user_answer_other_b.wav \
+  --second-user-wav dialogue/voice_data/sim_user_answer_negative_a.wav
+```
+
+### 3.3 Trigger test
+
+In Docker, publish trigger:
+```bash
+docker exec -it ros_noetic bash -lc '
+source /opt/ros/noetic/setup.bash
+rostopic pub -1 /navigation_success std_msgs/Bool "data: true"
+'
+```
+
+Expected:
+- Host prints `[Result] outcome=proceed|decline -> trash_action=1|0`
+- Docker topic `/trash_action` receives `True|False`
+
+## 4. Lidar Part (TBD)
 
 Lidar-only workflow is intentionally left as TBD in this demo branch.
 Current priority is the integrated navigation + target-follow pipeline above.

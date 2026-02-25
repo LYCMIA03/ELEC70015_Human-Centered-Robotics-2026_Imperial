@@ -104,6 +104,7 @@ docker commit ros_noetic ros_noetic:nav_unitree
    - [Startup Order](#startup-order)
    - [**Keyboard Teleoperation + Unitree Mapping — Full Runbook**](#keyboard-teleoperation--unitree-mapping--full-runbook)
    - [**Autonomous Exploration SLAM — Full Runbook**](#autonomous-exploration-slam--full-runbook)
+   - [**Target Following (Real Robot Demo) — Full Runbook**](#target-following-real-robot-demo--full-runbook)
    - [Option A — Unitree L1 (Primary)](#option-a--unitree-l1-primary)
    - [Option B — SICK LMS200 (Backup)](#option-b--sick-lms200-backup)
 7. [Trash Detection Bridge (demo-v1)](#trash-detection-bridge-demo-v1)
@@ -799,6 +800,7 @@ rosnode list"
 | `scripts/start_real_mapping.sh` | Jetson | Same but for SICK LMS200 backup |
 | `scripts/start_real_nav.sh` | Jetson | Sources env, runs `real_robot_nav_unitree.launch` |
 | `scripts/start_teleop.sh` | Jetson or Laptop | Sources env, runs `teleop_twist_keyboard` → `/cmd_vel` |
+| `scripts/start_target_follow.sh` | Jetson (Docker) | Sources env, runs `target_follow_real.launch` (UDP bridge + follower) |
 
 All scripts accept extra `key:=value` args that are forwarded to `roslaunch` / `rosrun`:
 ```bash
@@ -1098,6 +1100,302 @@ docker exec ros_noetic bash -c \
 
 ---
 
+### Target Following (Real Robot Demo) — Full Runbook
+
+> **Primary demo task.** Robot follows a detected target (trash / person) using YOLO depth-camera detection → `move_base` navigation.  
+> The detection runs on **Jetson host** (native Ubuntu, GPU); the following pipeline runs inside the **ROS Docker container**.  
+> Result topic `/target_follower/result` (`std_msgs/Bool`) serves as the dialogue model trigger.
+
+#### Architecture
+
+```
+[Jetson — Native Host]
+  predict_15cls_rgbd.py --udp-enable
+  ──► UDP JSON {x, y, z, frame_id, stamp}  → 127.0.0.1:16031
+
+[Jetson — ROS Docker]
+  udp_target_bridge       ←── UDP  ──► /trash_detection/target_point (PointStamped)
+  point_to_target_pose    ←── PointStamped  ──► /target_pose (PoseStamped)
+  target_follower         ←── /target_pose  ──► MoveBaseGoal → move_base → /cmd_vel
+                                             ──► /target_follower/result  (Bool: True=REACHED)
+                                             ──► /target_follower/status  (String: IDLE|TRACKING|REACHED|LOST|FAILED)
+  static_transform_publisher  base_link → camera_link  (optical frame rotation)
+```
+
+#### Coordinate System
+
+Depth camera (Orbbec Femto Bolt) outputs XYZ in **optical frame** convention:
+- **z** = forward (depth), **x** = right, **y** = down
+
+ROS `base_link` uses:
+- **x** = forward, **y** = left, **z** = up
+
+The launch file publishes a static TF `base_link → camera_link` with the rotation quaternion `(-0.5, 0.5, -0.5, 0.5)` to automatically convert between the two coordinate frames. `target_follower` uses TF to look up `camera_link → map` and applies the conversion transparently.
+
+> **If your camera axes already match the robot convention**, launch with `camera_optical_frame:=false` to publish an identity TF instead.
+
+#### Prerequisites
+
+| Requirement | Check |
+|-------------|-------|
+| Navigation stack already running (mapping or AMCL nav) | ✓ |
+| `move_base` responding (`rosnode list` shows `/move_base`) | ✓ |
+| TF chain `map → odom → base_footprint → base_link` complete | ✓ |
+| Orbbec camera connected to Jetson USB | ✓ |
+| `predict_15cls_rgbd.py` dependencies installed on host (`pip3 install ultralytics pyorbbecsdk`) | ✓ |
+| `scripts/deploy.env` configured (`TRASH_UDP_PORT=16031`) | ✓ |
+
+---
+
+#### Step 1 — Prerequisites: navigation stack must be running
+
+The target following overlay runs **on top of** either a mapping or navigation stack. Start one of:
+
+**Option A — Navigation on a saved map (recommended for demo):**
+```bash
+docker exec -d ros_noetic bash -c '
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash
+exec roslaunch p3at_lms_navigation real_robot_nav_unitree.launch \
+  map_file:=/home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/maps/demo_map.yaml \
+  use_rviz:=false \
+  > /tmp/nav_unitree.log 2>&1'
+```
+
+**Option B — Mapping mode (simultaneous exploration + following):**
+```bash
+docker exec -d ros_noetic bash -c '
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash
+exec roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch \
+  use_rviz:=false \
+  > /tmp/mapping_unitree.log 2>&1'
+```
+
+Wait ~12 s then verify:
+```bash
+docker exec ros_noetic bash -c '
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+rosnode list | grep move_base'
+# Expected: /move_base
+```
+
+---
+
+#### Step 2 — Jetson Docker: launch target following overlay
+
+```bash
+docker exec -d ros_noetic bash -c '
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash
+exec roslaunch target_follower target_follow_real.launch \
+  standoff_distance:=0.5 \
+  face_target:=true \
+  target_timeout:=5.0 \
+  camera_optical_frame:=true \
+  > /tmp/target_follow.log 2>&1'
+```
+
+Or with the helper script (inside Docker):
+```bash
+./scripts/start_target_follow.sh standoff_distance:=0.5 face_target:=true
+```
+
+**Key parameters:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `standoff_distance` | `0.5` m | Stop this far from target |
+| `face_target` | `true` | Orient robot toward target at goal |
+| `target_timeout` | `5.0` s | Cancel goal if no detection for this long |
+| `camera_optical_frame` | `true` | Apply optical→robot coordinate rotation |
+| `udp_port` | `16031` | Must match detection script `--udp-port` |
+
+✅ **Verify nodes:**
+```bash
+docker exec ros_noetic bash -c '
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+rosnode list | grep -E "udp_target_bridge|point_to_target_pose|target_follower|camera_link_tf"'
+# Expected:
+# /camera_link_tf
+# /point_to_target_pose
+# /target_follower
+# /udp_target_bridge
+```
+
+---
+
+#### Step 3 — Jetson Host (Native): start YOLO detection
+
+**Terminal:** Open a **non-Docker** terminal on Jetson.
+
+```bash
+cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/trash_detection
+python3 predict_15cls_rgbd.py \
+  --udp-enable \
+  --udp-port 16031 \
+  --udp-frame-id camera_link \
+  --udp-kind person \
+  --nearest-person \
+  --headless \
+  --print-xyz
+```
+
+**Flag explanation:**
+
+| Flag | Purpose |
+|------|---------|
+| `--udp-enable` | Enable UDP JSON sending |
+| `--udp-port 16031` | Match Docker-side `udp_target_bridge` |
+| `--udp-frame-id camera_link` | Detection XYZ is in camera optical frame |
+| `--udp-kind person` | Send person coordinates (change to `waste` or `auto` as needed) |
+| `--nearest-person` | Enable two-model detection (trash + person) |
+| `--headless` | No GUI windows (for SSH) |
+| `--print-xyz` | Print XYZ to terminal for debugging |
+
+> **With GUI** (requires display): remove `--headless`, add `--max-depth 5` to annotate depth on bounding boxes.
+
+---
+
+#### Step 4 — Verify the full pipeline
+
+**Check UDP → ROS bridge:**
+```bash
+docker exec ros_noetic bash -c '
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+timeout 8 rostopic hz /trash_detection/target_point'
+# Expected: matches detection FPS (~5-10 Hz)
+```
+
+**Check target pose:**
+```bash
+docker exec ros_noetic bash -c '
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+timeout 5 rostopic echo /target_pose -n 1'
+# Should show PoseStamped with frame_id: camera_link
+```
+
+**Check target follower status:**
+```bash
+docker exec ros_noetic bash -c '
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+timeout 8 rostopic echo /target_follower/status -n 5'
+# Expected: "TRACKING" when target is visible, "IDLE" when no target
+```
+
+**Check TF chain includes camera_link:**
+```bash
+docker exec ros_noetic bash -c '
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+timeout 4 rosrun tf tf_echo map camera_link 2>/dev/null | head -4'
+```
+
+---
+
+#### Step 5 — Monitor result (dialogue trigger)
+
+```bash
+docker exec ros_noetic bash -c '
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+rostopic echo /target_follower/result'
+# When robot arrives within standoff_distance:
+#   data: True
+# When navigation fails or target lost:
+#   data: False
+```
+
+**Topic for dialogue module integration:**
+
+| Topic | Type | Meaning |
+|-------|------|---------|
+| `/target_follower/result` | `std_msgs/Bool` (latched) | `True` = robot reached target; `False` = failed/lost |
+| `/target_follower/status` | `std_msgs/String` (~2 Hz) | Live state: `IDLE` / `TRACKING` / `REACHED` / `LOST` / `FAILED` |
+
+**State machine:**
+
+```
+                  ┌──────────┐
+                  │   IDLE   │ ← no target or stale
+                  └────┬─────┘
+                       │ target received
+                       ▼
+                  ┌──────────┐
+          ┌──────│ TRACKING  │──────┐
+          │      └─────┬─────┘      │
+          │ target     │ within     │ move_base
+          │ stale      │ standoff   │ ABORTED
+          ▼            ▼            ▼
+     ┌────────┐  ┌──────────┐  ┌────────┐
+     │  LOST  │  │ REACHED  │  │ FAILED │
+     │(False) │  │ (True)   │  │(False) │
+     └────────┘  └──────────┘  └────────┘
+```
+
+---
+
+#### Step 6 — Manual test (no camera required)
+
+Test the full pipeline without hardware using the UDP test script:
+
+```bash
+# From Jetson host (non-Docker) — simulate a target 2m in front
+python3 trash_detection/examples/send_target_udp.py \
+  --x 0.0 --y 0.0 --z 2.0 \
+  --frame-id camera_link \
+  --rate 5 --port 16031
+```
+
+The coordinates `(x=0, y=0, z=2)` in camera optical frame ≈ `(x=2, y=0, z=0)` in base_link = 2m forward.
+
+Or send a single UDP packet:
+```bash
+python3 -c "
+import socket, json, time
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+for _ in range(20):
+    s.sendto(json.dumps({'x':0,'y':0,'z':2.0,'frame_id':'camera_link','stamp':time.time()}).encode(),
+             ('127.0.0.1', 16031))
+    time.sleep(0.2)"
+```
+
+Then monitor:
+```bash
+docker exec ros_noetic bash -c '
+source /opt/ros/noetic/setup.bash
+export ROS_MASTER_URI=http://192.168.50.1:11311
+rostopic echo /target_follower/status -n 3'
+# Should show: TRACKING → (after robot arrives) → REACHED
+```
+
+---
+
+#### Troubleshooting — target following
+
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| `/trash_detection/target_point` has no data | YOLO not running or UDP not reaching Docker | Check YOLO `--udp-enable` flag; verify `--udp-port 16031`; `ss -lnup \| grep 16031` inside Docker |
+| Target follower state stuck on IDLE | No `/target_pose` messages or frame_id mismatch | Check `rostopic echo /target_pose`; verify `camera_link` frame exists in TF |
+| Robot moves toward wrong direction | Camera optical→robot coordinate conversion missing | Ensure `camera_optical_frame:=true` in launch; check `rosrun tf tf_echo base_link camera_link` |
+| `TF lookup error camera_link → map` | `camera_link` frame not published | Verify `/camera_link_tf` node is running (`rosnode list`) |
+| Robot navigates but never reaches REACHED | `standoff_distance` too small or DWA tolerance issue | Increase `standoff_distance` (e.g., `0.6`); check `xy_goal_tolerance` in `move_base.yaml` |
+| Result published too early | Target very close at detection start | Normal — robot is already within standoff range |
+| `/target_follower/result` never publishes | Navigation in progress; robot still moving | Wait for robot to arrive; check `/target_follower/status` for state |
+
+---
+
 ### Option A — Unitree L1 (Primary)
 
 > **Use for all real-robot deployments unless Unitree hardware is unavailable.**
@@ -1286,6 +1584,8 @@ python3 catkin_ws/src/target_follower/scripts/test_standoff_face.py
 | `/trash_detection/target_point` | `geometry_msgs/PointStamped` | `udp_target_bridge` | `point_to_target_pose` |
 | `/target_pose` | `geometry_msgs/PoseStamped` | `point_to_target_pose` | `target_follower` |
 | `/move_base/goal` | `MoveBaseActionGoal` | `target_follower` | `move_base` |
+| `/target_follower/result` | `std_msgs/Bool` (latched) | `target_follower` | dialogue model |
+| `/target_follower/status` | `std_msgs/String` (~2 Hz) | `target_follower` | monitoring |
 
 ### TF Tree (Real Robot — Unitree)
 
@@ -1294,7 +1594,8 @@ map
 └── odom               [slam_gmapping (mapping) or amcl (nav)  ~20 Hz]
     └── base_footprint [rosaria on Pi  ~50 Hz]
         └── base_link  [robot_state_publisher  static]
-            └── unitree_lidar  [robot_state_publisher  static]
+            ├── unitree_lidar  [robot_state_publisher  static]
+            └── camera_link    [static_transform_publisher  static — target following only]
 ```
 
 | Edge | Broadcaster | Notes |
@@ -1303,6 +1604,7 @@ map
 | `odom → base_footprint` | `rosaria` (Pi) | Cross-machine via TCPROS |
 | `base_footprint → base_link` | `robot_state_publisher` | Static, identity |
 | `base_link → unitree_lidar` | `robot_state_publisher` | Static, mount offset from URDF |
+| `base_link → camera_link` | `static_transform_publisher` | Static, optical rotation (target following overlay only) |
 
 **SICK stack:** identical with `laser` replacing `unitree_lidar`, `/scan` replacing `/unitree/scan`.
 
@@ -1447,6 +1749,9 @@ source devel/setup.zsh
   - `map→base_link` TF chain complete ✓
   - Map saved: `maps/session_20260224_223938.pgm` (325 KB)
 - [ ] End-to-end YOLO → `/target_pose` → `target_follower` real-robot test — not started
+- [x] Target following result topic (`/target_follower/result` Bool) — implemented for dialogue trigger
+- [x] Real-robot target following launch (`target_follow_real.launch`) — created with full pipeline
+- [x] Camera optical frame → base_link static TF — auto-published by launch
 - [ ] Real hardware parameter tuning — not started
 - [ ] End-to-end real robot navigation test (AMCL on saved map) — Unitree (primary) — not started
 - [ ] End-to-end real robot navigation test — SICK (backup) — not started
