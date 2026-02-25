@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 MASTER_HOST="${MASTER_HOST:-jetson}"
-NAV_SUCCESS_TOPIC="${NAV_SUCCESS_TOPIC:-/navigation_success}"
+NAV_SUCCESS_TOPIC="${NAV_SUCCESS_TOPIC:-/target_follower/result}"
 TRASH_ACTION_TOPIC="${TRASH_ACTION_TOPIC:-/trash_action}"
 DIALOGUE_TRIGGER_HOST="${DIALOGUE_TRIGGER_HOST:-127.0.0.1}"
 

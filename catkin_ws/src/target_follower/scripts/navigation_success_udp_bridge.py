@@ -13,7 +13,7 @@ def _as_int_flag(value):
 
 class NavigationSuccessUdpBridge:
     def __init__(self):
-        self.in_topic = rospy.get_param("~in_topic", "/navigation_success")
+        self.in_topic = rospy.get_param("~in_topic", "/target_follower/result")
         self.out_host = rospy.get_param("~out_host", "127.0.0.1")
         self.out_port = int(rospy.get_param("~out_port", 16041))
         self.rising_edge_only = bool(rospy.get_param("~rising_edge_only", True))
@@ -66,4 +66,3 @@ if __name__ == "__main__":
     rospy.init_node("navigation_success_udp_bridge")
     NavigationSuccessUdpBridge()
     rospy.spin()
-

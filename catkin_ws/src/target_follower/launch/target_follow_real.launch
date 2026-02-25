@@ -23,8 +23,9 @@
       roslaunch target_follower target_follow_real.launch launch_move_base:=false   # 叠加到已有 move_base
 
     结果 topic:
-      /target_follower/result  (std_msgs/Bool)   — True=到达目标, False=失败/丢失
-      /target_follower/status  (std_msgs/String)  — 当前状态: IDLE|TRACKING|REACHED|LOST|FAILED
+      /target_follower/result  (std_msgs/Bool)   — True=到达目标(触发对话), False=失败/丢失
+      /target_follower/status  (std_msgs/String)  — 当前状态: IDLE|TRACKING|REACHED|WAITING_ACTION|RETREATING|LOST|FAILED
+      /trash_action            (std_msgs/Bool)    — 对话结果输入: True=接受投递, False=拒绝→触发后退
   -->
 
   <!-- ========== 参数 ========== -->
@@ -43,6 +44,16 @@
        doc="向 move_base 发送新目标的最大频率 (Hz)"/>
   <arg name="min_update_dist"        default="0.2"
        doc="目标移动多远才重发目标 (m)"/>
+
+  <!-- Dialogue integration params -->
+  <arg name="trash_action_topic"     default="/trash_action"
+       doc="udp_trash_action_bridge 发布的对话结果 topic (Bool: True=接受, False=拒绝)"/>
+  <arg name="action_wait_timeout"    default="45.0"
+       doc="等待对话结果的超时时间 (s), 超时后重置为 IDLE"/>
+  <arg name="retreat_distance"       default="1.5"
+       doc="人类拒绝投垃圾后机器人后退的距离 (m)"/>
+  <arg name="retreat_timeout"        default="20.0"
+       doc="后退导航的最大等待时间 (s)"/>
 
   <!-- Resolve global_frame: standalone→odom, overlay→map -->
   <arg name="global_frame" default="odom" if="$(arg launch_move_base)"/>
@@ -139,14 +150,19 @@
 
   <!-- ========== Target Follower: /target_pose → move_base goal ========== -->
   <node pkg="target_follower" type="target_follower.py" name="target_follower" output="screen">
-    <param name="target_topic"          value="/target_pose"/>
-    <param name="global_frame"          value="$(arg global_frame)"/>
-    <param name="robot_frame"           value="base_link"/>
-    <param name="send_rate_hz"          value="$(arg send_rate_hz)"/>
-    <param name="min_update_dist"       value="$(arg min_update_dist)"/>
+    <param name="target_topic"           value="/target_pose"/>
+    <param name="global_frame"           value="$(arg global_frame)"/>
+    <param name="robot_frame"            value="base_link"/>
+    <param name="send_rate_hz"           value="$(arg send_rate_hz)"/>
+    <param name="min_update_dist"        value="$(arg min_update_dist)"/>
     <param name="use_target_orientation" value="false"/>
-    <param name="target_timeout_s"      value="$(arg target_timeout)"/>
-    <param name="standoff_distance"     value="$(arg standoff_distance)"/>
-    <param name="face_target"           value="$(arg face_target)"/>
+    <param name="target_timeout_s"       value="$(arg target_timeout)"/>
+    <param name="standoff_distance"      value="$(arg standoff_distance)"/>
+    <param name="face_target"            value="$(arg face_target)"/>
+    <!-- Dialogue integration -->
+    <param name="trash_action_topic"     value="$(arg trash_action_topic)"/>
+    <param name="action_wait_timeout_s"  value="$(arg action_wait_timeout)"/>
+    <param name="retreat_distance"       value="$(arg retreat_distance)"/>
+    <param name="retreat_timeout_s"      value="$(arg retreat_timeout)"/>
   </node>
 </launch>

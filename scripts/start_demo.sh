@@ -74,7 +74,7 @@ DOCKER_NAME="ros_noetic"
 ROS_MASTER="http://${JETSON_IP}:11311"
 ROS_SETUP="source /opt/ros/noetic/setup.bash && source ${CATKIN_WS}/devel/setup.bash"
 ROS_ENV="export ROS_MASTER_URI=${ROS_MASTER} && export ROS_IP=${JETSON_IP}"
-DOCKER_EXEC="docker exec ${DOCKER_NAME} bash -c"
+DOCKER_EXEC="docker exec --user $(id -u):$(id -g) ${DOCKER_NAME} bash -c"
 
 # ---------- 后台进程 PID ----------
 YOLO_PID=""

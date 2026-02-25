@@ -490,6 +490,107 @@ rosnode list               # from Pi — should return /rosout
 
 ---
 
+### Module Startup Flows (Merged from `doc.md`)
+
+> This section is the module-by-module startup entry.
+> Docker operation is unified to `ros_noetic` helper commands.
+
+#### Docker convention (Jetson)
+
+```bash
+ros_noetic s   # start/create container
+ros_noetic e   # enter container shell (non-root)
+ros_noetic r   # restart container
+ros_noetic c   # stop container
+```
+
+Inside `ros_noetic e`, source as needed:
+
+```bash
+source /opt/ros/noetic/setup.bash
+source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash
+```
+
+#### Flow 1: Navigation + RasPi communication
+
+```bash
+# Jetson
+./scripts/start_master.sh jetson
+
+# Raspberry Pi
+./scripts/start_base.sh
+
+# Jetson (mapping or nav)
+./scripts/start_real_mapping.sh
+# or
+./scripts/start_real_nav.sh map_file:=/absolute/path/to/map.yaml
+```
+
+#### Flow 2: Trash detection + UDP bridge
+
+ROS side in container:
+
+```bash
+ros_noetic e
+source /opt/ros/noetic/setup.bash
+roscore
+```
+
+Open another terminal:
+
+```bash
+ros_noetic e
+source /opt/ros/noetic/setup.bash
+python3 /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/udp_target_bridge.py _bind_port:=16031
+```
+
+Optional relay terminal:
+
+```bash
+ros_noetic e
+source /opt/ros/noetic/setup.bash
+python3 /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/point_to_target_pose.py
+```
+
+Host detector:
+
+```bash
+./scripts/start_trash_detection_rgbd.sh
+# or hand-object mode
+./scripts/start_trash_detection_rgbd.sh --detector handobj
+```
+
+#### Flow 3: Dialogue action bridge
+
+Container side:
+
+```bash
+ros_noetic e
+cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
+./scripts/start_dialogue_docker_bridges.sh
+```
+
+Host side:
+
+```bash
+cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
+./scripts/start_dialogue_host.sh --device 24
+```
+
+Trigger test in container:
+
+```bash
+ros_noetic e
+source /opt/ros/noetic/setup.bash
+rostopic pub -1 /target_follower/result std_msgs/Bool "data: true"
+```
+
+#### Flow 4: Lidar-only
+
+Lidar-only workflow is intentionally TBD in this release branch.
+
+---
+
 ### Keyboard Teleoperation + Unitree Mapping — Full Runbook
 
 > **This is the verified real-robot procedure** (tested 2026-02-24).  
@@ -834,7 +935,7 @@ rosnode list"
 | `scripts/start_real_mapping.sh` | Jetson | Same but for SICK LMS200 backup |
 | `scripts/start_real_nav.sh` | Jetson | Sources env, runs `real_robot_nav_unitree.launch` |
 | `scripts/start_teleop.sh` | Jetson or Laptop | Sources env, runs `teleop_twist_keyboard` → `/cmd_vel` |
-| `scripts/start_target_follow.sh` | Jetson (Docker) | Sources env, runs `target_follow_real.launch` overlay mode (`launch_move_base:=false`) |
+| `scripts/start_target_follow.sh` | Jetson (Docker) | Sources env, runs `target_follow_real.launch` (default follows launch default; use `launch_move_base:=false` for overlay mode) |
 | `scripts/start_demo.sh` | Jetson Host | **One-command demo launcher** — starts roscore (if needed) + `target_follow_real.launch launch_move_base:=true` + `handobj_detection_rgbd.py` |
 
 All scripts accept extra `key:=value` args that are forwarded to `roslaunch` / `rosrun`:
@@ -1204,8 +1305,8 @@ The static TF `base_link → camera_link` is published with quaternion **`(-0.5,
                   ┌──────────┐
           ┌──────►│ TRACKING │─────────────────────┐
           │       └─────┬────┘                     │
-          │ REACHED      │ dist ≤ standoff_dist      │ move_base ABORTED
-          │ & target     ▼                          ▼
+          │ REACHED     │ dist ≤ standoff_dist    │ move_base ABORTED
+          │ & target    ▼                         ▼
           │ moved  ┌──────────┐             ┌──────────┐
           │        │ REACHED  │             │  FAILED  │
           └────────│  (True)  │             │  (False) │
@@ -1213,6 +1314,7 @@ The static TF `base_link → camera_link` is published with quaternion **`(-0.5,
                        ▲                        ▲
                   target stale             target stale
                   > target_timeout         > target_timeout
+                  
                        └────────► LOST (False) ◄┘
 ```
 
@@ -1249,7 +1351,7 @@ cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
 `start_demo.sh` does:
 1. Checks / starts `roscore` in Docker
 2. Launches `target_follow_real.launch launch_move_base:=true` in background
-3. Waits 12 s for all 10 nodes to initialise
+3. Waits up to 30 s for key nodes (`move_base` + `target_follower`)
 4. Starts `handobj_detection_rgbd.py` on Jetson host (with `--udp-enable`)
 
 ---
@@ -1392,7 +1494,6 @@ python3 handobj_detection/handobj_detection_rgbd.py \
   --udp-enable \
   --udp-port 16031 \
   --udp-frame-id camera_link \
-  --nearest-person \
   --headless
 ```
 
@@ -1403,7 +1504,6 @@ python3 handobj_detection/handobj_detection_rgbd.py \
 | `--udp-enable` | Enable UDP JSON sending to Docker |
 | `--udp-port 16031` | Must match `udp_target_bridge` port |
 | `--udp-frame-id camera_link` | Detection XYZ is in camera optical frame |
-| `--nearest-person` | Track nearest detected person/object |
 | `--headless` | No GUI windows (for SSH; remove for display) |
 
 > **Internal model stack:** `yolov8n.pt` (full-frame, ~13 FPS) + `weights/last.pt` (fine-tuned classifier). Both use GPU via PyTorch/CUDA on Jetson.
