@@ -10,3 +10,5 @@ __pycache__/
 *.pyzwzw
 *.pyzwzwzw
 *.pyzwzwzwzw
+models/*.onnx
+models/*.onnx.json
