@@ -78,7 +78,7 @@ class TargetFollower:
         self.use_target_orientation = bool(rospy.get_param("~use_target_orientation", False))
 
         # Stop short of the target by this distance (metres). 0 = go all the way.
-        self.standoff_distance = float(rospy.get_param("~standoff_distance", 0.0))
+        self.standoff_distance = float(rospy.get_param("~standoff_distance", 0.8))
         # Orient the robot to face the target at the goal pose.
         self.face_target = bool(rospy.get_param("~face_target", False))
 

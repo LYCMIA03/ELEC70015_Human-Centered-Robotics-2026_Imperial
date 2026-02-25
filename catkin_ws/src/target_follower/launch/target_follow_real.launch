@@ -19,7 +19,7 @@
 
     启动:
       roslaunch target_follower target_follow_real.launch
-      roslaunch target_follower target_follow_real.launch standoff_distance:=0.6 face_target:=true
+      roslaunch target_follower target_follow_real.launch standoff_distance:=0.8 face_target:=true
       roslaunch target_follower target_follow_real.launch launch_move_base:=false   # 叠加到已有 move_base
 
     结果 topic:
@@ -33,7 +33,7 @@
   <arg name="unitree_port"           default="/dev/ttyUSB0"/>
   <arg name="udp_port"               default="16031"
        doc="UDP 端口, 与检测脚本 ‑‑udp-port 一致"/>
-  <arg name="standoff_distance"      default="0.5"
+  <arg name="standoff_distance"      default="0.8"
        doc="在距目标多远处停下 (m). 0=直接到达目标位置"/>
   <arg name="face_target"            default="true"
        doc="到达后机器人是否朝向目标"/>

@@ -1302,7 +1302,7 @@ source /opt/ros/noetic/setup.bash
 source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash
 exec roslaunch target_follower target_follow_real.launch \
   launch_move_base:=true \
-  standoff_distance:=0.5 \
+  standoff_distance:=0.8 \
   face_target:=true \
   target_timeout:=5.0 \
   > /tmp/target_follow.log 2>&1'
@@ -1326,7 +1326,7 @@ exec roslaunch target_follower target_follow_real.launch \
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `launch_move_base` | `true` | `true` = standalone; `false` = overlay on existing nav stack |
-| `standoff_distance` | `0.5` m | Stop distance from target |
+| `standoff_distance` | `0.8` m | Stop distance from target |
 | `face_target` | `true` | Orient robot toward target at REACHED |
 | `target_timeout` | `5.0` s | Cancel goal if no detection for this long |
 | `udp_port` | `16031` | Must match detection `--udp-port` |
@@ -1466,7 +1466,7 @@ docker exec ros_noetic bash -c '
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 timeout 15 rostopic echo /target_follower/status'
-# TRACKING → REACHED (once robot gets within 0.5 m of the 2 m goal)
+# TRACKING → REACHED (once robot gets within 0.8 m of the 2 m goal)
 ```
 
 ---
@@ -1753,7 +1753,7 @@ NavfnROS:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `~standoff_distance` | `0.5` m | Stop this far short of target (set in launch file) |
+| `~standoff_distance` | `0.8` m | Stop this far short of target (set in launch file) |
 | `~face_target` | `true` | Orient robot toward target at goal (set in launch file) |
 | `~send_rate_hz` | `2.0` Hz | Max rate for new goals |
 | `~min_update_dist` | `0.3` m | Min target movement before re-sending goal — bypassed when state is FAILED/LOST/REACHED |

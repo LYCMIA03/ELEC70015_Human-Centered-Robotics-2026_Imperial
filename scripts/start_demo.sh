@@ -17,10 +17,10 @@
 #
 # 用法：
 #   ./scripts/start_demo.sh
-#   ./scripts/start_demo.sh --standoff 0.6 --target waste
+#   ./scripts/start_demo.sh --standoff 0.8 --target waste
 #
 # 参数：
-#   --standoff M      停在目标前多远 (m), 默认 0.5
+#   --standoff M      停在目标前多远 (m), 默认 0.8
 #   --target TYPE     检测目标类型 holding|person|waste, 默认 holding
 #   --no-yolo         不启动检测（手动测试用，可用 send_target_udp.py 模拟）
 # =============================================================================
@@ -43,7 +43,7 @@ CATKIN_WS="${REPO_ROOT}/catkin_ws"
 HANDOBJ_DIR="${REPO_ROOT}/handobj_detection"
 
 # ---------- 默认参数 ----------
-STANDOFF="0.5"
+STANDOFF="0.8"
 TARGET_KIND="holding"
 LAUNCH_YOLO=true
 
