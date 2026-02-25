@@ -23,31 +23,38 @@ All ROS nodes run inside a Docker container on Jetson. The image `ros_noetic:nav
 
 ### Start the Container
 
+Use the `ros_noetic` management script (located at `~/.fishros/bin/ros_noetic`).
+It creates the container with the **correct non-root user** (`--user $(id -u):$(id -g)`), mounts `/dev`, `/home/frank/work`, and sets `--privileged --net=host` automatically.
+
 ```bash
-# First time — create from saved image
-docker run -it --net=host --privileged \
-  -e DISPLAY=$DISPLAY \
-  -e QT_X11_NO_MITSHM=1 \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -v /home/frank/work:/home/frank/work \
-  -v /dev:/dev \
-  -v /etc/passwd:/etc/passwd:ro \
-  -v /etc/group:/etc/group:ro \
-  --user $(id -u):$(id -g) \
-  --name ros_noetic \
-  ros_noetic:nav_unitree \
-  bash
+# Auto-create (if not exists) or start (if stopped)
+ros_noetic s
 ```
+
+> **Manual fallback** — only if the script is unavailable:
+> ```bash
+> docker run -d --net=host --privileged \
+>   --user $(id -u):$(id -g) \
+>   --runtime nvidia \
+>   -e HOME=$HOME \
+>   -v /tmp/.X11-unix:/tmp/.X11-unix \
+>   -v /home/frank/work:/home/frank/work \
+>   -v /dev:/dev \
+>   -v /etc/passwd:/etc/passwd:ro \
+>   -v /etc/group:/etc/group:ro \
+>   --name ros_noetic \
+>   ros_noetic:nav_unitree bash
+> ```
 
 ### Enter a Running Container
 
 ```bash
-# Start if stopped
-docker start ros_noetic
-
-# Open a new shell in the running container
-docker exec -it ros_noetic bash
+# Enter as current (non-root) user — starts container first if stopped
+ros_noetic e
 ```
+
+> `ros_noetic e` = `docker exec -it --user $(id -u):$(id -g) ros_noetic /bin/bash`  
+> Always use `ros_noetic e` (not bare `docker exec`) to avoid entering as root.
 
 ### Inside the Container — Source & Build
 
@@ -80,14 +87,17 @@ docker commit ros_noetic ros_noetic:nav_unitree
 
 ### Container Lifecycle Cheat Sheet
 
-| Action | Command |
-|--------|---------|
-| Start stopped container | `docker start ros_noetic` |
-| Enter running container | `docker exec -it ros_noetic bash` |
-| Stop container | `docker stop ros_noetic` |
-| Check status | `docker ps -a` |
-| Save changes to image | `docker commit ros_noetic ros_noetic:nav_unitree` |
-| Remove and recreate | `docker rm ros_noetic` then `docker run ...` (see above) |
+| Action | `ros_noetic` script | Direct docker equivalent |
+|--------|--------------------|--------------------------|
+| **Start / create** | `ros_noetic s` | `docker run ...` (see above) |
+| **Enter (non-root)** | `ros_noetic e` | `docker exec -it --user $(id -u):$(id -g) ros_noetic bash` |
+| **Restart** | `ros_noetic r` | `docker restart ros_noetic` |
+| **Stop** | `ros_noetic c` | `docker stop ros_noetic` |
+| **Delete** | `ros_noetic d` | `docker stop ros_noetic && docker rm ros_noetic` |
+| Check status | — | `docker ps -a` |
+| Save changes to image | — | `docker commit ros_noetic ros_noetic:nav_unitree` |
+
+> **⚠️ Never use** `docker exec -it ros_noetic bash` without `--user` — that enters as **root** and will cause file permission issues.
 
 ---
 
@@ -519,7 +529,7 @@ What this does:
 
 ✅ **Verify:** From Jetson, run:
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -536,18 +546,18 @@ rostopic hz /odom"
 
 ```bash
 # Check if roscore is already running (it should be if the container started it)
-docker exec ros_noetic bash -c "pgrep -la rosmaster"
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "pgrep -la rosmaster"
 # If output shows a PID → already running, skip to Step 3
 
 # If NOT running, start it:
-docker exec -d ros_noetic bash -c "
+docker exec -d --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
 exec roscore"
 
 sleep 3
-docker exec ros_noetic bash -c "pgrep -la rosmaster"
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "pgrep -la rosmaster"
 # Should now show a rosmaster PID
 ```
 
@@ -567,7 +577,7 @@ cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
 
 Alternatively, run it in the background and stream logs:
 ```bash
-docker exec -d ros_noetic bash -c "
+docker exec -d --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -576,7 +586,7 @@ exec roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch use_rviz:=f
   > /tmp/mapping_unitree.log 2>&1"
 
 # Monitor log
-docker exec ros_noetic bash -c "tail -f /tmp/mapping_unitree.log"
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "tail -f /tmp/mapping_unitree.log"
 ```
 
 What this launches:
@@ -590,7 +600,7 @@ What this launches:
 
 ✅ **Verify nodes are up:**
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -618,14 +628,14 @@ The LiDAR takes **10–15 seconds** to initialise after power-on.
 
 ✅ **Verify data is flowing (~15 seconds after power-on):**
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
 timeout 8 rostopic hz /unilidar/cloud"
 # Expected: average rate: ~9.7 Hz
 
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -641,7 +651,7 @@ timeout 8 rostopic hz /unitree/scan"
 **Terminal:** Open a new `docker exec -it` terminal.
 
 ```bash
-docker exec -it ros_noetic bash -c "
+docker exec -it --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -693,7 +703,7 @@ While you drive, `slam_gmapping` builds the occupancy map in real time from `/un
 When you have explored enough area, **save the map before stopping** the mapping launch:
 
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -705,7 +715,7 @@ rosrun map_server map_saver -f \
 Or with a timestamped filename:
 ```bash
 MAP_PATH="/home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/maps/session_$(date +%Y%m%d_%H%M%S)"
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -733,7 +743,7 @@ Map colour key:
 #### Full system health check (at any point)
 
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -785,17 +795,17 @@ At time ...
 **Fix:**
 ```bash
 # 1. Kill the dangling processes inside Docker
-docker exec ros_noetic bash -c "kill \$(pgrep -d' ' -f 'unitree_lidar_ros_node|slam_gmapping|pointcloud_to_laserscan|roslaunch.*mapping') 2>/dev/null; sleep 2"
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "kill \$(pgrep -d' ' -f 'unitree_lidar_ros_node|slam_gmapping|pointcloud_to_laserscan|roslaunch.*mapping') 2>/dev/null; sleep 2"
 
 # 2. Clean up stale rosmaster registrations
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
 rosnode cleanup 2>/dev/null || true"
 
 # 3. Restart mapping (LiDAR already on this time → no re-enumeration, no race)
-docker exec -d ros_noetic bash -c "
+docker exec -d --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -806,7 +816,7 @@ exec roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch use_rviz:=f
 
 # 4. Wait 12 s then check nodes
 sleep 12
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 rosnode list"
@@ -886,7 +896,7 @@ This sets `ROS_MASTER_URI=http://192.168.50.1:11311`, `ROS_IP=192.168.50.2` and 
 
 ✅ **Verify from Jetson:**
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -899,17 +909,17 @@ timeout 6 rostopic hz /odom"
 #### Step 2 — Jetson: ensure roscore is running
 
 ```bash
-docker exec ros_noetic bash -c "pgrep -la rosmaster"
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "pgrep -la rosmaster"
 # If a PID is shown → already running, skip to Step 3
 
 # If NOT running:
-docker exec -d ros_noetic bash -c "
+docker exec -d --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
 exec roscore"
 sleep 3
-docker exec ros_noetic bash -c "pgrep -la rosmaster"
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "pgrep -la rosmaster"
 ```
 
 ---
@@ -917,7 +927,7 @@ docker exec ros_noetic bash -c "pgrep -la rosmaster"
 #### Step 3 — Jetson: start the mapping stack (background)
 
 ```bash
-docker exec -d ros_noetic bash -c "
+docker exec -d --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -930,7 +940,7 @@ This starts: `unitree_lidar` · `pointcloud_to_laserscan` · `slam_gmapping` · 
 
 ✅ **Verify all nodes are up (wait ~12 s):**
 ```bash
-sleep 12 && docker exec ros_noetic bash -c "
+sleep 12 && docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -948,7 +958,7 @@ rosnode list"
 
 ✅ **Verify LiDAR data is flowing:**
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -970,7 +980,7 @@ done"
 **Terminal:** Open a new `docker exec` shell (not `-d` if you want to watch logs live).
 
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -1003,8 +1013,8 @@ rosrun p3at_lms_navigation autonomous_explorer.py \
 
 > **To run in the background** and stream the log:
 > ```bash
-> docker exec -d ros_noetic bash -c "... rosrun ... > /tmp/explorer.log 2>&1"
-> docker exec ros_noetic tail -f /tmp/explorer.log
+> docker exec -d --user "$(id -u):$(id -g)" ros_noetic bash -c "... rosrun ... > /tmp/explorer.log 2>&1"
+> docker exec --user "$(id -u):$(id -g)" ros_noetic tail -f /tmp/explorer.log
 > ```
 
 ---
@@ -1013,7 +1023,7 @@ rosrun p3at_lms_navigation autonomous_explorer.py \
 
 **Coverage and goal count** (from `/rosout` log):
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -1026,7 +1036,7 @@ timeout 15 rostopic echo /rosout -p 2>/dev/null \
 
 **Map update rate:**
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -1036,7 +1046,7 @@ timeout 8 rostopic hz /map"
 
 **Check explorer node is alive:**
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 rosnode list | grep autonomous_explorer"
@@ -1046,7 +1056,7 @@ rosnode list | grep autonomous_explorer"
 
 **Check active navigation goal:**
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 timeout 5 rostopic echo /exploration_goal -n 1"
@@ -1068,14 +1078,14 @@ The explorer saves the map to `_map_save_path` when the timeout expires or no mo
 
 ```bash
 # Stop the explorer (triggers auto-save via ~save_map:=true)
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 rosnode kill /autonomous_explorer"
 
 # Or save with a custom name at any time (map keeps building until you kill it)
 MAP_PATH="/home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/maps/session_$(date +%Y%m%d_%H%M%S)"
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -1100,14 +1110,14 @@ Map colour key: ⬜ white = free · ⬛ black = obstacle · 🔲 grey = unknown
 
 ```bash
 # Kill all mapping nodes on Jetson (does NOT affect Pi base driver)
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 rosnode kill /autonomous_explorer /move_base /slam_gmapping \
   /pointcloud_to_laserscan /unitree_lidar /robot_state_publisher 2>/dev/null || true"
 
 # Or kill the roslaunch process directly:
-docker exec ros_noetic bash -c \
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c \
   "kill \$(pgrep -f 'roslaunch.*mapping') 2>/dev/null; sleep 2"
 ```
 
@@ -1258,7 +1268,7 @@ Sets `ROS_MASTER_URI=http://192.168.50.1:11311`, `ROS_IP=192.168.50.2`, runs `p3
 
 ✅ **Verify from Jetson:**
 ```bash
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -1271,17 +1281,17 @@ timeout 6 rostopic hz /odom"
 ##### Step 2 — Jetson: ensure roscore is running
 
 ```bash
-docker exec ros_noetic bash -c "pgrep -la rosmaster"
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "pgrep -la rosmaster"
 # PID shown → already running, skip to Step 3
 
 # If NOT running:
-docker exec -d ros_noetic bash -c "
+docker exec -d --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
 exec roscore"
 sleep 3
-docker exec ros_noetic bash -c "pgrep -la rosmaster"
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "pgrep -la rosmaster"
 ```
 
 ---
@@ -1295,7 +1305,7 @@ Plug in / switch on the Unitree L1. Wait **10–15 seconds** — the driver node
 ##### Step 4 — Jetson Docker: launch standalone target following
 
 ```bash
-docker exec -d ros_noetic bash -c '
+docker exec -d --user "$(id -u):$(id -g)" ros_noetic bash -c '
 export ROS_MASTER_URI=http://192.168.50.1:11311
 export ROS_IP=192.168.50.1
 source /opt/ros/noetic/setup.bash
@@ -1333,7 +1343,7 @@ exec roslaunch target_follower target_follow_real.launch \
 
 Wait ~12 s, then verify:
 ```bash
-docker exec ros_noetic bash -c '
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c '
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 rosnode list'
@@ -1352,7 +1362,7 @@ rosnode list'
 
 ✅ **Verify TF quaternion is correct:**
 ```bash
-docker exec ros_noetic bash -c '
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c '
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 timeout 4 rosrun tf tf_echo base_link camera_link 2>/dev/null | head -8'
@@ -1363,7 +1373,7 @@ timeout 4 rosrun tf tf_echo base_link camera_link 2>/dev/null | head -8'
 
 ✅ **Verify move_base is using odom frame (no /map dependency):**
 ```bash
-docker exec ros_noetic bash -c '
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c '
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 timeout 4 rostopic echo /move_base/global_costmap/costmap/info -n 1 2>/dev/null | grep header'
@@ -1404,14 +1414,14 @@ python3 handobj_detection/handobj_detection_rgbd.py \
 
 ```bash
 # Check UDP → target_point
-docker exec ros_noetic bash -c '
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c '
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 timeout 8 rostopic hz /trash_detection/target_point'
 # Expected: ~5–13 Hz
 
 # Check live status
-docker exec ros_noetic bash -c '
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c '
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 timeout 15 rostopic echo /target_follower/status'
@@ -1421,7 +1431,7 @@ timeout 15 rostopic echo /target_follower/status'
 # "LOST"     → target stale > timeout
 
 # Watch result topic (dialogue trigger)
-docker exec ros_noetic bash -c '
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c '
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 rostopic echo /target_follower/result'
@@ -1435,7 +1445,7 @@ rostopic echo /target_follower/result'
 
 ```bash
 # Kill all target-following nodes
-docker exec ros_noetic bash -c "
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c "
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 rosnode kill /target_follower /udp_target_bridge /point_to_target_pose \
@@ -1462,7 +1472,7 @@ for _ in range(30):
     time.sleep(0.2)"
 
 # Watch status
-docker exec ros_noetic bash -c '
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c '
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 timeout 15 rostopic echo /target_follower/status'
