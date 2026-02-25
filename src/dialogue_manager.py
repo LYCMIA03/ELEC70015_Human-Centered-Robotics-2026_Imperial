@@ -8,6 +8,8 @@ from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
+from vosk import Model as SttModel
+
 from src.utils.nlu_intent import Intent, IntentClassifier
 from src.utils.speech_to_text import load_model, recognize_from_mic, recognize_from_wav
 
@@ -68,18 +70,15 @@ def speak_robot(wav_spec: Union[str, Path], play_audio: bool) -> None:
         play_wav(selected_wav)
 
 
-def transcribe_wav(wav_path: Union[str, Path]) -> str:
+def transcribe_wav(wav_path: Union[str, Path], stt_model: SttModel) -> str:
     user_wav = Path(wav_path)
     if not user_wav.is_file():
         raise FileNotFoundError(f"User WAV file not found: {wav_path}")
-    # If local cache is missing, Vosk will auto-download this model.
-    model = load_model(model_path=None, model_name=STT_MODEL_NAME, lang=STT_LANG)
-    return recognize_from_wav(str(user_wav), model).strip()
+    return recognize_from_wav(str(user_wav), stt_model).strip()
 
 
-def transcribe_mic(device: Optional[int] = None) -> str:
-    model = load_model(model_path=None, model_name=STT_MODEL_NAME, lang=STT_LANG)
-    text = recognize_from_mic(model, device=device, single_utterance=True)
+def transcribe_mic(stt_model: SttModel, device: Optional[int] = None) -> str:
+    text = recognize_from_mic(stt_model, device=device, single_utterance=True)
     return (text or "").strip()
 
 
@@ -87,6 +86,7 @@ def ask_and_classify(
     prompt_wav: Union[str, Path],
     user_wav: Optional[Union[str, Path]],
     classifier: IntentClassifier,
+    stt_model: SttModel,
     play_audio: bool,
     sim: bool,
     device: Optional[int] = None,
@@ -95,9 +95,9 @@ def ask_and_classify(
     if sim:
         if user_wav is None:
             raise ValueError("user_wav is required in simulation mode.")
-        text = transcribe_wav(user_wav)
+        text = transcribe_wav(user_wav, stt_model)
     else:
-        text = transcribe_mic(device=device)
+        text = transcribe_mic(stt_model, device=device)
     if not text:
         return Intent.OTHER, 0.0, ""
     intent, confidence = classifier.predict(text)
@@ -106,6 +106,7 @@ def ask_and_classify(
 
 def decide_two_rounds(
     classifier: IntentClassifier,
+    stt_model: SttModel,
     first_user_wav: Optional[Union[str, Path]],
     second_user_wav: Optional[Union[str, Path]],
     play_audio: bool,
@@ -116,6 +117,7 @@ def decide_two_rounds(
         prompt_wav=ROBOT_PROMPT_INITIAL_WAV,
         user_wav=first_user_wav,
         classifier=classifier,
+        stt_model=stt_model,
         play_audio=play_audio,
         sim=sim,
         device=device,
@@ -136,6 +138,7 @@ def decide_two_rounds(
         prompt_wav=ROBOT_PROMPT_CLARIFICATION_WAV,
         user_wav=second_user_wav,
         classifier=classifier,
+        stt_model=stt_model,
         play_audio=play_audio,
         sim=sim,
         device=device,
@@ -173,9 +176,13 @@ def main() -> None:
     args = parse_args()
     if args.sim and (not args.first_user_wav or not args.second_user_wav):
         raise ValueError("--first-user-wav and --second-user-wav are required when --sim is enabled.")
+    print("[Init] Loading models...")
     classifier = IntentClassifier.load(args.nlu_model)
+    stt_model = load_model(model_path=None, model_name=STT_MODEL_NAME, lang=STT_LANG)
+    print("[Init] Ready.")
     outcome = decide_two_rounds(
         classifier=classifier,
+        stt_model=stt_model,
         first_user_wav=args.first_user_wav,
         second_user_wav=args.second_user_wav,
         play_audio=not args.no_play,
