@@ -8,4 +8,4 @@
 
 python -m src.dialogue_manager \
   --nlu-model "models/nlu_intent.bin" \
-  --device 6
+  --device 24
