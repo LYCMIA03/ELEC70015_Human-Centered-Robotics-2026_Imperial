@@ -103,6 +103,7 @@ docker commit ros_noetic ros_noetic:nav_unitree
    - [Network Setup](#network-setup)
    - [Startup Order](#startup-order)
    - [**Keyboard Teleoperation + Unitree Mapping — Full Runbook**](#keyboard-teleoperation--unitree-mapping--full-runbook)
+   - [**Autonomous Exploration SLAM — Full Runbook**](#autonomous-exploration-slam--full-runbook)
    - [Option A — Unitree L1 (Primary)](#option-a--unitree-l1-primary)
    - [Option B — SICK LMS200 (Backup)](#option-b--sick-lms200-backup)
 7. [Trash Detection Bridge (demo-v1)](#trash-detection-bridge-demo-v1)
@@ -804,6 +805,296 @@ All scripts accept extra `key:=value` args that are forwarded to `roslaunch` / `
 ./scripts/start_real_mapping_unitree.sh unitree_port:=/dev/ttyUSB1 use_rviz:=true
 ./scripts/start_teleop.sh jetson                # run on Jetson (no LAPTOP_IP needed)
 ```
+
+---
+
+### Autonomous Exploration SLAM — Full Runbook
+
+> **Verified real-robot procedure** for fully autonomous frontier-based SLAM mapping.  
+> The robot drives itself — no keyboard required.  
+> `autonomous_explorer.py` detects frontiers (boundaries between free and unknown space), clusters them, and sends the nearest large frontier centroid to `move_base` as a navigation goal. The loop repeats until no reachable frontiers remain or the timeout is reached, then the map is saved automatically.
+
+#### Prerequisites
+
+| Requirement | Check |
+|-------------|-------|
+| `scripts/deploy.env` configured (`JETSON_IP=192.168.50.1`, `RASPI_IP=192.168.50.2`) | ✓ |
+| Raspberry Pi reachable (`ping 192.168.50.2`) | ✓ |
+| `ros_noetic` Docker container running on Jetson (`docker ps`) | ✓ |
+| Workspace built inside container (`catkin_make` completed) | ✓ |
+| Unitree L1 LiDAR USB-C plugged into Jetson | ✓ |
+| P3-AT chassis serial cable connected to Raspberry Pi | ✓ |
+
+#### Tuned parameters (anti-collision, real robot)
+
+The parameters in `param/unitree/` have been tuned for real-robot safety. Key changes vs simulation defaults:
+
+| Parameter | File | Value | Reason |
+|-----------|------|-------|--------|
+| `footprint_padding` | `costmap_common.yaml` | `0.05 m` | Extra safety margin around footprint |
+| `inflation_radius` | `costmap_common.yaml` | `0.55 m` | Expanded wall clearance |
+| `cost_scaling_factor` | `costmap_common.yaml` | `3.0` | Slower cost decay → planner stays further from walls |
+| `inflation_radius` | `local_costmap.yaml` | `0.55 m` | Matches global, prevents DWA cutting corners |
+| `max_vel_x` / `max_vel_trans` | `move_base.yaml` | `0.22 m/s` | Reduced speed for safer real-robot operation |
+| `sim_time` | `move_base.yaml` | `2.5 s` | Longer DWA lookahead — detects obstacles earlier |
+| `occdist_scale` | `move_base.yaml` | `0.08` | 4× higher obstacle weight — actively avoids walls |
+
+> `clearing_rotation_allowed: false` remains **mandatory** — in-place rotation recovery can tip the P3-AT with Unitree L1 on top (high CoM).
+
+---
+
+#### Step 1 — Raspberry Pi: start chassis driver
+
+**Device:** Raspberry Pi 4  
+**Terminal:** SSH into the Pi or use a terminal directly on it.
+
+```bash
+# On the Raspberry Pi
+cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
+./scripts/start_base.sh
+```
+
+This sets `ROS_MASTER_URI=http://192.168.50.1:11311`, `ROS_IP=192.168.50.2` and runs `roslaunch p3at_base base.launch` (RosAria + odom_republisher).
+
+✅ **Verify from Jetson:**
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+timeout 6 rostopic hz /odom"
+# Expected: ~10 Hz
+```
+
+---
+
+#### Step 2 — Jetson: ensure roscore is running
+
+```bash
+docker exec ros_noetic bash -c "pgrep -la rosmaster"
+# If a PID is shown → already running, skip to Step 3
+
+# If NOT running:
+docker exec -d ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+exec roscore"
+sleep 3
+docker exec ros_noetic bash -c "pgrep -la rosmaster"
+```
+
+---
+
+#### Step 3 — Jetson: start the mapping stack (background)
+
+```bash
+docker exec -d ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash
+exec roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch use_rviz:=false \
+  > /tmp/mapping_unitree.log 2>&1"
+```
+
+This starts: `unitree_lidar` · `pointcloud_to_laserscan` · `slam_gmapping` · `move_base` · `robot_state_publisher`.
+
+✅ **Verify all nodes are up (wait ~12 s):**
+```bash
+sleep 12 && docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+rosnode list"
+# Expected:
+# /RosAria
+# /move_base
+# /odom_republisher
+# /pointcloud_to_laserscan
+# /robot_state_publisher
+# /rosout
+# /slam_gmapping
+# /unitree_lidar
+```
+
+✅ **Verify LiDAR data is flowing:**
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+for t in /unilidar/cloud /unitree/scan /odom /map; do
+  rate=\$(timeout 5 rostopic hz \$t 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}')
+  [ -n \"\$rate\" ] && echo \"  OK  \$t: \${rate} Hz\" || echo \"  !!  \$t: NO DATA\"
+done"
+# Expected:
+#   OK  /unilidar/cloud: ~9.7 Hz
+#   OK  /unitree/scan:   ~9.8 Hz
+#   OK  /odom:           ~10.0 Hz
+#   OK  /map:            ~0.6 Hz
+```
+
+---
+
+#### Step 4 — Jetson: launch the autonomous explorer
+
+**Terminal:** Open a new `docker exec` shell (not `-d` if you want to watch logs live).
+
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash
+rosrun p3at_lms_navigation autonomous_explorer.py \
+  _exploration_timeout:=600 \
+  _min_frontier_size:=3 \
+  _initial_wait:=12.0 \
+  _save_map:=true \
+  _map_save_path:=/home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/maps/explored_map_unitree \
+  _spin_in_place_first:=true \
+  _robot_radius:=0.25 \
+  _frontier_blacklist_radius:=0.2 \
+  _goal_timeout:=30.0"
+```
+
+**Key parameters explained:**
+
+| Parameter | Value | Meaning |
+|-----------|-------|---------|
+| `_exploration_timeout` | `600` | Stop after 600 s (10 min) even if frontiers remain |
+| `_min_frontier_size` | `3` | Ignore tiny frontier clusters (noise rejection) |
+| `_initial_wait` | `12.0` | Wait 12 s for map + odom to stabilise before first goal |
+| `_save_map` | `true` | Auto-save map on exit |
+| `_map_save_path` | (path) | Output path without extension — produces `.pgm` + `.yaml` |
+| `_spin_in_place_first` | `true` | Rotate 360° at start to seed the initial map |
+| `_robot_radius` | `0.25` | Used to pad frontier distance from walls |
+| `_frontier_blacklist_radius` | `0.2` | Goals within this radius of a failed goal are blacklisted |
+| `_goal_timeout` | `30.0` | Abort a navigation goal after 30 s and try next frontier |
+
+> **To run in the background** and stream the log:
+> ```bash
+> docker exec -d ros_noetic bash -c "... rosrun ... > /tmp/explorer.log 2>&1"
+> docker exec ros_noetic tail -f /tmp/explorer.log
+> ```
+
+---
+
+#### Step 5 — Monitor exploration progress
+
+**Coverage and goal count** (from `/rosout` log):
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+timeout 15 rostopic echo /rosout -p 2>/dev/null \
+  | grep -o '\"\[Explorer\].*\"' | tr -d '\"'"
+# Sample output:
+# [Explorer] >>> Goal #10: (0.48, -2.00) | Coverage: 4.7%
+# [Explorer] >>> Goal #11: (1.20, 0.50) | Coverage: 6.1%
+```
+
+**Map update rate:**
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+timeout 8 rostopic hz /map"
+# Expected: ~0.5–1.0 Hz while actively building
+```
+
+**Check explorer node is alive:**
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+source /opt/ros/noetic/setup.bash
+rosnode list | grep autonomous_explorer"
+# Returns: /autonomous_explorer  →  still running
+# No output → exploration complete or crashed
+```
+
+**Check active navigation goal:**
+```bash
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+source /opt/ros/noetic/setup.bash
+timeout 5 rostopic echo /exploration_goal -n 1"
+# Shows the current frontier goal point
+```
+
+---
+
+#### Step 6 — Stop and save the map
+
+**Option A — Let it finish automatically:**  
+The explorer saves the map to `_map_save_path` when the timeout expires or no more frontiers are found. Watch for the log line:
+```
+[Explorer] No reachable frontiers. Exploration complete.
+[Explorer] Map saved to: .../maps/explored_map_unitree
+```
+
+**Option B — Stop early and save manually:**
+
+```bash
+# Stop the explorer (triggers auto-save via ~save_map:=true)
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+source /opt/ros/noetic/setup.bash
+rosnode kill /autonomous_explorer"
+
+# Or save with a custom name at any time (map keeps building until you kill it)
+MAP_PATH="/home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/maps/session_$(date +%Y%m%d_%H%M%S)"
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+export ROS_IP=192.168.50.1
+source /opt/ros/noetic/setup.bash
+rosrun map_server map_saver -f ${MAP_PATH}"
+echo "Saved: ${MAP_PATH}.pgm"
+```
+
+**Preview the saved map:**
+```bash
+python3 -c "
+from PIL import Image
+img = Image.open('${MAP_PATH}.pgm')
+img.save('${MAP_PATH}.png')"
+code "${MAP_PATH}.png"   # open in VS Code
+```
+
+Map colour key: ⬜ white = free · ⬛ black = obstacle · 🔲 grey = unknown
+
+---
+
+#### Step 7 — Shut down
+
+```bash
+# Kill all mapping nodes on Jetson (does NOT affect Pi base driver)
+docker exec ros_noetic bash -c "
+export ROS_MASTER_URI=http://192.168.50.1:11311
+source /opt/ros/noetic/setup.bash
+rosnode kill /autonomous_explorer /move_base /slam_gmapping \
+  /pointcloud_to_laserscan /unitree_lidar /robot_state_publisher 2>/dev/null || true"
+
+# Or kill the roslaunch process directly:
+docker exec ros_noetic bash -c \
+  "kill \$(pgrep -f 'roslaunch.*mapping') 2>/dev/null; sleep 2"
+```
+
+---
+
+#### Troubleshooting — autonomous exploration
+
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| Robot hits walls repeatedly | `occdist_scale` too low or `inflation_radius` too small | Check `param/unitree/costmap_common.yaml`; current tuned values: `inflation_radius: 0.55`, `occdist_scale: 0.08` |
+| Explorer sends goals but robot doesn't move | `move_base` not running or DWA planning fails | Check `/tmp/mapping_unitree.log`; run `rosnode list` to confirm `/move_base` is up |
+| `[Explorer] No frontiers found` immediately | `/map` not being published yet | Increase `_initial_wait` to `15.0`; verify `rostopic hz /map` > 0 |
+| Goal always aborted (status 4) | Costmap inflation is blocking all paths | Temporarily reduce `inflation_radius` to `0.45` in `costmap_common.yaml` and restart |
+| Explorer crashes with `TF lookup error` | `odom → base_link` TF broken | Check Pi base driver is running; verify `rostopic hz /odom` |
+| Coverage stays at 0% after spin | gmapping hasn't received enough scans | Wait 20–30 s; check `rostopic hz /unitree/scan` ≥ 8 Hz |
 
 ---
 
