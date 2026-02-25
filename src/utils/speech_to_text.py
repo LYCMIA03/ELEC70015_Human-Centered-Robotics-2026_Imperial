@@ -125,6 +125,17 @@ def load_model(
         ) from exc
 
 
+def list_input_devices() -> None:
+    """Print all available audio input devices."""
+    import sounddevice as sd
+    devices = sd.query_devices()
+    print(f"{'Index':<6} {'Name':<45} {'Channels':<10} {'Sample Rate'}")
+    print("-" * 75)
+    for i, d in enumerate(devices):
+        if d["max_input_channels"] > 0:
+            print(f"[{i:<4}] {d['name']:<45} {d['max_input_channels']:<10} {int(d['default_samplerate'])} Hz")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Speech-to-text using Vosk offline recognition."
@@ -133,6 +144,7 @@ def parse_args() -> argparse.Namespace:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--wav", type=str, help="Path to a WAV file to recognize.")
     source.add_argument("--mic", action="store_true", help="Recognize from microphone in real-time.")
+    source.add_argument("--list-devices", action="store_true", help="List all available audio input devices and exit.")
 
     parser.add_argument("--model", type=str, default=None, help="Path to a local Vosk model directory.")
     parser.add_argument(
@@ -151,6 +163,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+
+    if args.list_devices:
+        list_input_devices()
+        return
 
     if args.quiet:
         SetLogLevel(-1)

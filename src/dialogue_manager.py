@@ -77,9 +77,9 @@ def transcribe_wav(wav_path: Union[str, Path]) -> str:
     return recognize_from_wav(str(user_wav), model).strip()
 
 
-def transcribe_mic() -> str:
+def transcribe_mic(device: Optional[int] = None) -> str:
     model = load_model(model_path=None, model_name=STT_MODEL_NAME, lang=STT_LANG)
-    text = recognize_from_mic(model, single_utterance=True)
+    text = recognize_from_mic(model, device=device, single_utterance=True)
     return (text or "").strip()
 
 
@@ -89,6 +89,7 @@ def ask_and_classify(
     classifier: IntentClassifier,
     play_audio: bool,
     sim: bool,
+    device: Optional[int] = None,
 ) -> Tuple[Intent, float, str]:
     speak_robot(prompt_wav, play_audio=play_audio)
     if sim:
@@ -96,7 +97,7 @@ def ask_and_classify(
             raise ValueError("user_wav is required in simulation mode.")
         text = transcribe_wav(user_wav)
     else:
-        text = transcribe_mic()
+        text = transcribe_mic(device=device)
     if not text:
         return Intent.OTHER, 0.0, ""
     intent, confidence = classifier.predict(text)
@@ -109,6 +110,7 @@ def decide_two_rounds(
     second_user_wav: Optional[Union[str, Path]],
     play_audio: bool,
     sim: bool,
+    device: Optional[int] = None,
 ) -> DecisionOutcome:
     intent1, score1, text1 = ask_and_classify(
         prompt_wav=ROBOT_PROMPT_INITIAL_WAV,
@@ -116,6 +118,7 @@ def decide_two_rounds(
         classifier=classifier,
         play_audio=play_audio,
         sim=sim,
+        device=device,
     )
     print(f"[Round 1] text='{text1}' | intent={intent1.value} | confidence={score1:.4f}")
 
@@ -135,6 +138,7 @@ def decide_two_rounds(
         classifier=classifier,
         play_audio=play_audio,
         sim=sim,
+        device=device,
     )
     print(f"[Round 2] text='{text2}' | intent={intent2.value} | confidence={score2:.4f}")
 
@@ -161,6 +165,7 @@ def parse_args() -> argparse.Namespace:
         help="Path to trained NLU model.",
     )
     parser.add_argument("--no-play", action="store_true", help="Skip playing prompt WAV files.")
+    parser.add_argument("--device", type=int, default=None, help="Audio input device index (mic mode only).")
     return parser.parse_args()
 
 
@@ -175,6 +180,7 @@ def main() -> None:
         second_user_wav=args.second_user_wav,
         play_audio=not args.no_play,
         sim=args.sim,
+        device=args.device,
     )
     print(f"[Final] outcome={outcome.value}")
 
