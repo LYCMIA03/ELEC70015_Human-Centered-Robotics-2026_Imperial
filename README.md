@@ -562,27 +562,39 @@ Host detector:
 
 #### Flow 3: Dialogue action bridge
 
-Container side:
+The dialogue integration uses two UDP bridge scripts that **run on the Jetson host** (not inside Docker):
+- **`navigation_success_udp_bridge`** — ROS subscriber: watches `/target_follower/result`, on `True` → UDP:16041 → dialogue
+- **`udp_trash_action_bridge`** — UDP listener on port 16032 → publishes `/trash_action` (Bool) to ROS
+
+The `target_follower` node subscribes to `/trash_action` directly and handles the result:
+- `True` → human accepted → `IDLE` (resume following)
+- `False` → human refused → `RETREATING` (navigate `retreat_distance` m away) → `IDLE`
+
+Jetson host (non-Docker terminal):
 
 ```bash
-ros_noetic e
 cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
 ./scripts/start_dialogue_docker_bridges.sh
 ```
 
-Host side:
+Dialogue device:
 
 ```bash
 cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
 ./scripts/start_dialogue_host.sh --device 24
 ```
 
-Trigger test in container:
+Trigger test (simulate REACHED → dialogue → refuse → retreat):
 
 ```bash
 ros_noetic e
 source /opt/ros/noetic/setup.bash
+# Simulate REACHED (triggers dialogue)
 rostopic pub -1 /target_follower/result std_msgs/Bool "data: true"
+# Simulate human refusing (triggers retreat)
+rostopic pub -1 /trash_action std_msgs/Bool "data: false"
+# Simulate human accepting (resume)
+rostopic pub -1 /trash_action std_msgs/Bool "data: true"
 ```
 
 #### Flow 4: Lidar-only
@@ -1258,10 +1270,30 @@ docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c \
   target_follower         ←── /target_pose
                           ──► MoveBaseGoal → move_base (odom frame) → /cmd_vel
                           ──► /target_follower/result  (Bool, latched: True=REACHED)
-                          ──► /target_follower/status  (String, 2 Hz: IDLE|TRACKING|REACHED|LOST|FAILED)
+                          ──► /target_follower/status  (String, 2 Hz: IDLE|TRACKING|REACHED|
+                                                          WAITING_ACTION|RETREATING|LOST|FAILED)
+                          ←── /trash_action  (Bool: True=接受 / False=拒绝→后退)
+  navigation_success_udp_bridge  ←── /target_follower/result ──► UDP:16041
+  udp_trash_action_bridge        ←── UDP:16032 ──► /trash_action
   static_transform_publisher  ──► TF: base_link → camera_link  (quat: -0.5 0.5 -0.5 0.5)
   move_base               ←── rolling-window costmap (odom frame, NO /map needed)
   unitree_lidar_ros       ──► /unitree/scan  → move_base obstacle layer
+
+[Jetson — Native Host (bridges, via start_dialogue_docker_bridges.sh)]
+  navigation_success_udp_bridge  → UDP:16041 → dialogue_udp_runner (device)
+  udp_trash_action_bridge        ← UDP:16032 ← dialogue_udp_runner (device)
+
+[Dialogue Device]
+  dialogue_udp_runner  ← UDP:16041 (trigger: REACHED)
+                       → UDP:16032 (result: True=接受 / False=拒绝)
+```
+
+**Dialogue state flow:**
+```
+REACHED → publish result=True → UDP:16041 → dialogue
+   │ /trash_action=True  → IDLE (接受, 重新开始追踪)
+   └ /trash_action=False → RETREATING (拒绝, 后退 retreat_distance m) → IDLE
+   └ 超时 (action_wait_timeout_s) → IDLE
 ```
 
 > **Two launch modes** (controlled by `launch_move_base` arg):
@@ -1417,6 +1449,8 @@ exec roslaunch target_follower target_follow_real.launch \
   standoff_distance:=0.8 \
   face_target:=true \
   target_timeout:=5.0 \
+  retreat_distance:=1.5 \
+  action_wait_timeout:=45.0 \
   > /tmp/target_follow.log 2>&1'
 ```
 
@@ -1431,7 +1465,7 @@ exec roslaunch target_follower target_follow_real.launch \
 | `move_base` | `move_base` | Rolling-window costmap (`global_frame=odom`, no `/map` needed) |
 | `udp_target_bridge` | `target_follower` | UDP 16031 → `/trash_detection/target_point` |
 | `point_to_target_pose` | `target_follower` | PointStamped → PoseStamped |
-| `target_follower` | `target_follower` | State machine, sends goals, publishes result/status |
+| `target_follower` | `target_follower` | State machine, sends goals, publishes result/status, handles dialogue response |
 
 **Key launch parameters:**
 
@@ -1442,6 +1476,9 @@ exec roslaunch target_follower target_follow_real.launch \
 | `face_target` | `true` | Orient robot toward target at REACHED |
 | `target_timeout` | `5.0` s | Cancel goal if no detection for this long |
 | `udp_port` | `16031` | Must match detection `--udp-port` |
+| `retreat_distance` | `1.5` m | How far to retreat when human refuses (RETREATING state) |
+| `action_wait_timeout` | `45.0` s | Timeout waiting for `/trash_action` before resetting to IDLE |
+| `retreat_timeout` | `20.0` s | Max time allowed for retreat navigation goal |
 
 Wait ~12 s, then verify:
 ```bash
@@ -1510,7 +1547,37 @@ python3 handobj_detection/handobj_detection_rgbd.py \
 
 ---
 
-##### Step 6 — Verify the full pipeline
+##### Step 6 — Start Dialogue UDP bridges
+
+**Run on Jetson host** (non-Docker). This starts two Python bridge processes:
+- `navigation_success_udp_bridge.py` — subscribes `/target_follower/result`, on `True` → sends UDP to dialogue (port 16041)
+- `udp_trash_action_bridge.py` — listens UDP port 16032, publishes `/trash_action` (Bool) back to ROS
+
+```bash
+# Terminal A — Docker ROS bridges (must be started AFTER roscore is running)
+./scripts/start_dialogue_docker_bridges.sh
+```
+
+```bash
+# Terminal B — Dialogue runner on the dialogue device (e.g. Jetson or laptop)
+./scripts/start_dialogue_host.sh --device 24
+```
+
+> If you don’t have the dialogue module yet, you can simulate the full flow manually:
+> ```bash
+> # Simulate REACHED trigger to dialogue
+> rostopic pub -1 /target_follower/result std_msgs/Bool "data: true"
+>
+> # Simulate human ACCEPTING (robot stays)
+> rostopic pub -1 /trash_action std_msgs/Bool "data: true"
+>
+> # Simulate human REFUSING (robot retreats)
+> rostopic pub -1 /trash_action std_msgs/Bool "data: false"
+> ```
+
+---
+
+##### Step 7 — Verify the full pipeline
 
 ```bash
 # Check UDP → target_point
@@ -1525,23 +1592,34 @@ docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c '
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 timeout 15 rostopic echo /target_follower/status'
-# "IDLE"     → no target
-# "TRACKING" → driving to target
-# "REACHED"  → within standoff_distance
-# "LOST"     → target stale > timeout
+# "IDLE"           → no target
+# "TRACKING"       → driving to target
+# "REACHED"        → within standoff_distance (triggers dialogue)
+# "WAITING_ACTION" → waiting for /trash_action from dialogue
+# "RETREATING"     → human refused, executing retreat navigation
+# "LOST"           → target stale > timeout
+# "FAILED"         → move_base could not reach goal
 
 # Watch result topic (dialogue trigger)
 docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c '
 export ROS_MASTER_URI=http://192.168.50.1:11311
 source /opt/ros/noetic/setup.bash
 rostopic echo /target_follower/result'
-# data: True  → robot reached target
+# data: True  → robot reached target (triggers dialogue)
 # data: False → lost/failed
+
+# Watch dialogue result (incoming from dialogue module)
+docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c '
+export ROS_MASTER_URI=http://192.168.50.1:11311
+source /opt/ros/noetic/setup.bash
+rostopic echo /trash_action'
+# data: True  → human accepted (robot stays, returns to IDLE)
+# data: False → human refused (robot retreats)
 ```
 
 ---
 
-##### Step 7 — Stop
+##### Step 8 — Stop
 
 ```bash
 # Kill all target-following nodes
@@ -1553,6 +1631,10 @@ rosnode kill /target_follower /udp_target_bridge /point_to_target_pose \
 
 # Kill detection on host
 pkill -f handobj_detection_rgbd.py
+
+# Kill dialogue bridges on host
+pkill -f navigation_success_udp_bridge.py || true
+pkill -f udp_trash_action_bridge.py || true
 ```
 
 ---
@@ -1869,6 +1951,10 @@ NavfnROS:
 | `~min_update_dist` | `0.3` m | Min target movement before re-sending goal — bypassed when state is FAILED/LOST/REACHED |
 | `~target_timeout` | `5.0` s | Stale target timeout — cancels move_base goal (set in launch file) |
 | `~global_frame` | `odom` | Navigation frame — `odom` in standalone mode, `map` in overlay mode |
+| `~trash_action_topic` | `/trash_action` | Topic to receive dialogue result (Bool: True=accept, False=refuse) |
+| `~action_wait_timeout_s` | `45.0` s | Timeout in WAITING_ACTION before resetting to IDLE |
+| `~retreat_distance` | `1.5` m | Distance to retreat when human refuses (away from target) |
+| `~retreat_timeout_s` | `20.0` s | Max time allowed for retreat navigation goal |
 
 ---
 
@@ -1878,7 +1964,7 @@ NavfnROS:
 
 - **Camera TF quaternion is `(-0.5, 0.5, -0.5, 0.5)` — do not change**: This corrects optical→robot frame for the Orbbec Femto Bolt. The previous value `(0.5, -0.5, 0.5, 0.5)` was incorrect (inverse quaternion) and caused all direction axes to be inverted. Verified correct in 2026 session.
 
-- **REACHED state re-evaluation**: `target_follower.py` bypasses `min_update_dist` when the current state is `REACHED`, allowing the robot to re-engage if a person walks away after being approached. This prevents the deadlock where the robot would stay REACHED indefinitely even when the target moved.
+- **REACHED → WAITING_ACTION → RETREATING state flow**: After reaching standoff distance, the robot enters `WAITING_ACTION` (freezes target-following) and waits for `/trash_action` (Bool) from the dialogue module. If `False` (human refuses), the robot enters `RETREATING` — a new `move_base` goal is computed `retreat_distance` metres directly away from the target and dispatched. After the retreat completes (or times out), the robot returns to `IDLE`. This entire flow is handled inside `target_follower.py` without any separate node. If no `/trash_action` is received within `action_wait_timeout_s`, the robot also resets to `IDLE`.
 
 - **LiDAR `range_min: 0.35 m`**: The P3-AT chassis and Unitree L1 mount are within 0.35 m of the sensor origin. Setting `range_min < 0.35` in `pointcloud_to_laserscan` causes the robot body to appear as an obstacle in the costmap. Current value: `0.35 m` in both `target_follow_real.launch` and `real_robot_nav_unitree.launch`.
 

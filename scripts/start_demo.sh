@@ -1,28 +1,38 @@
 #!/usr/bin/env bash
 # =============================================================================
-# start_demo.sh — 一键启动完整 Target-Following Demo (无需先验地图)
+# start_demo.sh — 一键启动完整 Target-Following + Dialogue Demo (无需先验地图)
 #
 # 运行机器：Jetson Orin Nano (host 终端, 非 Docker)
 # 启动内容：
 #   1. Jetson Docker — roscore (if not running)
 #   2. Jetson Docker — target_follow_real.launch (独立模式: LiDAR + move_base + 目标追踪)
 #   3. Jetson Host   — Hand-Object 检测 (handobj_detection_rgbd.py)
+#   4. Jetson Host   — Dialogue UDP bridges (nav_success → UDP:16041 → dialogue → /trash_action)
 #
 # 导航方式：纯局部规划 (rolling-window costmap in odom frame)，不依赖全局地图。
+#
+# 对话流程：
+#   REACHED → result=True → UDP:16041 → dialogue_udp_runner → UDP:16032 → /trash_action
+#   /trash_action=True  → IDLE (接受, 继续)
+#   /trash_action=False → RETREATING (拒绝, 后退 ${RETREAT_DIST}m) → IDLE
 #
 # 前提（需手动完成）：
 #   - Raspberry Pi 已启动: ./scripts/start_base.sh  (on Pi)
 #   - Unitree LiDAR 已接 USB
 #   - Orbbec 摄像头已接 USB
+#   - dialogue/dialogue_udp_runner.py 已安装依赖 (start_dialogue_host.sh)
 #
 # 用法：
 #   ./scripts/start_demo.sh
-#   ./scripts/start_demo.sh --standoff 0.8 --target waste
+#   ./scripts/start_demo.sh --standoff 0.8 --retreat 1.5 --target waste
 #
 # 参数：
 #   --standoff M      停在目标前多远 (m), 默认 0.8
+#   --retreat M       人类拒绝后后退距离 (m), 默认 1.5
+#   --action-timeout S 等待对话结果超时 (s), 默认 45
 #   --target TYPE     检测目标类型 holding|person|waste, 默认 holding
 #   --no-yolo         不启动检测（手动测试用，可用 send_target_udp.py 模拟）
+#   --no-dialogue     不启动对话桥接（纲连测试）
 # =============================================================================
 
 set -uo pipefail
@@ -44,17 +54,23 @@ HANDOBJ_DIR="${REPO_ROOT}/handobj_detection"
 
 # ---------- 默认参数 ----------
 STANDOFF="0.8"
+RETREAT_DIST="1.5"
+ACTION_WAIT="45.0"
 TARGET_KIND="holding"
 LAUNCH_YOLO=true
+LAUNCH_DIALOGUE=true
 
 # ---------- 解析参数 ----------
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --standoff) STANDOFF="$2";            shift 2 ;;
-    --target)   TARGET_KIND="$2";         shift 2 ;;
-    --no-yolo)  LAUNCH_YOLO=false;        shift   ;;
+    --standoff)        STANDOFF="$2";       shift 2 ;;
+    --retreat)         RETREAT_DIST="$2";   shift 2 ;;
+    --action-timeout)  ACTION_WAIT="$2";    shift 2 ;;
+    --target)          TARGET_KIND="$2";    shift 2 ;;
+    --no-yolo)         LAUNCH_YOLO=false;   shift   ;;
+    --no-dialogue)     LAUNCH_DIALOGUE=false; shift  ;;
     -h|--help)
-      grep '^#' "$0" | head -30 | sed 's/^# \{0,2\}//'
+      grep '^#' "$0" | head -40 | sed 's/^# \{0,2\}//'
       exit 0 ;;
     *) die "Unknown argument: $1" ;;
   esac
@@ -70,6 +86,8 @@ fi
 JETSON_IP="${JETSON_IP:-192.168.50.1}"
 RASPI_IP="${RASPI_IP:-192.168.50.2}"
 TRASH_UDP_PORT="${TRASH_UDP_PORT:-16031}"
+DIALOGUE_TRIGGER_UDP_PORT="${DIALOGUE_TRIGGER_UDP_PORT:-16041}"
+DIALOGUE_ACTION_UDP_PORT="${DIALOGUE_ACTION_UDP_PORT:-16032}"
 DOCKER_NAME="ros_noetic"
 ROS_MASTER="http://${JETSON_IP}:11311"
 ROS_SETUP="source /opt/ros/noetic/setup.bash && source ${CATKIN_WS}/devel/setup.bash"
@@ -78,6 +96,7 @@ DOCKER_EXEC="docker exec --user $(id -u):$(id -g) ${DOCKER_NAME} bash -c"
 
 # ---------- 后台进程 PID ----------
 YOLO_PID=""
+BRIDGE_PID=""
 
 # ---------- 清理函数 ----------
 cleanup() {
@@ -88,6 +107,12 @@ cleanup() {
   if [[ -n "${YOLO_PID}" ]] && kill -0 "${YOLO_PID}" 2>/dev/null; then
     info "Stopping YOLO (pid ${YOLO_PID})..."
     kill "${YOLO_PID}" 2>/dev/null || true
+  fi
+
+  # 杀掉 host 上的对话 bridge
+  if [[ -n "${BRIDGE_PID}" ]] && kill -0 "${BRIDGE_PID}" 2>/dev/null; then
+    info "Stopping dialogue bridges (pid ${BRIDGE_PID})..."
+    kill "${BRIDGE_PID}" 2>/dev/null || true
   fi
 
   # 停止 Docker 内所有 target follow 相关节点 (包括 move_base)
@@ -107,9 +132,12 @@ echo -e "${BOLD}${CYN}║  P3-AT Target Following Demo — Local Planning    ║
 echo -e "${BOLD}${CYN}╚══════════════════════════════════════════════════╝${NC}"
 echo -e "  Mode:       standalone (no global map)"
 echo -e "  Standoff:   ${STANDOFF} m"
+echo -e "  Retreat:    ${RETREAT_DIST} m (on refusal)"
+echo -e "  Act.timeout:${ACTION_WAIT} s"
 echo -e "  Target:     ${TARGET_KIND}"
 echo -e "  UDP port:   ${TRASH_UDP_PORT}"
 echo -e "  YOLO:       $(${LAUNCH_YOLO} && echo enabled || echo DISABLED)"
+echo -e "  Dialogue:   $(${LAUNCH_DIALOGUE} && echo enabled || echo DISABLED)"
 echo ""
 
 # =============================================================================
@@ -182,6 +210,8 @@ ${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
     face_target:=true \
     target_timeout:=5.0 \
     udp_port:=${TRASH_UDP_PORT} \
+    retreat_distance:=${RETREAT_DIST} \
+    action_wait_timeout:=${ACTION_WAIT} \
   > /tmp/target_follow.log 2>&1 ) &" 2>/dev/null
 
 info "Waiting for move_base + target_follower to come up (up to 30 s)..."
@@ -237,16 +267,55 @@ else
 fi
 
 # =============================================================================
-step "STEP 4 — System ready! Live status monitor"
+step "STEP 4 — Start Dialogue UDP bridges (host)"
+
+if ${LAUNCH_DIALOGUE}; then
+  if [[ ! -f "${REPO_ROOT}/dialogue/dialogue_udp_runner.py" ]]; then
+    warn "dialogue/dialogue_udp_runner.py not found — dialogue bridge skipped"
+    warn "  Start manually later with: ./scripts/start_dialogue_host.sh --device ${DEVICE:-24}"
+    LAUNCH_DIALOGUE=false
+  else
+    info "Starting dialogue docker bridges..."
+    MASTER_HOST=jetson \
+    DIALOGUE_TRIGGER_UDP_PORT=${DIALOGUE_TRIGGER_UDP_PORT} \
+    DIALOGUE_ACTION_UDP_PORT=${DIALOGUE_ACTION_UDP_PORT} \
+    "${SCRIPT_DIR}/start_dialogue_docker_bridges.sh" \
+      > /tmp/dialogue_bridge.log 2>&1 &
+    BRIDGE_PID=$!
+    sleep 2
+    if kill -0 "${BRIDGE_PID}" 2>/dev/null; then
+      ok "Dialogue bridges started (pid ${BRIDGE_PID}), log: /tmp/dialogue_bridge.log"
+      ok "  nav_success → UDP:${DIALOGUE_TRIGGER_UDP_PORT} → dialogue"
+      ok "  dialogue   → UDP:${DIALOGUE_ACTION_UDP_PORT}  → /trash_action"
+    else
+      warn "Dialogue bridge exited early. Check: tail -20 /tmp/dialogue_bridge.log"
+      BRIDGE_PID=""
+    fi
+  fi
+else
+  warn "Dialogue bridge disabled (--no-dialogue). /trash_action will not be published."
+  warn "  Simulate with: rostopic pub /trash_action std_msgs/Bool 'data: false'"
+fi
+
+# 提示如何单独启动 dialogue runner (如果在另一台设备）
+if ${LAUNCH_DIALOGUE}; then
+  echo -e "\n  ${YLW}Reminder${NC}: start the dialogue host runner on the device:"
+  echo -e "    ${CYN}./scripts/start_dialogue_host.sh --device 24${NC}"
+fi
+
+# =============================================================================
+step "STEP 5 — System ready! Live status monitor"
 
 echo ""
 echo -e "  ${GRN}All components launched.${NC}  Press ${BOLD}Ctrl+C${NC} to shut everything down."
 echo ""
 echo -e "  Useful topics:"
-echo -e "    ${CYN}rostopic echo /target_follower/status${NC}   — IDLE|TRACKING|REACHED|LOST|FAILED"
+echo -e "    ${CYN}rostopic echo /target_follower/status${NC}   — IDLE|TRACKING|REACHED|WAITING_ACTION|RETREATING|LOST|FAILED"
 echo -e "    ${CYN}rostopic echo /target_follower/result${NC}   — True/False (dialogue trigger)"
+echo -e "    ${CYN}rostopic echo /trash_action${NC}             — True=接受 / False=拒绝 (对话结果)"
 echo -e "    ${CYN}rostopic echo /target_pose${NC}              — current target pose"
-  echo -e "    ${CYN}tail -f /tmp/handobj.log${NC}                  — detection log"
+echo -e "    ${CYN}tail -f /tmp/handobj.log${NC}                  — detection log"
+echo -e "    ${CYN}tail -f /tmp/dialogue_bridge.log${NC}           — dialogue bridge log"
 echo ""
 
 _ros_topic_val() {
@@ -266,10 +335,12 @@ while true; do
 
   # Color status
   case "${STATUS}" in
-    TRACKING) S_COLOR="${YLW}${STATUS}${NC}" ;;
-    REACHED)  S_COLOR="${GRN}${STATUS}${NC}" ;;
-    LOST|FAILED) S_COLOR="${RED}${STATUS}${NC}" ;;
-    *)        S_COLOR="${STATUS}" ;;
+    TRACKING)         S_COLOR="${YLW}${STATUS}${NC}" ;;
+    REACHED)          S_COLOR="${GRN}${STATUS}${NC}" ;;
+    WAITING_ACTION)   S_COLOR="${CYN}${STATUS}${NC}" ;;
+    RETREATING)       S_COLOR="${BLU}${STATUS}${NC}" ;;
+    LOST|FAILED)      S_COLOR="${RED}${STATUS}${NC}" ;;
+    *)                S_COLOR="${STATUS}" ;;
   esac
 
   case "${RESULT}" in
@@ -285,8 +356,17 @@ while true; do
     YOLO_ALIVE="${RED}stopped${NC}"
   fi
 
-  printf "\r  [%s]  status=%-10b  result=%-20b  YOLO=%b     " \
-    "$(date +%H:%M:%S)" "${S_COLOR}" "${R_COLOR}" "${YOLO_ALIVE}"
+  BRIDGE_ALIVE="disabled"
+  if ${LAUNCH_DIALOGUE}; then
+    if [[ -n "${BRIDGE_PID}" ]] && kill -0 "${BRIDGE_PID}" 2>/dev/null; then
+      BRIDGE_ALIVE="${GRN}running${NC}"
+    else
+      BRIDGE_ALIVE="${RED}stopped${NC}"
+    fi
+  fi
+
+  printf "\r  [%s]  status=%-16b  result=%-20b  YOLO=%b  dialogue=%b     " \
+    "$(date +%H:%M:%S)" "${S_COLOR}" "${R_COLOR}" "${YOLO_ALIVE}" "${BRIDGE_ALIVE}"
 
   sleep 2
 done
