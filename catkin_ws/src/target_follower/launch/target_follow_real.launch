@@ -1,29 +1,38 @@
 <launch>
   <!--
-    真机目标追踪 — Target Following Overlay (Real Robot)
-    
-    功能：
-      1. udp_target_bridge        接收 YOLO 检测结果 (UDP JSON → /trash_detection/target_point)
-      2. point_to_target_pose     PointStamped → PoseStamped (/target_pose)
-      3. target_follower          /target_pose → MoveBaseGoal (带 standoff + face_target)
-      4. static TF                base_link → camera_link
-    
-    前提：
-      - 导航栈已启动 (real_robot_nav_unitree.launch 或 real_robot_mapping_unitree.launch)
-      - YOLO 检测已在 host 上运行 (predict_15cls_rgbd.py ‑‑udp-enable)
-    
-    启动：
+    真机目标追踪 — Target Following (Real Robot)
+
+    两种模式:
+      A) 独立模式 (launch_move_base:=true, 默认):
+         自带 Unitree LiDAR + move_base (local-only costmap, 无需全局地图/gmapping).
+         只需树莓派 base.launch 已启动.
+      B) 叠加模式 (launch_move_base:=false):
+         需要已运行的 move_base (如 real_robot_mapping_unitree.launch).
+
+    功能:
+      1. (可选) Unitree L1 LiDAR 驱动 + pointcloud_to_laserscan
+      2. (可选) move_base — rolling-window costmap in odom frame
+      3. udp_target_bridge        接收检测结果 (UDP JSON → /trash_detection/target_point)
+      4. point_to_target_pose     PointStamped → PoseStamped (/target_pose)
+      5. target_follower          /target_pose → MoveBaseGoal (带 standoff + face_target)
+      6. static TF                base_link → camera_link
+
+    启动:
       roslaunch target_follower target_follow_real.launch
       roslaunch target_follower target_follow_real.launch standoff_distance:=0.6 face_target:=true
-    
-    结果 topic：
+      roslaunch target_follower target_follow_real.launch launch_move_base:=false   # 叠加到已有 move_base
+
+    结果 topic:
       /target_follower/result  (std_msgs/Bool)   — True=到达目标, False=失败/丢失
       /target_follower/status  (std_msgs/String)  — 当前状态: IDLE|TRACKING|REACHED|LOST|FAILED
   -->
 
   <!-- ========== 参数 ========== -->
+  <arg name="launch_move_base"       default="true"
+       doc="true=独立模式(自带LiDAR+move_base); false=叠加已有move_base"/>
+  <arg name="unitree_port"           default="/dev/ttyUSB0"/>
   <arg name="udp_port"               default="16031"
-       doc="UDP 端口, 与 predict_15cls_rgbd.py ‑‑udp-port 一致"/>
+       doc="UDP 端口, 与检测脚本 ‑‑udp-port 一致"/>
   <arg name="standoff_distance"      default="0.5"
        doc="在距目标多远处停下 (m). 0=直接到达目标位置"/>
   <arg name="face_target"            default="true"
@@ -35,16 +44,84 @@
   <arg name="min_update_dist"        default="0.2"
        doc="目标移动多远才重发目标 (m)"/>
 
-  <!-- ========== Static TF: base_link → camera_link (identity) ========== -->
-  <!--
-    相机坐标系与机器人坐标系一致，发布 identity TF 即可。
-    target_follower 通过此 TF 将 camera_link 下的目标坐标变换到 map 系。
-  -->
-  <!-- camera frame 与 robot frame 一致 → identity TF -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_tf"
-        args="0 0 0 0 0 0 1 base_link camera_link"/>
+  <!-- Resolve global_frame: standalone→odom, overlay→map -->
+  <arg name="global_frame" default="odom" if="$(arg launch_move_base)"/>
+  <arg name="global_frame" default="map" unless="$(arg launch_move_base)"/>
 
-  <!-- ========== UDP Bridge: YOLO detection → ROS ========== -->
+  <!-- ============================================================ -->
+  <!--  独立模式: Unitree LiDAR + robot_description + move_base     -->
+  <!-- ============================================================ -->
+  <group if="$(arg launch_move_base)">
+
+    <!-- Unitree 4D Lidar L1 驱动 -->
+    <param name="/unitree_lidar_ros_node/port"        value="$(arg unitree_port)"/>
+    <param name="/unitree_lidar_ros_node/cloud_frame" value="unitree_lidar"/>
+    <param name="/unitree_lidar_ros_node/imu_frame"   value="unitree_lidar"/>
+    <node pkg="unitree_lidar_ros" type="unitree_lidar_ros_node" name="unitree_lidar"
+          output="screen" respawn="true">
+      <param name="port"            value="$(arg unitree_port)"/>
+      <param name="frame_id"        value="unitree_lidar"/>
+      <param name="rotate_yaw_bias" value="0"/>
+      <param name="range_start"     value="0.05"/>
+      <param name="range_end"       value="30.0"/>
+    </node>
+
+    <!-- PointCloud2 → LaserScan (前方 180°) -->
+    <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node"
+          name="pointcloud_to_laserscan" output="screen">
+      <remap from="cloud_in" to="/unilidar/cloud"/>
+      <remap from="scan"     to="/unitree/scan"/>
+      <rosparam>
+        target_frame: ""
+        min_height: -0.5
+        max_height: 0.5
+        angle_min: -1.5708
+        angle_max:  1.5708
+        range_min: 0.35
+        range_max: 30.0
+        use_inf: true
+        inf_epsilon: 1.0
+      </rosparam>
+    </node>
+
+    <!-- 机器人模型 & TF -->
+    <param name="robot_description"
+           command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
+    <node pkg="robot_state_publisher" type="robot_state_publisher"
+          name="robot_state_publisher" output="screen"/>
+
+    <!-- move_base: local-only costmap (rolling window in odom frame, 无需 /map) -->
+    <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="false">
+      <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="global_costmap"/>
+      <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="local_costmap"/>
+      <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap_local_only.yaml" command="load"/>
+      <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml"  command="load"/>
+      <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml"      command="load"/>
+    </node>
+
+  </group>
+
+  <!-- ============================================================ -->
+  <!--  Static TF: base_link → camera_link (ROS→optical)            -->
+  <!-- ============================================================ -->
+  <!--
+    base_link (ROS):   X→前, Y→左, Z→上
+    camera_link (光学): X→右, Y→下, Z→前
+
+    static_transform_publisher 的四元数描述 child(camera_link) 在 parent(base_link) 中的朝向。
+    lookup_transform("base_link","camera_link") 返回的旋转矩阵 R 将 camera 坐标转换为 base 坐标：
+
+      base_X =  camera_Z   (前)
+      base_Y = -camera_X   (左)
+      base_Z = -camera_Y   (上)
+
+    对应旋转矩阵 R = [[0, 0, 1], [-1, 0, 0], [0, -1, 0]]
+    四元数 (-0.5, 0.5, -0.5, 0.5)   RPY: [-90°, 0°, -90°]
+  -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_tf"
+        args="0 0 0 -0.5 0.5 -0.5 0.5 base_link camera_link"/>
+
+  <!-- ========== UDP Bridge: detection → ROS ========== -->
   <node pkg="target_follower" type="udp_target_bridge.py" name="udp_target_bridge" output="screen">
     <param name="bind_host"     value="0.0.0.0"/>
     <param name="bind_port"     value="$(arg udp_port)"/>
@@ -63,7 +140,7 @@
   <!-- ========== Target Follower: /target_pose → move_base goal ========== -->
   <node pkg="target_follower" type="target_follower.py" name="target_follower" output="screen">
     <param name="target_topic"          value="/target_pose"/>
-    <param name="global_frame"          value="map"/>
+    <param name="global_frame"          value="$(arg global_frame)"/>
     <param name="robot_frame"           value="base_link"/>
     <param name="send_rate_hz"          value="$(arg send_rate_hz)"/>
     <param name="min_update_dist"       value="$(arg min_update_dist)"/>

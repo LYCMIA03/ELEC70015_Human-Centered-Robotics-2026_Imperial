@@ -145,7 +145,45 @@ Goal:
 - Host sends back `decline=0`, `proceed=1` via UDP.
 - A UDP->ROS bridge in Docker publishes `/trash_action` (`std_msgs/Bool`).
 
-### 3.1 Start ROS bridges (inside Docker)
+Topics and ports used in this chain:
+- ROS input trigger: `/navigation_success` (`std_msgs/Bool`)
+- ROS output action: `/trash_action` (`std_msgs/Bool`)
+- UDP trigger port: `16041` (`DIALOGUE_TRIGGER_UDP_PORT`)
+- UDP action port: `16032` (`DIALOGUE_ACTION_UDP_PORT`)
+
+### 3.1 One-command startup (recommended)
+
+Docker side (inside `ros_noetic` container):
+```bash
+cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
+./scripts/start_dialogue_docker_bridges.sh
+```
+
+Host side:
+```bash
+cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
+./scripts/start_dialogue_host.sh --device 24
+```
+
+Host simulation mode (no microphone):
+```bash
+cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
+./scripts/start_dialogue_host.sh --sim \
+  --first-user-wav dialogue/voice_data/sim_user_answer_other_b.wav \
+  --second-user-wav dialogue/voice_data/sim_user_answer_negative_a.wav
+```
+
+Trigger once from Docker (for debugging):
+```bash
+rostopic pub -1 /navigation_success std_msgs/Bool "data: true"
+```
+
+Observe result (for debugging):
+```bash
+rostopic echo /trash_action
+```
+
+### 3.2 Start ROS bridges manually (inside Docker)
 
 Terminal E (`/navigation_success` -> UDP trigger):
 ```bash
@@ -170,7 +208,7 @@ Terminal G (observe output):
 docker exec -it ros_noetic bash -lc 'source /opt/ros/noetic/setup.bash && rostopic echo /trash_action'
 ```
 
-### 3.2 Start host dialogue runner
+### 3.3 Start host dialogue runner manually
 
 Microphone mode:
 ```bash
@@ -184,7 +222,7 @@ Simulation mode:
   --second-user-wav dialogue/voice_data/sim_user_answer_negative_a.wav
 ```
 
-### 3.3 Trigger test
+### 3.4 Trigger test
 
 In Docker, publish trigger:
 ```bash

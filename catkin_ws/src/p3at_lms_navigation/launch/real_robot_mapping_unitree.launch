@@ -56,9 +56,9 @@
       target_frame: ""
       min_height: -0.5
       max_height: 0.5
-      angle_min: -3.14159
-      angle_max:  3.14159
-      range_min: 0.05
+      angle_min: -1.5708
+      angle_max:  1.5708
+      range_min: 0.35
       range_max: 30.0
       use_inf: true
       inf_epsilon: 1.0
@@ -96,8 +96,8 @@
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap.yaml" command="load"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml"  command="load"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml"      command="load"/>
-    <!-- 建图模式无 map_server，global costmap 需订阅 gmapping /map 话题而非调用 /static_map 服务 -->
-    <param name="global_costmap/static_map" value="false"/>
+    <!-- 建图模式：gmapping 发布 /map，static_layer 通过 subscribe_to_updates 持续订阅 -->
+    <!-- global costmap 保持 static_map=true 以跟随 /map 大小自动扩展 -->
   </node>
 
   <!-- ========== 目标追踪（可选） ========== -->

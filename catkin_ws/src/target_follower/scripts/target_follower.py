@@ -218,7 +218,7 @@ class TargetFollower:
         if (now - self.last_send_time).to_sec() < (1.0 / max(self.send_rate_hz, 0.1)):
             return
 
-        if self.last_sent_goal is not None:
+        if self.last_sent_goal is not None and self._state not in ("FAILED", "LOST", "IDLE", "REACHED"):
             if dist_xy(target_g, self.last_sent_goal) < self.min_update_dist:
                 return
 
@@ -287,8 +287,7 @@ class TargetFollower:
         self._goal_active = True
         self.last_sent_goal = target_g
         self.last_send_time = now
-        if self._state != "TRACKING":
-            self._set_state("TRACKING")
+        self._set_state("TRACKING")
 
     def spin(self):
         r = rospy.Rate(20)

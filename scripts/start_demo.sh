@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # =============================================================================
-# start_demo.sh — 一键启动完整 Target-Following Demo
+# start_demo.sh — 一键启动完整 Target-Following Demo (无需先验地图)
 #
 # 运行机器：Jetson Orin Nano (host 终端, 非 Docker)
 # 启动内容：
 #   1. Jetson Docker — roscore (if not running)
-#   2. Jetson Docker — AMCL 导航栈 (real_robot_nav_unitree.launch)
-#   3. Jetson Docker — Target Following Overlay (target_follow_real.launch)
-#   4. Jetson Host   — YOLO 深度摄像头检测 (predict_15cls_rgbd.py)
+#   2. Jetson Docker — target_follow_real.launch (独立模式: LiDAR + move_base + 目标追踪)
+#   3. Jetson Host   — Hand-Object 检测 (handobj_detection_rgbd.py)
+#
+# 导航方式：纯局部规划 (rolling-window costmap in odom frame)，不依赖全局地图。
 #
 # 前提（需手动完成）：
 #   - Raspberry Pi 已启动: ./scripts/start_base.sh  (on Pi)
@@ -16,15 +17,12 @@
 #
 # 用法：
 #   ./scripts/start_demo.sh
-#   ./scripts/start_demo.sh --map maps/session_20260224_223938.yaml
-#   ./scripts/start_demo.sh --map maps/demo_map.yaml --standoff 0.6 --target waste
+#   ./scripts/start_demo.sh --standoff 0.6 --target waste
 #
 # 参数：
-#   --map PATH        地图 yaml 文件（相对于 catkin_ws/src/p3at_lms_navigation/），
-#                     默认 maps/demo_map.yaml
 #   --standoff M      停在目标前多远 (m), 默认 0.5
-#   --target TYPE     检测目标类型 waste|person|auto, 默认 person
-#   --no-yolo         不启动 YOLO（手动测试用，可用 send_target_udp.py 模拟）
+#   --target TYPE     检测目标类型 holding|person|waste, 默认 holding
+#   --no-yolo         不启动检测（手动测试用，可用 send_target_udp.py 模拟）
 # =============================================================================
 
 set -uo pipefail
@@ -42,19 +40,16 @@ step()  { echo -e "\n${BOLD}${CYN}── $* ${NC}"; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CATKIN_WS="${REPO_ROOT}/catkin_ws"
-MAPS_DIR="${CATKIN_WS}/src/p3at_lms_navigation/maps"
-TRASH_DIR="${REPO_ROOT}/trash_detection"
+HANDOBJ_DIR="${REPO_ROOT}/handobj_detection"
 
 # ---------- 默认参数 ----------
-MAP_FILE="${MAPS_DIR}/demo_map.yaml"
 STANDOFF="0.5"
-TARGET_KIND="person"
+TARGET_KIND="holding"
 LAUNCH_YOLO=true
 
 # ---------- 解析参数 ----------
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --map)      MAP_FILE="${MAPS_DIR}/$2"; shift 2 ;;
     --standoff) STANDOFF="$2";            shift 2 ;;
     --target)   TARGET_KIND="$2";         shift 2 ;;
     --no-yolo)  LAUNCH_YOLO=false;        shift   ;;
@@ -95,15 +90,9 @@ cleanup() {
     kill "${YOLO_PID}" 2>/dev/null || true
   fi
 
-  # 停止 Docker 内的 target follow overlay
-  info "Stopping target following nodes..."
-  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
-    rosnode kill /target_follower /udp_target_bridge /point_to_target_pose /camera_link_tf 2>/dev/null || true" \
-    2>/dev/null || true
-
-  # 停止 Docker 内的导航栈
-  info "Stopping navigation stack..."
-  ${DOCKER_EXEC} "kill \$(pgrep -f 'roslaunch.*real_robot_nav') 2>/dev/null; sleep 1" \
+  # 停止 Docker 内所有 target follow 相关节点 (包括 move_base)
+  info "Stopping target following + navigation nodes..."
+  ${DOCKER_EXEC} "pkill -f 'roslaunch.*target_follow' 2>/dev/null; sleep 1" \
     2>/dev/null || true
 
   ok "Demo stopped. Pi base driver still running — stop it manually on the Pi."
@@ -114,9 +103,9 @@ trap cleanup INT TERM
 # =============================================================================
 echo ""
 echo -e "${BOLD}${CYN}╔══════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}${CYN}║     P3-AT Target Following Demo — Full Launch    ║${NC}"
+echo -e "${BOLD}${CYN}║  P3-AT Target Following Demo — Local Planning    ║${NC}"
 echo -e "${BOLD}${CYN}╚══════════════════════════════════════════════════╝${NC}"
-echo -e "  Map:        ${MAP_FILE##*/}"
+echo -e "  Mode:       standalone (no global map)"
 echo -e "  Standoff:   ${STANDOFF} m"
 echo -e "  Target:     ${TARGET_KIND}"
 echo -e "  UDP port:   ${TRASH_UDP_PORT}"
@@ -131,15 +120,6 @@ if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${DOCKER_NAME}$"; t
   die "Docker container '${DOCKER_NAME}' is not running. Start it first:\n  docker start ${DOCKER_NAME}"
 fi
 ok "Docker container '${DOCKER_NAME}' is running"
-
-# Map file exists?
-if [[ ! -f "${MAP_FILE}" ]]; then
-  warn "Map file not found: ${MAP_FILE}"
-  echo "    Available maps:"
-  ls "${MAPS_DIR}"/*.yaml 2>/dev/null | while read -r f; do echo "      ${f##*/}"; done || true
-  die "Specify a valid map with --map <filename>"
-fi
-ok "Map file found: ${MAP_FILE##*/}"
 
 # Workspace built?
 if [[ ! -f "${CATKIN_WS}/devel/setup.bash" ]]; then
@@ -156,16 +136,16 @@ else
   echo "    Continuing anyway — /odom will be missing until Pi is up."
 fi
 
-# YOLO available?
+# Detection script available?
 if ${LAUNCH_YOLO}; then
   if ! command -v python3 &>/dev/null; then
-    warn "python3 not found on host — YOLO will be skipped"
+    warn "python3 not found on host — detection will be skipped"
     LAUNCH_YOLO=false
-  elif [[ ! -f "${TRASH_DIR}/predict_15cls_rgbd.py" ]]; then
-    warn "predict_15cls_rgbd.py not found — YOLO will be skipped"
+  elif [[ ! -f "${HANDOBJ_DIR}/handobj_detection_rgbd.py" ]]; then
+    warn "handobj_detection_rgbd.py not found — detection will be skipped"
     LAUNCH_YOLO=false
   else
-    ok "YOLO detection script found"
+    ok "Hand-Object detection script found"
   fi
 fi
 
@@ -187,29 +167,35 @@ else
 fi
 
 # =============================================================================
-step "STEP 2 — Start AMCL navigation stack"
+step "STEP 2 — Start target following (standalone: LiDAR + move_base + follower)"
 
-# Kill any existing mapping/nav launch before starting nav
-${DOCKER_EXEC} "pkill -f 'roslaunch.*real_robot' 2>/dev/null; sleep 1" 2>/dev/null || true
+# Kill any existing mapping/nav/target-follow launch
+${DOCKER_EXEC} "pkill -f 'roslaunch.*real_robot' 2>/dev/null; \
+                 pkill -f 'roslaunch.*target_follow' 2>/dev/null; sleep 1" 2>/dev/null || true
 sleep 1
 
-info "Launching real_robot_nav_unitree.launch (map: ${MAP_FILE##*/})..."
+info "Launching target_follow_real.launch (standalone mode — no global map)..."
 ${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
-  exec roslaunch p3at_lms_navigation real_robot_nav_unitree.launch \
-    map_file:=${MAP_FILE} \
-    use_rviz:=false \
-    use_target_follower:=false \
-  > /tmp/nav_unitree.log 2>&1 ) &" 2>/dev/null
+  exec roslaunch target_follower target_follow_real.launch \
+    launch_move_base:=true \
+    standoff_distance:=${STANDOFF} \
+    face_target:=true \
+    target_timeout:=5.0 \
+    udp_port:=${TRASH_UDP_PORT} \
+  > /tmp/target_follow.log 2>&1 ) &" 2>/dev/null
 
-info "Waiting for move_base to come up (up to 30 s)..."
+info "Waiting for move_base + target_follower to come up (up to 30 s)..."
 for i in $(seq 1 30); do
   sleep 1
-  if ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rosnode list 2>/dev/null | grep -q move_base" 2>/dev/null; then
-    ok "move_base is up (${i}s)"
+  NODES=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rosnode list 2>/dev/null" 2>/dev/null || true)
+  HAS_MB=$(echo "${NODES}" | grep -c move_base || true)
+  HAS_TF=$(echo "${NODES}" | grep -c target_follower || true)
+  if [[ "${HAS_MB}" -ge 1 && "${HAS_TF}" -ge 1 ]]; then
+    ok "move_base + target_follower are up (${i}s)"
     break
   fi
   if [[ $i -eq 30 ]]; then
-    die "move_base did not appear after 30 s.\n  Check: docker exec ${DOCKER_NAME} tail -30 /tmp/nav_unitree.log"
+    die "Nodes not ready after 30 s.\n  Check: docker exec ${DOCKER_NAME} tail -30 /tmp/target_follow.log"
   fi
 done
 
@@ -223,74 +209,35 @@ else
   warn "/unitree/scan: no data — LiDAR may not be fully up yet (OK to proceed)"
 fi
 
-echo ""
-echo -e "  ${YLW}ACTION REQUIRED:${NC} Open RViz and set the initial pose estimate!"
-echo -e "  Run in another terminal:  ${CYN}docker exec -it ${DOCKER_NAME} bash${NC}"
-echo -e "  Then:  ${CYN}source /opt/ros/noetic/setup.bash${NC}"
-echo -e "         ${CYN}export ROS_MASTER_URI=${ROS_MASTER}${NC}"
-echo -e "         ${CYN}rviz -d ${CATKIN_WS}/src/p3at_lms_navigation/rviz/nav_unitree.rviz${NC}"
-echo ""
-echo -n "  Press ENTER when initial pose is set (or wait 10s to skip)..."
-read -t 10 _ || true
-
 # =============================================================================
-step "STEP 3 — Start target following overlay"
-
-${DOCKER_EXEC} "pkill -f 'roslaunch.*target_follow' 2>/dev/null; sleep 1" 2>/dev/null || true
-
-info "Launching target_follow_real.launch..."
-${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
-  exec roslaunch target_follower target_follow_real.launch \
-    standoff_distance:=${STANDOFF} \
-    face_target:=true \
-    target_timeout:=5.0 \
-    udp_port:=${TRASH_UDP_PORT} \
-  > /tmp/target_follow.log 2>&1 ) &" 2>/dev/null
-
-info "Waiting for target_follower node (up to 20 s)..."
-for i in $(seq 1 20); do
-  sleep 1
-  if ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
-    rosnode list 2>/dev/null | grep -q target_follower" 2>/dev/null; then
-    ok "target_follower is up (${i}s)"
-    break
-  fi
-  if [[ $i -eq 20 ]]; then
-    warn "target_follower not found after 20 s. Check: docker exec ${DOCKER_NAME} tail /tmp/target_follow.log"
-  fi
-done
-
-# =============================================================================
-step "STEP 4 — Start YOLO detection (host)"
+step "STEP 3 — Start Hand-Object detection (host)"
 
 if ${LAUNCH_YOLO}; then
-  info "Starting predict_15cls_rgbd.py (UDP → ${JETSON_IP}:${TRASH_UDP_PORT})..."
-  cd "${TRASH_DIR}"
-  python3 predict_15cls_rgbd.py \
+  info "Starting handobj_detection_rgbd.py (UDP → 127.0.0.1:${TRASH_UDP_PORT})..."
+  cd "${HANDOBJ_DIR}"
+  python3 handobj_detection_rgbd.py \
     --udp-enable \
     --udp-host "127.0.0.1" \
     --udp-port "${TRASH_UDP_PORT}" \
     --udp-frame-id "camera_link" \
-    --udp-kind "${TARGET_KIND}" \
-    --nearest-person \
     --headless \
     --print-xyz \
-    > /tmp/yolo.log 2>&1 &
+    > /tmp/handobj.log 2>&1 &
   YOLO_PID=$!
-  sleep 2
+  sleep 4
   if kill -0 "${YOLO_PID}" 2>/dev/null; then
-    ok "YOLO started (pid ${YOLO_PID}), log: /tmp/yolo.log"
+    ok "Hand-Object detection started (pid ${YOLO_PID}), log: /tmp/handobj.log"
   else
-    warn "YOLO exited early. Check: tail /tmp/yolo.log"
+    warn "Detection exited early. Check: tail -30 /tmp/handobj.log"
     YOLO_PID=""
   fi
 else
-  warn "YOLO disabled. To simulate a target manually:"
-  echo -e "    ${CYN}python3 ${TRASH_DIR}/examples/send_target_udp.py --z 2.0 --port ${TRASH_UDP_PORT}${NC}"
+  warn "Detection disabled. To simulate a target manually:"
+  echo -e "    ${CYN}python3 ${REPO_ROOT}/trash_detection/examples/send_target_udp.py --z 2.0 --port ${TRASH_UDP_PORT}${NC}"
 fi
 
 # =============================================================================
-step "STEP 5 — System ready! Live status monitor"
+step "STEP 4 — System ready! Live status monitor"
 
 echo ""
 echo -e "  ${GRN}All components launched.${NC}  Press ${BOLD}Ctrl+C${NC} to shut everything down."
@@ -299,6 +246,7 @@ echo -e "  Useful topics:"
 echo -e "    ${CYN}rostopic echo /target_follower/status${NC}   — IDLE|TRACKING|REACHED|LOST|FAILED"
 echo -e "    ${CYN}rostopic echo /target_follower/result${NC}   — True/False (dialogue trigger)"
 echo -e "    ${CYN}rostopic echo /target_pose${NC}              — current target pose"
+  echo -e "    ${CYN}tail -f /tmp/handobj.log${NC}                  — detection log"
 echo ""
 
 _ros_topic_val() {

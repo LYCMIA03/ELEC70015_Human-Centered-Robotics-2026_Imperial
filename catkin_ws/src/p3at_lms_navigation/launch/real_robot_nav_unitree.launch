@@ -49,9 +49,9 @@
       target_frame: ""
       min_height: -0.5
       max_height: 0.5
-      angle_min: -3.14159
-      angle_max:  3.14159
-      range_min: 0.05
+      angle_min: -1.5708
+      angle_max:  1.5708
+      range_min: 0.35
       range_max: 30.0
       use_inf: true
       inf_epsilon: 1.0
