@@ -70,6 +70,12 @@
     <rosparam file="$(find p3at_lms_navigation)/param/move_base.yaml"      command="load"/>
   </node>
 
+  <!-- ========== Static TF: base_link → camera_link (仅在目标追踪模式需要) ========== -->
+  <group if="$(arg use_target_follower)">
+    <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_tf"
+          args="0.208 0 1.0 -0.5 0.5 -0.5 0.5 base_link camera_link"/>
+  </group>
+
   <!-- ========== 目标追踪（可选） ========== -->
   <group if="$(arg use_target_follower)">
     <group if="$(arg use_udp_target_bridge)">

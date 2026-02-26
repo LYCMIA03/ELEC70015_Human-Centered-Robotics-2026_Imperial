@@ -34,7 +34,7 @@
   <arg name="unitree_port"           default="/dev/ttyUSB0"/>
   <arg name="udp_port"               default="16031"
        doc="UDP 端口, 与检测脚本 ‑‑udp-port 一致"/>
-  <arg name="standoff_distance"      default="0.8"
+  <arg name="standoff_distance"      default="0.6"
        doc="在距目标多远处停下 (m). 0=直接到达目标位置"/>
   <arg name="face_target"            default="true"
        doc="到达后机器人是否朝向目标"/>
@@ -77,22 +77,29 @@
       <param name="range_end"       value="30.0"/>
     </node>
 
-    <!-- PointCloud2 → LaserScan (前方 180°) -->
+    <!-- PointCloud2 → LaserScan (full 360°) -->
     <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node"
           name="pointcloud_to_laserscan" output="screen">
       <remap from="cloud_in" to="/unilidar/cloud"/>
-      <remap from="scan"     to="/unitree/scan"/>
+      <remap from="scan"     to="/unitree/scan_raw"/>
       <rosparam>
         target_frame: ""
         min_height: -0.5
         max_height: 0.5
-        angle_min: -1.5708
-        angle_max:  1.5708
+        angle_min: -3.14159265
+        angle_max:  3.14159265
         range_min: 0.35
         range_max: 30.0
         use_inf: true
         inf_epsilon: 1.0
       </rosparam>
+    </node>
+
+    <!-- Self-detection filter: remove scan points inside robot body -->
+    <node pkg="target_follower" type="scan_body_filter.py"
+          name="scan_body_filter" output="screen">
+      <remap from="~scan_raw" to="/unitree/scan_raw"/>
+      <remap from="~scan_out" to="/unitree/scan"/>
     </node>
 
     <!-- 机器人模型 & TF -->
@@ -119,6 +126,10 @@
     base_link (ROS):   X→前, Y→左, Z→上
     camera_link (光学): X→右, Y→下, Z→前
 
+    真机布局：摄像头通过铝型材固定，水平位置与雷达相同 (x=0.208)，
+    高度距轮子最低点 1.0 m (z=1.0)。
+    平移: x=0.208  y=0  z=1.0
+
     static_transform_publisher 的四元数描述 child(camera_link) 在 parent(base_link) 中的朝向。
     lookup_transform("base_link","camera_link") 返回的旋转矩阵 R 将 camera 坐标转换为 base 坐标：
 
@@ -130,7 +141,7 @@
     四元数 (-0.5, 0.5, -0.5, 0.5)   RPY: [-90°, 0°, -90°]
   -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_tf"
-        args="0 0 0 -0.5 0.5 -0.5 0.5 base_link camera_link"/>
+        args="0.208 0 1.0 -0.5 0.5 -0.5 0.5 base_link camera_link"/>
 
   <!-- ========== UDP Bridge: detection → ROS ========== -->
   <node pkg="target_follower" type="udp_target_bridge.py" name="udp_target_bridge" output="screen">

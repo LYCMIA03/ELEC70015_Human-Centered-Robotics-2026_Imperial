@@ -21,7 +21,7 @@ import math
 import rospy
 import actionlib
 
-from geometry_msgs.msg import PoseStamped, Quaternion
+from geometry_msgs.msg import PoseStamped, Quaternion, Twist
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
 from std_msgs.msg import Bool, String
@@ -102,7 +102,7 @@ class TargetFollower:
             rospy.get_param("~use_target_orientation", False))
 
         # Stop short of the target by this distance (metres). 0 = go all the way.
-        self.standoff_distance = float(rospy.get_param("~standoff_distance", 0.8))
+        self.standoff_distance = float(rospy.get_param("~standoff_distance", 0.6))
         # Orient the robot to face the target at the goal pose.
         self.face_target = bool(rospy.get_param("~face_target", False))
 
@@ -115,6 +115,8 @@ class TargetFollower:
         self.retreat_distance = float(rospy.get_param("~retreat_distance", 1.5))
         # Max time (s) allowed for the retreat navigation goal
         self.retreat_timeout_s = float(rospy.get_param("~retreat_timeout_s", 20.0))
+        # Angular speed (rad/s) for in-place 180° turn during retreat
+        self.retreat_turn_speed = float(rospy.get_param("~retreat_turn_speed", 0.5))
 
         # ── TF & action client ─────────────────────────────────────────────
         self.tfbuf = tf2_ros.Buffer(cache_time=rospy.Duration(10.0))
@@ -138,6 +140,12 @@ class TargetFollower:
         self._waiting_action_start = None   # rospy.Time when WAITING_ACTION began
         self._retreat_start        = None   # rospy.Time when RETREATING began
         self._retreat_target_pos   = None   # (tx, ty) of last target, for retreat dir
+        self._retreat_phase        = None   # "TURNING" | "DRIVING"
+        self._retreat_target_yaw   = None   # target yaw after 180° turn
+
+        # ── Publishers ─────────────────────────────────────────────────────
+        # cmd_vel for direct rotation control during retreat turn phase
+        self.cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
 
         # ── Subscribers ────────────────────────────────────────────────────
         rospy.Subscriber(self.target_topic, PoseStamped,
@@ -328,11 +336,31 @@ class TargetFollower:
             self._reset_to_idle()
 
     # ──────────────────────────────────────────────────────────────────────────
-    # Retreat logic
+    # Retreat logic — two-phase: turn 180° in place, then drive forward
     # ──────────────────────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _normalize_angle(a):
+        """Normalize angle to (-pi, pi]."""
+        while a > math.pi:
+            a -= 2.0 * math.pi
+        while a <= -math.pi:
+            a += 2.0 * math.pi
+        return a
+
+    @staticmethod
+    def _extract_yaw(tf_stamped):
+        """Extract yaw from a TransformStamped."""
+        q = tf_stamped.transform.rotation
+        return math.atan2(2.0 * (q.w * q.z + q.x * q.y),
+                          1.0 - 2.0 * (q.y * q.y + q.z * q.z))
+
+    def _stop_cmd_vel(self):
+        """Publish zero velocity to stop the robot."""
+        self.cmd_vel_pub.publish(Twist())
+
     def _start_retreat(self):
-        """Plan and execute a retreat goal: move away from the target."""
+        """Start retreat: phase 1 = turn 180° in place, phase 2 = drive forward."""
         robot_info = self._get_robot_pose_in_global()
         if robot_info is None:
             rospy.logwarn("[TargetFollower] Cannot get robot pose for retreat — resetting to IDLE")
@@ -340,54 +368,18 @@ class TargetFollower:
             return
 
         rx, ry, tf_robot = robot_info
+        current_yaw = self._extract_yaw(tf_robot)
 
-        # Retreat direction: robot→away_from_target
-        # Use last known target position if available, otherwise retreat straight back
-        if self._retreat_target_pos is not None:
-            tx, ty = self._retreat_target_pos
-            dx = rx - tx
-            dy = ry - ty
-        else:
-            # Fallback: reverse robot's current heading
-            q = tf_robot.transform.rotation
-            yaw = math.atan2(2.0 * (q.w * q.z + q.x * q.y),
-                             1.0 - 2.0 * (q.y * q.y + q.z * q.z))
-            dx = -math.cos(yaw)
-            dy = -math.sin(yaw)
-
-        dist = math.hypot(dx, dy)
-        if dist < 1e-3:
-            rospy.logwarn("[TargetFollower] Target too close to robot for retreat direction — using backward")
-            q = tf_robot.transform.rotation
-            yaw = math.atan2(2.0 * (q.w * q.z + q.x * q.y),
-                              1.0 - 2.0 * (q.y * q.y + q.z * q.z))
-            dx = -math.cos(yaw)
-            dy = -math.sin(yaw)
-            dist = 1.0
-
-        # Retreat goal position
-        scale = self.retreat_distance / dist
-        retreat_x = rx + dx * scale
-        retreat_y = ry + dy * scale
-
-        # Retreat orientation: face away from target (keep moving direction)
-        retreat_yaw = math.atan2(dy, dx)
-
-        goal = MoveBaseGoal()
-        goal.target_pose.header.stamp    = rospy.Time.now()
-        goal.target_pose.header.frame_id = self.global_frame
-        goal.target_pose.pose.position.x = retreat_x
-        goal.target_pose.pose.position.y = retreat_y
-        goal.target_pose.pose.position.z = 0.0
-        goal.target_pose.pose.orientation = self._yaw_to_quaternion(retreat_yaw)
-
+        self._retreat_target_yaw = self._normalize_angle(current_yaw + math.pi)
         self._set_state("RETREATING")
         self._retreat_start = rospy.Time.now()
-        self.client.send_goal(goal, done_cb=self._goal_done_cb)
-        self._goal_active = True
+        self._retreat_phase = "TURNING"
+
         rospy.loginfo(
-            "[TargetFollower] Retreat goal: (%.2f, %.2f) yaw=%.1f° dist=%.2f m",
-            retreat_x, retreat_y, math.degrees(retreat_yaw), self.retreat_distance,
+            "[TargetFollower] Retreat phase 1: turning 180° (%.1f° → %.1f°) at %.2f rad/s",
+            math.degrees(current_yaw),
+            math.degrees(self._retreat_target_yaw),
+            self.retreat_turn_speed,
         )
 
     def _tick_retreating(self):
@@ -400,8 +392,68 @@ class TargetFollower:
                 "[TargetFollower] Retreat timeout (%.1f s) — cancelling and resetting",
                 elapsed,
             )
+            self._stop_cmd_vel()
             self._cancel_goal_if_active()
             self._finish_retreat()
+            return
+
+        if self._retreat_phase == "TURNING":
+            self._tick_retreat_turning()
+        # DRIVING phase: timeout above + _goal_done_cb handle completion
+
+    def _tick_retreat_turning(self):
+        """Phase 1: publish cmd_vel rotation until ~180° turn completed."""
+        robot_info = self._get_robot_pose_in_global()
+        if robot_info is None:
+            return
+
+        _, _, tf_robot = robot_info
+        current_yaw = self._extract_yaw(tf_robot)
+        yaw_error = self._normalize_angle(self._retreat_target_yaw - current_yaw)
+
+        if abs(yaw_error) < 0.15:  # ~8.6° tolerance
+            rospy.loginfo(
+                "[TargetFollower] Turn complete (error=%.1f°) — starting forward drive",
+                math.degrees(yaw_error),
+            )
+            self._stop_cmd_vel()
+            self._start_retreat_drive(current_yaw)
+            return
+
+        # Publish rotation command (turn in shortest direction)
+        twist = Twist()
+        twist.angular.z = self.retreat_turn_speed if yaw_error > 0 else -self.retreat_turn_speed
+        self.cmd_vel_pub.publish(twist)
+
+    def _start_retreat_drive(self, current_yaw):
+        """Phase 2: send MoveBaseGoal to drive forward retreat_distance."""
+        robot_info = self._get_robot_pose_in_global()
+        if robot_info is None:
+            rospy.logwarn("[TargetFollower] Cannot get robot pose for retreat drive — finishing")
+            self._finish_retreat()
+            return
+
+        rx, ry, _ = robot_info
+
+        # Goal: drive forward in the new heading for retreat_distance
+        goal_x = rx + self.retreat_distance * math.cos(current_yaw)
+        goal_y = ry + self.retreat_distance * math.sin(current_yaw)
+
+        goal = MoveBaseGoal()
+        goal.target_pose.header.stamp    = rospy.Time.now()
+        goal.target_pose.header.frame_id = self.global_frame
+        goal.target_pose.pose.position.x = goal_x
+        goal.target_pose.pose.position.y = goal_y
+        goal.target_pose.pose.position.z = 0.0
+        goal.target_pose.pose.orientation = self._yaw_to_quaternion(current_yaw)
+
+        self._retreat_phase = "DRIVING"
+        self.client.send_goal(goal, done_cb=self._goal_done_cb)
+        self._goal_active = True
+        rospy.loginfo(
+            "[TargetFollower] Retreat phase 2: driving to (%.2f, %.2f) yaw=%.1f° dist=%.2f m",
+            goal_x, goal_y, math.degrees(current_yaw), self.retreat_distance,
+        )
 
     def _finish_retreat(self):
         """Called after retreat goal completes or times out."""
@@ -413,14 +465,25 @@ class TargetFollower:
     # ──────────────────────────────────────────────────────────────────────────
 
     def _reset_to_idle(self):
-        """Reset to IDLE. Preserves last_target so next tick can re-track immediately."""
+        """Reset to IDLE. Preserves last_target so next tick can re-track immediately.
+
+        Publishes result=False to reset the latched /result topic.
+        This is critical: navigation_success_udp_bridge uses rising-edge
+        detection (False→True) to trigger dialogue.  Without this reset the
+        latch stays True and subsequent REACHED events won't fire the bridge.
+        """
         self._cancel_goal_if_active()
+        self._stop_cmd_vel()  # stop any in-progress rotation
+        # Reset the latched result so the next REACHED→True is a rising edge
+        self._publish_result(False)
         # Keep self.last_target — so next maybe_send_goal() tick can re-track
         self.last_sent_goal    = None
         self._pending_trash_action = None
         self._waiting_action_start = None
         self._retreat_start        = None
         self._retreat_target_pos   = None
+        self._retreat_phase        = None
+        self._retreat_target_yaw   = None
         self._target_lost_logged   = False
         self._suppress_done_cb     = False
         self._set_state("IDLE")

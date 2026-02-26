@@ -27,7 +27,7 @@
 #   ./scripts/start_demo.sh --standoff 0.8 --retreat 1.5 --target waste
 #
 # 参数：
-#   --standoff M      停在目标前多远 (m), 默认 0.8
+#   --standoff M      停在目标前多远 (m), 默认 0.6
 #   --retreat M       人类拒绝后后退距离 (m), 默认 1.5
 #   --action-timeout S 等待对话结果超时 (s), 默认 45
 #   --target TYPE     检测目标类型 holding|person|waste, 默认 holding
@@ -58,7 +58,7 @@ CATKIN_WS="${REPO_ROOT}/catkin_ws"
 HANDOBJ_DIR="${REPO_ROOT}/handobj_detection"
 
 # ---------- 默认参数 ----------
-STANDOFF="0.8"
+STANDOFF="0.6"
 RETREAT_DIST="1.5"
 ACTION_WAIT="45.0"
 TARGET_KIND="holding"

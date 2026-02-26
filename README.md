@@ -178,12 +178,19 @@ docker commit ros_noetic ros_noetic:nav_unitree
 │  │                               target_point    │  │
 │  │  point_to_target_pose   ──►  /target_pose     │  │
 │  │  target_follower        ──►  MoveBaseGoal     │  │
+│  │  navigation_success_udp_bridge ◄── /target_   │  │
+│  │      follower/result    (ROS→UDP :16041)      │  │
+│  │  udp_trash_action_bridge ──►  /trash_action    │  │
+│  │      (UDP :16032→ROS)                         │  │
 │  └───────────────────────────────────────────────┘  │
 │          ▲  UDP JSON  127.0.0.1:${TRASH_UDP_PORT}   │
 │  ┌───────┴───────────────────────────────────────┐  │
 │  │  Host — Native Ubuntu 22.04                   │  │
 │  │  handobj_detection_rgbd.py  (non-ROS, GPU)    │  │
+│  │  dialogue_udp_runner.py  (audio + NLU)         │  │
+│  │    UDP :16041 trigger in  |  :16032 result out │  │
 │  │  Orbbec Femto Bolt SDK                        │  │
+│  │  demo_dashboard.sh / watch_demo_topics.sh      │  │
 │  └───────────────────────────────────────────────┘  │
 └──────────────────┬──────────────────────────────────┘
                    │  Gigabit Ethernet  192.168.50.0/24
@@ -209,13 +216,68 @@ docker commit ros_noetic ros_noetic:nav_unitree
   → target_follower  → /move_base (action)  → /cmd_vel
   → rosaria (Pi)  → P3-AT chassis
 
+[Docker] /target_follower/result
+  → navigation_success_udp_bridge  ──UDP 16041──► [Host] dialogue_udp_runner.py
+  → speech + intent (yes/no)
+  → dialogue_udp_runner.py ──UDP 16032──► udp_trash_action_bridge
+  → /trash_action (Bool)
+
 unitree_lidar_ros → /unitree/scan
   → slam_gmapping* → /map + map→odom TF    (* mapping mode)
   → move_base → /cmd_vel                   (costmap obstacle source)
 
-Static TF:  base_link → camera_link  (quat: -0.5 0.5 -0.5 0.5)
+Static TF:  base_link → camera_link  xyz=(0.208, 0, 1.0) quat=(-0.5, 0.5, -0.5, 0.5)
             optical z(depth/fwd) → base +x(fwd), optical x(right) → base -y, optical y(down) → base -z
 ```
+
+### Dialogue Expected Workflow
+
+```
+1) target_follower reaches standoff distance
+   → publish /target_follower/result = True
+
+2) navigation_success_udp_bridge (Docker)
+   → listen /target_follower/result
+   → send UDP trigger to 127.0.0.1:16041 (navigation_success=1)
+
+3) dialogue_udp_runner.py (Host)
+   → receive trigger on UDP:16041
+   → play prompt + run STT/NLU (yes/no)
+   → send decision UDP to 127.0.0.1:16032 (trash_action=1/0)
+
+4) udp_trash_action_bridge (Docker)
+   → receive UDP:16032
+   → publish /trash_action (std_msgs/Bool)
+
+5) target_follower consumes /trash_action while in WAITING_ACTION
+   → True: accept, return IDLE
+   → False: refuse, start RETREATING, then return IDLE
+```
+
+`/target_follower/result` signal contract (current implementation):
+
+- Type: `std_msgs/Bool`
+- `True`: reached interaction distance (dialogue trigger source)
+- `False`: failed/lost target (not a dialogue trigger)
+- Bridge trigger mode defaults:
+  - `trigger_on_true_only=true` (only `True` can trigger)
+  - `rising_edge_only=true` (expects `False -> True` edge)
+  - while in `WAITING_ACTION`, bridge may periodically re-trigger until `/trash_action` arrives
+
+Per-stage expected signals:
+
+|Stage (`/target_follower/status`)|`/target_follower/result`     |`/trash_action`          |           Notes            |
+|---------------------------------|------------------------------|-------------------------|----------------------------|
+|`IDLE`                           |keep last latched value       |optional stale last value|waiting for target          |
+|`TRACKING`                       |unchanged unless failure      |unchanged                |move_base following target  |
+|`REACHED` -> `WAITING_ACTION`    |publish `True` once           |waiting new value        |dialogue trigger event      |
+|`WAITING_ACTION` + accept        |not auto-reset by current code|`True`                   |follower returns to `IDLE`  |
+|`WAITING_ACTION` + refuse        |not auto-reset by current code|`False`                  |follower `RETREATING` to `IDLE`|
+|`LOST`/`FAILED`                  |publish `False`               | unchanged               |provides `False -> True` edge opportunity for next trigger |
+
+TODO: Important implementation note:
+- In current `target_follower.py`, receiving `/trash_action` does **not** publish `result=False`.
+- So if no later `LOST/FAILED` occurs, `/target_follower/result` may remain latched at `True`, and pure rising-edge trigger logic may miss a later `True` unless another `False` was published in between.
 
 ### Sensor Stack Comparison
 
@@ -333,6 +395,25 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 │       ├── unitree_lidar_ros/src/unitree_lidar_ros/  ← ROS1 package (catkin finds automatically)
 │       ├── unitree_lidar_ros2/       (CATKIN_IGNORE)
 │       └── unitree_lidar_sdk/        (CATKIN_IGNORE — aarch64 libunitree_lidar_sdk.a inside)
+├── dialogue/
+│   ├── dialogue_udp_runner.py         # UDP trigger/result bridge + dialogue loop
+│   ├── src/
+│   │   ├── dialogue_manager.py
+│   │   └── utils/
+│   │       ├── speech_to_text.py
+│   │       ├── text_to_speech.py
+│   │       ├── nlu_intent.py
+│   │       └── generate_prompt.py
+│   └── voice_data/                    # robot_prompt/leave/proceed wav assets
+├── scripts/
+│   ├── start_demo.sh                  # unified startup (master/nav/target/dialogue/dashboard)
+│   ├── stop_demo_all.sh               # stop all or scoped stop (--dialogue/--master)
+│   ├── start_dialogue_host.sh
+│   ├── start_dialogue_docker_bridges.sh
+│   ├── test_dialogue_chain.sh         # false→true trigger + /trash_action test
+│   ├── demo_dashboard.sh              # runtime status panel
+│   ├── watch_demo_topics.sh
+│   └── watch_dialogue_flow.sh
 ├── tools/
 │   ├── source_ros.sh / source_ros.zsh
 │   ├── camera_info_pub.py
@@ -1303,7 +1384,7 @@ docker exec --user "$(id -u):$(id -g)" ros_noetic bash -c \
                           ←── /trash_action  (Bool: True=接受 / False=拒绝→后退)
   navigation_success_udp_bridge  ←── /target_follower/result ──► UDP:16041
   udp_trash_action_bridge        ←── UDP:16032 ──► /trash_action
-  static_transform_publisher  ──► TF: base_link → camera_link  (quat: -0.5 0.5 -0.5 0.5)
+  static_transform_publisher  ──► TF: base_link → camera_link  xyz=(0.208, 0, 1.0) quat=(-0.5, 0.5, -0.5, 0.5)
   move_base               ←── rolling-window costmap (odom frame, NO /map needed)
   unitree_lidar_ros       ──► /unitree/scan  → move_base obstacle layer
 
@@ -1489,7 +1570,7 @@ exec roslaunch target_follower target_follow_real.launch \
 | `unitree_lidar` | `unitree_lidar_ros` | Reads `/dev/ttyUSB0`, publishes `/unilidar/cloud` |
 | `pointcloud_to_laserscan` | `pointcloud_to_laserscan` | Cloud → `/unitree/scan` (`range_min=0.35 m` — filters robot body) |
 | `robot_state_publisher` | `robot_state_publisher` | TF `base_link → unitree_lidar` |
-| `static_transform_publisher` | `tf` | TF `base_link → camera_link` (quat: `-0.5 0.5 -0.5 0.5`) |
+| `static_transform_publisher` | `tf` | TF `base_link → camera_link` xyz=`(0.208, 0, 1.0)` quat=`(-0.5, 0.5, -0.5, 0.5)` |
 | `move_base` | `move_base` | Rolling-window costmap (`global_frame=odom`, no `/map` needed) |
 | `udp_target_bridge` | `target_follower` | UDP 16031 → `/trash_detection/target_point` |
 | `point_to_target_pose` | `target_follower` | PointStamped → PoseStamped |
@@ -1916,7 +1997,7 @@ odom                   [rosaria on Pi  ~50 Hz — odom is the nav root, no /map 
 └── base_footprint     [rosaria on Pi  ~50 Hz]
     └── base_link      [robot_state_publisher  static]
         ├── unitree_lidar  [robot_state_publisher  static]
-        └── camera_link    [static_transform_publisher  static — quat: -0.5 0.5 -0.5 0.5]
+        └── camera_link    [static_transform_publisher  static — xyz: 0.208 0 1.0  quat: -0.5 0.5 -0.5 0.5]
 ```
 
 | Edge | Broadcaster | Notes |
@@ -1925,7 +2006,7 @@ odom                   [rosaria on Pi  ~50 Hz — odom is the nav root, no /map 
 | `odom → base_footprint` | `rosaria` (Pi) | Cross-machine via TCPROS |
 | `base_footprint → base_link` | `robot_state_publisher` | Static, identity |
 | `base_link → unitree_lidar` | `robot_state_publisher` | Static, mount offset from URDF |
-| `base_link → camera_link` | `static_transform_publisher` | Static, quat `(-0.5, 0.5, -0.5, 0.5)` = RPY `[-90°, 0°, -90°]` |
+| `base_link → camera_link` | `static_transform_publisher` | Static, xyz `(0.208, 0, 1.0)` quat `(-0.5, 0.5, -0.5, 0.5)` = RPY `[-90°, 0°, -90°]` |
 
 **SICK stack:** identical with `laser` replacing `unitree_lidar`, `/scan` replacing `/unitree/scan`.
 

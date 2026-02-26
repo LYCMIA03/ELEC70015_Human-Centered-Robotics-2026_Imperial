@@ -358,14 +358,17 @@
 
   <!-- ======================== Unitree 4D Lidar L1 ======================== -->
   <!--
-    Top plate joint is at z=0.274 from base_link.
-    Unitree cylinder height=0.050m, so center must be at z=0.274+0.025=0.299
-    to sit flush on the top plate (no floating gap).
+    真机布局：雷达放在车头中心，外缘离车头前缘约 1 cm。
+    底盘碰撞箱前缘 x=0.25, 雷达半径=0.0325
+      → 雷达外缘 x = 0.25 − 0.01 = 0.24
+      → 雷达中心 x = 0.24 − 0.0325 ≈ 0.208
+    雷达下表面与顶板齐平 (z=0.274), 雷达高 0.050
+      → 雷达中心 z = 0.274 + 0.025 = 0.299
   -->
   <xacro:include filename="$(find p3at_lms_description)/urdf/unitree_lidar_l1.urdf.xacro"/>
 
   <xacro:unitree_lidar_l1 parent="base_link" prefix="unitree"
-                           xyz="0.0 0.0 0.299" rpy="0 0 0"
+                           xyz="0.208 0.0 0.299" rpy="0 0 0"
                            sim_scan_topic="unitree/scan"
                            sim_cloud_topic="unitree/cloud"
                            sim_imu_topic="unitree/imu"

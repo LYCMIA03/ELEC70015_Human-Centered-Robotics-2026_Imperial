@@ -275,6 +275,7 @@ rostopic echo /trash_action
 ros_noetic e
 # inside container:
 source /opt/ros/noetic/setup.bash
+rostopic pub -1 /target_follower/result std_msgs/Bool "data: false"
 rostopic pub -1 /target_follower/result std_msgs/Bool "data: true"
 ```
 

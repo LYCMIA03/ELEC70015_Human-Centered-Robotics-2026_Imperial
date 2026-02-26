@@ -28,6 +28,11 @@ DIALOGUE_ACTION_UDP_PORT="${DIALOGUE_ACTION_UDP_PORT:-16032}"
 NAV_SUCCESS_TOPIC="${NAV_SUCCESS_TOPIC:-/target_follower/result}"
 TRASH_ACTION_TOPIC="${TRASH_ACTION_TOPIC:-/trash_action}"
 DIALOGUE_TRIGGER_HOST="${DIALOGUE_TRIGGER_HOST:-127.0.0.1}"
+# Retry policy for WAITING_ACTION:
+# - false (default): single trigger per False->True edge, no periodic retrigger
+# - true: periodic retrigger while WAITING_ACTION and no /trash_action received
+DIALOGUE_RETRIGGER_ENABLE="${DIALOGUE_RETRIGGER_ENABLE:-false}"
+DIALOGUE_RETRIGGER_INTERVAL_S="${DIALOGUE_RETRIGGER_INTERVAL_S:-2.0}"
 
 DOCKER_NAME="${DOCKER_NAME:-ros_noetic}"
 DOCKER_USER="$(id -u):$(id -g)"
@@ -68,7 +73,9 @@ echo "[dialogue-bridges] Starting inside Docker '${DOCKER_NAME}'..."
    exec python3 ${CATKIN_WS}/src/target_follower/scripts/navigation_success_udp_bridge.py \
      _in_topic:=${NAV_SUCCESS_TOPIC} \
      _out_host:=${DIALOGUE_TRIGGER_HOST} \
-     _out_port:=${DIALOGUE_TRIGGER_UDP_PORT}" &
+     _out_port:=${DIALOGUE_TRIGGER_UDP_PORT} \
+     _enable_waiting_action_retrigger:=${DIALOGUE_RETRIGGER_ENABLE} \
+     _resend_interval_s:=${DIALOGUE_RETRIGGER_INTERVAL_S}" &
 PID_NAV2UDP=$!
 
 # --- Bridge 2: UDP → trash_action (background docker exec) ---
@@ -81,6 +88,7 @@ PID_UDP2ROS=$!
 
 echo "[dialogue-bridges] started:"
 echo "  nav_success -> UDP : ${NAV_SUCCESS_TOPIC} -> ${DIALOGUE_TRIGGER_HOST}:${DIALOGUE_TRIGGER_UDP_PORT}"
+echo "  retrigger policy  : enable=${DIALOGUE_RETRIGGER_ENABLE}, interval=${DIALOGUE_RETRIGGER_INTERVAL_S}s"
 echo "  UDP -> trash_action: 0.0.0.0:${DIALOGUE_ACTION_UDP_PORT} -> ${TRASH_ACTION_TOPIC}"
 
 wait -n "${PID_NAV2UDP}" "${PID_UDP2ROS}"

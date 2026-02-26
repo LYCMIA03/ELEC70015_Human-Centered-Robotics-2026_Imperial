@@ -39,23 +39,30 @@
     <param name="range_end"       value="30.0"/>
   </node>
 
-  <!-- ========== PointCloud2 → LaserScan 转换 ========== -->
+  <!-- ========== PointCloud2 → LaserScan 转换 (full 360°) ========== -->
   <!-- SDK 只发布 /unilidar/cloud，amcl/costmap 需要 LaserScan /unitree/scan -->
   <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node"
         name="pointcloud_to_laserscan" output="screen">
     <remap from="cloud_in" to="/unilidar/cloud"/>
-    <remap from="scan"     to="/unitree/scan"/>
+    <remap from="scan"     to="/unitree/scan_raw"/>
     <rosparam>
       target_frame: ""
       min_height: -0.5
       max_height: 0.5
-      angle_min: -1.5708
-      angle_max:  1.5708
+      angle_min: -3.14159265
+      angle_max:  3.14159265
       range_min: 0.35
       range_max: 30.0
       use_inf: true
       inf_epsilon: 1.0
     </rosparam>
+  </node>
+
+  <!-- Self-detection filter: remove scan points inside robot body -->
+  <node pkg="target_follower" type="scan_body_filter.py"
+        name="scan_body_filter" output="screen">
+    <remap from="~scan_raw" to="/unitree/scan_raw"/>
+    <remap from="~scan_out" to="/unitree/scan"/>
   </node>
 
   <!-- ========== 可选：SICK LMS200 保留 ========== -->
