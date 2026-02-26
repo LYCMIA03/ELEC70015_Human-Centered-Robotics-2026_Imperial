@@ -11,6 +11,7 @@ Usage examples:
 import argparse
 import json
 import queue
+import time
 import wave
 from pathlib import Path
 from typing import Optional
@@ -53,6 +54,7 @@ def recognize_from_mic(
     device: Optional[int] = None,
     sample_rate: Optional[int] = None,
     single_utterance: bool = False,
+    max_listen_sec: Optional[float] = None,
 ) -> Optional[str]:
     """Recognize speech from microphone in real-time or one utterance."""
     import sounddevice as sd
@@ -69,6 +71,9 @@ def recognize_from_mic(
         sample_rate = int(device_info["default_samplerate"])
 
     rec = KaldiRecognizer(model, sample_rate)
+    if single_utterance and max_listen_sec is None:
+        # Prevent indefinite waiting when endpointing never fires.
+        max_listen_sec = 12.0
 
     print("=" * 60)
     if single_utterance:
@@ -86,7 +91,12 @@ def recognize_from_mic(
             channels=1,
             callback=audio_callback,
         ):
+            start_t = time.time()
             while True:
+                if single_utterance and max_listen_sec is not None:
+                    if (time.time() - start_t) >= max_listen_sec:
+                        print(f"\n[STT] single_utterance timeout after {max_listen_sec:.1f}s")
+                        return ""
                 data = q.get()
                 if rec.AcceptWaveform(data):
                     result = json.loads(rec.Result())
@@ -186,4 +196,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

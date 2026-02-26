@@ -44,7 +44,17 @@ class UdpTrashActionBridge:
 
         self.pub = rospy.Publisher(self.out_topic, Bool, queue_size=10)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind((self.bind_host, self.bind_port))
+        try:
+            self.sock.bind((self.bind_host, self.bind_port))
+        except OSError as e:
+            if getattr(e, "errno", None) == 98:
+                rospy.logerr(
+                    "UDP bind failed on %s:%s (address already in use). "
+                    "Another udp_trash_action_bridge may still be running.",
+                    self.bind_host,
+                    self.bind_port,
+                )
+            raise
         self.sock.settimeout(0.2)
         rospy.loginfo(
             "udp_trash_action_bridge listening on %s:%s -> %s",
@@ -80,4 +90,3 @@ class UdpTrashActionBridge:
 if __name__ == "__main__":
     rospy.init_node("udp_trash_action_bridge")
     UdpTrashActionBridge().spin()
-

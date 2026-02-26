@@ -10,6 +10,7 @@ import json
 import socket
 import sys
 import time
+import traceback
 from pathlib import Path
 
 
@@ -54,8 +55,29 @@ def parse_args():
     return parser.parse_args()
 
 
+def _resolve_user_wav_arg(wav_arg, dialogue_root, launch_cwd):
+    if not wav_arg:
+        return wav_arg
+    p = Path(wav_arg)
+    if p.is_absolute():
+        return str(p)
+
+    # 1) Relative to launch cwd (common when launched from repo root).
+    c1 = (launch_cwd / p).resolve()
+    if c1.is_file():
+        return str(c1)
+
+    # 2) Relative to dialogue root (common when passing voice_data/...).
+    c2 = (dialogue_root / p).resolve()
+    if c2.is_file():
+        return str(c2)
+
+    return wav_arg
+
+
 def main():
     args = parse_args()
+    launch_cwd = Path.cwd()
     dialogue_root = Path(args.dialogue_root).resolve()
     if not dialogue_root.is_dir():
         raise FileNotFoundError(f"dialogue root not found: {dialogue_root}")
@@ -69,6 +91,9 @@ def main():
 
     os.chdir(dialogue_root)
 
+    args.first_user_wav = _resolve_user_wav_arg(args.first_user_wav, dialogue_root, launch_cwd)
+    args.second_user_wav = _resolve_user_wav_arg(args.second_user_wav, dialogue_root, launch_cwd)
+
     from src.dialogue_manager import STT_LANG, STT_MODEL_NAME, decide_two_rounds
     from src.utils.nlu_intent import IntentClassifier
     from src.utils.speech_to_text import load_model
@@ -77,18 +102,18 @@ def main():
     if not model_path.is_file():
         raise FileNotFoundError(f"NLU model not found: {model_path}")
 
-    print("[Init] Loading dialogue models...")
+    print("[Init] Loading dialogue models...", flush=True)
     classifier = IntentClassifier.load(str(model_path))
     stt_model = load_model(model_path=None, model_name=STT_MODEL_NAME, lang=STT_LANG)
-    print("[Init] Dialogue runner ready.")
+    print("[Init] Dialogue runner ready.", flush=True)
 
     recv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     recv_sock.bind((args.listen_host, args.listen_port))
     recv_sock.settimeout(0.2)
     send_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    print(f"[UDP] Listening trigger on {args.listen_host}:{args.listen_port}")
-    print(f"[UDP] Sending trash_action to {args.send_host}:{args.send_port}")
+    print(f"[UDP] Listening trigger on {args.listen_host}:{args.listen_port}", flush=True)
+    print(f"[UDP] Sending trash_action to {args.send_host}:{args.send_port}", flush=True)
 
     last_trigger_t = 0.0
     while True:
@@ -112,16 +137,21 @@ def main():
             continue
 
         last_trigger_t = now
-        print(f"[Trigger] navigation_success=1 from {addr}, starting dialogue...")
-        outcome = decide_two_rounds(
-            classifier=classifier,
-            stt_model=stt_model,
-            first_user_wav=args.first_user_wav,
-            second_user_wav=args.second_user_wav,
-            play_audio=not args.no_play,
-            sim=args.sim,
-            device=args.device,
-        )
+        print(f"[Trigger] navigation_success=1 from {addr}, starting dialogue...", flush=True)
+        try:
+            outcome = decide_two_rounds(
+                classifier=classifier,
+                stt_model=stt_model,
+                first_user_wav=args.first_user_wav,
+                second_user_wav=args.second_user_wav,
+                play_audio=not args.no_play,
+                sim=args.sim,
+                device=args.device,
+            )
+        except Exception as exc:
+            print(f"[Error] dialogue round failed: {exc}", flush=True)
+            traceback.print_exc()
+            continue
 
         action = 1 if outcome.value == "proceed" else 0
         result_payload = {
@@ -130,10 +160,16 @@ def main():
             "decision": outcome.value,
             "source": "dialogue_udp_runner",
         }
-        send_sock.sendto(json.dumps(result_payload, separators=(",", ":")).encode("utf-8"), (args.send_host, args.send_port))
-        print(f"[Result] outcome={outcome.value} -> trash_action={action}")
+        try:
+            send_sock.sendto(
+                json.dumps(result_payload, separators=(",", ":")).encode("utf-8"),
+                (args.send_host, args.send_port),
+            )
+            print(f"[Result] outcome={outcome.value} -> trash_action={action}", flush=True)
+        except Exception as exc:
+            print(f"[Error] failed to send trash_action UDP: {exc}", flush=True)
+            traceback.print_exc()
 
 
 if __name__ == "__main__":
     main()
-

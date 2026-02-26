@@ -131,6 +131,7 @@ class TargetFollower:
         self.last_send_time  = rospy.Time(0)
         self._goal_active    = False
         self._target_lost_logged = False
+        self._suppress_done_cb   = False  # suppress next done_cb after manual cancel
 
         # Dialogue integration state
         self._pending_trash_action = None   # None | True | False
@@ -201,6 +202,7 @@ class TargetFollower:
         if self._goal_active:
             state = self.client.get_state()
             if state in (GoalStatus.PENDING, GoalStatus.ACTIVE):
+                self._suppress_done_cb = True
                 self.client.cancel_goal()
                 rospy.loginfo("Cancelled active move_base goal")
             self._goal_active = False
@@ -238,16 +240,31 @@ class TargetFollower:
         """Called by actionlib when a move_base goal reaches a terminal state."""
         self._goal_active = False
 
+        # If we manually cancelled the goal, ignore this callback entirely
+        if self._suppress_done_cb:
+            self._suppress_done_cb = False
+            rospy.loginfo("[TargetFollower] Suppressed done_cb after manual cancel (status=%d)", status)
+            return
+
+        # RETREATING: any terminal state means retreat is finished
         if self._state == "RETREATING":
             rospy.loginfo("[TargetFollower] Retreat navigation finished (status=%d)", status)
             self._finish_retreat()
             return
 
-        if status == GoalStatus.SUCCEEDED:
-            if self._state not in ("REACHED", "WAITING_ACTION", "RETREATING"):
-                self._on_reached()
-        elif status in (GoalStatus.ABORTED, GoalStatus.REJECTED):
-            if self._state not in ("REACHED", "WAITING_ACTION", "RETREATING", "LOST"):
+        # WAITING_ACTION / REACHED: don't let stale goal callbacks change state
+        if self._state in ("REACHED", "WAITING_ACTION"):
+            rospy.loginfo("[TargetFollower] Ignoring done_cb in %s (status=%d)", self._state, status)
+            return
+
+        # TRACKING: react to goal outcome
+        if self._state == "TRACKING":
+            if status == GoalStatus.SUCCEEDED:
+                rospy.loginfo("[TargetFollower] move_base SUCCEEDED — checking distance in next tick")
+                # Don't set REACHED here; let maybe_send_goal distance check handle it
+            elif status == GoalStatus.PREEMPTED:
+                rospy.loginfo("[TargetFollower] move_base PREEMPTED (new goal will be sent)")
+            elif status in (GoalStatus.ABORTED, GoalStatus.REJECTED):
                 self._set_state("FAILED")
                 self._publish_result(False)
 
@@ -396,15 +413,16 @@ class TargetFollower:
     # ──────────────────────────────────────────────────────────────────────────
 
     def _reset_to_idle(self):
-        """Full reset: clear all state, return to IDLE ready for next detection."""
+        """Reset to IDLE. Preserves last_target so next tick can re-track immediately."""
         self._cancel_goal_if_active()
-        self.last_target       = None
+        # Keep self.last_target — so next maybe_send_goal() tick can re-track
         self.last_sent_goal    = None
         self._pending_trash_action = None
         self._waiting_action_start = None
         self._retreat_start        = None
         self._retreat_target_pos   = None
         self._target_lost_logged   = False
+        self._suppress_done_cb     = False
         self._set_state("IDLE")
 
     # ──────────────────────────────────────────────────────────────────────────

@@ -31,6 +31,7 @@
 #   --retreat M       人类拒绝后后退距离 (m), 默认 1.5
 #   --action-timeout S 等待对话结果超时 (s), 默认 45
 #   --target TYPE     检测目标类型 holding|person|waste, 默认 holding
+#   --dialogue-device N 对话麦克风设备号, 默认 24
 #   --no-yolo         不启动检测（手动测试用，可用 send_target_udp.py 模拟）
 #   --no-dialogue     不启动对话桥接（纲连测试）
 # =============================================================================
@@ -57,6 +58,7 @@ STANDOFF="0.8"
 RETREAT_DIST="1.5"
 ACTION_WAIT="45.0"
 TARGET_KIND="holding"
+DIALOGUE_DEVICE="24"
 LAUNCH_YOLO=true
 LAUNCH_DIALOGUE=true
 
@@ -67,6 +69,7 @@ while [[ $# -gt 0 ]]; do
     --retreat)         RETREAT_DIST="$2";   shift 2 ;;
     --action-timeout)  ACTION_WAIT="$2";    shift 2 ;;
     --target)          TARGET_KIND="$2";    shift 2 ;;
+    --dialogue-device) DIALOGUE_DEVICE="$2"; shift 2 ;;
     --no-yolo)         LAUNCH_YOLO=false;   shift   ;;
     --no-dialogue)     LAUNCH_DIALOGUE=false; shift  ;;
     -h|--help)
@@ -88,15 +91,81 @@ RASPI_IP="${RASPI_IP:-192.168.50.2}"
 TRASH_UDP_PORT="${TRASH_UDP_PORT:-16031}"
 DIALOGUE_TRIGGER_UDP_PORT="${DIALOGUE_TRIGGER_UDP_PORT:-16041}"
 DIALOGUE_ACTION_UDP_PORT="${DIALOGUE_ACTION_UDP_PORT:-16032}"
+DIALOGUE_DEVICE="${DIALOGUE_DEVICE:-${DEVICE:-24}}"
+UDP_PORT_WINDOW="${UDP_PORT_WINDOW:-500}"
 DOCKER_NAME="ros_noetic"
 ROS_MASTER="http://${JETSON_IP}:11311"
 ROS_SETUP="source /opt/ros/noetic/setup.bash && source ${CATKIN_WS}/devel/setup.bash"
 ROS_ENV="export ROS_MASTER_URI=${ROS_MASTER} && export ROS_IP=${JETSON_IP}"
 DOCKER_EXEC="docker exec --user $(id -u):$(id -g) ${DOCKER_NAME} bash -c"
 
+# ---------- UDP 端口工具 ----------
+_udp_port_in_use() {
+  local port="$1"
+  ss -lunH 2>/dev/null | awk '{print $5}' | grep -Eq "(^|:)$port$"
+}
+
+_udp_port_reserved() {
+  local port="$1"
+  local p
+  for p in "${USED_UDP_PORTS[@]:-}"; do
+    if [[ "${p}" == "${port}" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+_next_free_udp_port() {
+  local start="$1"
+  local p="$start"
+  local max=$((start + UDP_PORT_WINDOW))
+  while (( p <= max )); do
+    if ! _udp_port_in_use "${p}" && ! _udp_port_reserved "${p}"; then
+      echo "${p}"
+      return 0
+    fi
+    ((p++))
+  done
+  return 1
+}
+
+_select_udp_port() {
+  local label="$1"
+  local requested="$2"
+  local selected
+  selected="$(_next_free_udp_port "${requested}")" || \
+    die "No free UDP port found in [${requested}, $((requested + UDP_PORT_WINDOW))] for ${label}"
+  if [[ "${selected}" != "${requested}" ]]; then
+    warn "${label} UDP port ${requested} is in use; switched to ${selected}"
+  fi
+  USED_UDP_PORTS+=("${selected}")
+  echo "${selected}"
+}
+
+# ---------- 动态端口分配 ----------
+USED_UDP_PORTS=()
+TRASH_UDP_PORT="$(_select_udp_port "trash_detection->ROS" "${TRASH_UDP_PORT}")"
+DIALOGUE_TRIGGER_UDP_PORT="$(_select_udp_port "nav_success->dialogue" "${DIALOGUE_TRIGGER_UDP_PORT}")"
+DIALOGUE_ACTION_UDP_PORT="$(_select_udp_port "dialogue->trash_action" "${DIALOGUE_ACTION_UDP_PORT}")"
+
+# ---------- Bridge 健康检查 ----------
+_ros_node_exists() {
+  local node="$1"
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rosnode list 2>/dev/null | grep -q \"^/${node}$\"" \
+    2>/dev/null
+}
+
+_topic_has_publisher() {
+  local topic="$1"
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rostopic info ${topic} 2>/dev/null | awk '/Publishers:/{flag=1;next}/Subscribers:/{flag=0}flag' | grep -q '\\*'" \
+    2>/dev/null
+}
+
 # ---------- 后台进程 PID ----------
 YOLO_PID=""
 BRIDGE_PID=""
+DIALOGUE_PID=""
 
 # ---------- 清理函数 ----------
 cleanup() {
@@ -113,6 +182,12 @@ cleanup() {
   if [[ -n "${BRIDGE_PID}" ]] && kill -0 "${BRIDGE_PID}" 2>/dev/null; then
     info "Stopping dialogue bridges (pid ${BRIDGE_PID})..."
     kill "${BRIDGE_PID}" 2>/dev/null || true
+  fi
+
+  # 杀掉 host 上的 dialogue runner
+  if [[ -n "${DIALOGUE_PID}" ]] && kill -0 "${DIALOGUE_PID}" 2>/dev/null; then
+    info "Stopping dialogue runner (pid ${DIALOGUE_PID})..."
+    kill "${DIALOGUE_PID}" 2>/dev/null || true
   fi
 
   # 停止 Docker 内所有 target follow 相关节点 (包括 move_base)
@@ -135,7 +210,9 @@ echo -e "  Standoff:   ${STANDOFF} m"
 echo -e "  Retreat:    ${RETREAT_DIST} m (on refusal)"
 echo -e "  Act.timeout:${ACTION_WAIT} s"
 echo -e "  Target:     ${TARGET_KIND}"
-echo -e "  UDP port:   ${TRASH_UDP_PORT}"
+echo -e "  UDP detect: ${TRASH_UDP_PORT}  (trash_detection -> ROS)"
+echo -e "  UDP trig:   ${DIALOGUE_TRIGGER_UDP_PORT}  (nav_success -> dialogue)"
+echo -e "  UDP action: ${DIALOGUE_ACTION_UDP_PORT}  (dialogue -> /trash_action)"
 echo -e "  YOLO:       $(${LAUNCH_YOLO} && echo enabled || echo DISABLED)"
 echo -e "  Dialogue:   $(${LAUNCH_DIALOGUE} && echo enabled || echo DISABLED)"
 echo ""
@@ -239,6 +316,21 @@ else
   warn "/unitree/scan: no data — LiDAR may not be fully up yet (OK to proceed)"
 fi
 
+# Check core in-Docker bridge chain
+info "Validating in-Docker bridge nodes (/udp_target_bridge, /point_to_target_pose)..."
+CORE_BRIDGE_OK=0
+for i in $(seq 1 20); do
+  if _ros_node_exists "udp_target_bridge" && _ros_node_exists "point_to_target_pose"; then
+    CORE_BRIDGE_OK=1
+    break
+  fi
+  sleep 1
+done
+if [[ "${CORE_BRIDGE_OK}" -ne 1 ]]; then
+  die "Core bridge nodes not ready. Check: docker exec ${DOCKER_NAME} tail -60 /tmp/target_follow.log"
+fi
+ok "Core bridge chain is up (udp_target_bridge + point_to_target_pose)"
+
 # =============================================================================
 step "STEP 3 — Start Hand-Object detection (host)"
 
@@ -267,14 +359,41 @@ else
 fi
 
 # =============================================================================
-step "STEP 4 — Start Dialogue UDP bridges (host)"
+step "STEP 4 — Start Dialogue (runner + Docker bridges)"
 
 if ${LAUNCH_DIALOGUE}; then
   if [[ ! -f "${REPO_ROOT}/dialogue/dialogue_udp_runner.py" ]]; then
-    warn "dialogue/dialogue_udp_runner.py not found — dialogue bridge skipped"
-    warn "  Start manually later with: ./scripts/start_dialogue_host.sh --device ${DEVICE:-24}"
+    warn "dialogue/dialogue_udp_runner.py not found — dialogue disabled"
     LAUNCH_DIALOGUE=false
   else
+    info "Starting dialogue runner (device=${DIALOGUE_DEVICE})..."
+    pkill -f "python3 .*dialogue/dialogue_udp_runner.py" 2>/dev/null || true
+    python3 "${REPO_ROOT}/dialogue/dialogue_udp_runner.py" \
+      --listen-host "0.0.0.0" \
+      --listen-port "${DIALOGUE_TRIGGER_UDP_PORT}" \
+      --send-host "127.0.0.1" \
+      --send-port "${DIALOGUE_ACTION_UDP_PORT}" \
+      --device "${DIALOGUE_DEVICE}" \
+      > /tmp/dialogue_runner.log 2>&1 &
+    DIALOGUE_PID=$!
+
+    info "Waiting for dialogue runner to listen on UDP:${DIALOGUE_TRIGGER_UDP_PORT}..."
+    RUNNER_READY=0
+    for i in $(seq 1 20); do
+      sleep 1
+      if ! kill -0 "${DIALOGUE_PID}" 2>/dev/null; then
+        break
+      fi
+      if ss -lunp 2>/dev/null | grep -q "0.0.0.0:${DIALOGUE_TRIGGER_UDP_PORT}"; then
+        RUNNER_READY=1
+        break
+      fi
+    done
+    if [[ "${RUNNER_READY}" -ne 1 ]]; then
+      die "Dialogue runner failed to become ready. Check: tail -60 /tmp/dialogue_runner.log"
+    fi
+    ok "Dialogue runner started (pid ${DIALOGUE_PID}), log: /tmp/dialogue_runner.log"
+
     info "Starting dialogue docker bridges..."
     MASTER_HOST=jetson \
     DIALOGUE_TRIGGER_UDP_PORT=${DIALOGUE_TRIGGER_UDP_PORT} \
@@ -288,19 +407,55 @@ if ${LAUNCH_DIALOGUE}; then
       ok "  nav_success → UDP:${DIALOGUE_TRIGGER_UDP_PORT} → dialogue"
       ok "  dialogue   → UDP:${DIALOGUE_ACTION_UDP_PORT}  → /trash_action"
     else
-      warn "Dialogue bridge exited early. Check: tail -20 /tmp/dialogue_bridge.log"
-      BRIDGE_PID=""
+      die "Dialogue bridge exited early. Check: tail -40 /tmp/dialogue_bridge.log"
     fi
+
+    info "Validating dialogue bridge mesh (runner + ROS bridge nodes + /trash_action publisher)..."
+    DIALOGUE_OK=0
+    for i in $(seq 1 15); do
+      if kill -0 "${DIALOGUE_PID}" 2>/dev/null \
+         && _ros_node_exists "navigation_success_udp_bridge" \
+         && _ros_node_exists "udp_trash_action_bridge" \
+         && _topic_has_publisher "/trash_action"; then
+        DIALOGUE_OK=1
+        break
+      fi
+      sleep 1
+    done
+    if [[ "${DIALOGUE_OK}" -ne 1 ]]; then
+      warn "Dialogue bridge mesh check failed; retrying bridge startup once..."
+      if [[ -n "${BRIDGE_PID}" ]] && kill -0 "${BRIDGE_PID}" 2>/dev/null; then
+        kill "${BRIDGE_PID}" 2>/dev/null || true
+        sleep 1
+      fi
+      MASTER_HOST=jetson \
+      DIALOGUE_TRIGGER_UDP_PORT=${DIALOGUE_TRIGGER_UDP_PORT} \
+      DIALOGUE_ACTION_UDP_PORT=${DIALOGUE_ACTION_UDP_PORT} \
+      "${SCRIPT_DIR}/start_dialogue_docker_bridges.sh" \
+        > /tmp/dialogue_bridge.log 2>&1 &
+      BRIDGE_PID=$!
+      sleep 2
+
+      DIALOGUE_OK=0
+      for i in $(seq 1 10); do
+        if kill -0 "${DIALOGUE_PID}" 2>/dev/null \
+           && _ros_node_exists "navigation_success_udp_bridge" \
+           && _ros_node_exists "udp_trash_action_bridge" \
+           && _topic_has_publisher "/trash_action"; then
+          DIALOGUE_OK=1
+          break
+        fi
+        sleep 1
+      done
+      if [[ "${DIALOGUE_OK}" -ne 1 ]]; then
+        die "Dialogue bridge mesh still unhealthy after retry. Check: tail -80 /tmp/dialogue_bridge.log and /tmp/dialogue_runner.log"
+      fi
+    fi
+    ok "Dialogue bridge mesh is healthy"
   fi
 else
   warn "Dialogue bridge disabled (--no-dialogue). /trash_action will not be published."
   warn "  Simulate with: rostopic pub /trash_action std_msgs/Bool 'data: false'"
-fi
-
-# 提示如何单独启动 dialogue runner (如果在另一台设备）
-if ${LAUNCH_DIALOGUE}; then
-  echo -e "\n  ${YLW}Reminder${NC}: start the dialogue host runner on the device:"
-  echo -e "    ${CYN}./scripts/start_dialogue_host.sh --device 24${NC}"
 fi
 
 # =============================================================================
@@ -316,6 +471,7 @@ echo -e "    ${CYN}rostopic echo /trash_action${NC}             — True=接受 
 echo -e "    ${CYN}rostopic echo /target_pose${NC}              — current target pose"
 echo -e "    ${CYN}tail -f /tmp/handobj.log${NC}                  — detection log"
 echo -e "    ${CYN}tail -f /tmp/dialogue_bridge.log${NC}           — dialogue bridge log"
+echo -e "    ${CYN}tail -f /tmp/dialogue_runner.log${NC}           — dialogue runner log"
 echo ""
 
 _ros_topic_val() {
