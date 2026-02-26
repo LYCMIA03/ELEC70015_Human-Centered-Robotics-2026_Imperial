@@ -32,8 +32,12 @@
 #   --action-timeout S 等待对话结果超时 (s), 默认 45
 #   --target TYPE     检测目标类型 holding|person|waste, 默认 holding
 #   --dialogue-device N 对话麦克风设备号, 默认 24
+#   --only LIST       仅启动模块(逗号分隔): master,nav,yolo,dialogue,dashboard
+#   --no-nav          不启动 target_follow_real (仅联调 dialogue 等)
 #   --no-yolo         不启动检测（手动测试用，可用 send_target_udp.py 模拟）
 #   --no-dialogue     不启动对话桥接（纲连测试）
+#   --no-dashboard    不启动 dashboard
+#   --dashboard-interval S dashboard 刷新周期(秒), 默认 2
 # =============================================================================
 
 set -uo pipefail
@@ -61,6 +65,12 @@ TARGET_KIND="holding"
 DIALOGUE_DEVICE="24"
 LAUNCH_YOLO=true
 LAUNCH_DIALOGUE=true
+LAUNCH_NAV=true
+LAUNCH_DASHBOARD=true
+DASHBOARD_INTERVAL="2"
+AUTO_START_DOCKER=true
+ONLY_MODULES=""
+NEED_MASTER=true
 
 # ---------- 解析参数 ----------
 while [[ $# -gt 0 ]]; do
@@ -70,14 +80,42 @@ while [[ $# -gt 0 ]]; do
     --action-timeout)  ACTION_WAIT="$2";    shift 2 ;;
     --target)          TARGET_KIND="$2";    shift 2 ;;
     --dialogue-device) DIALOGUE_DEVICE="$2"; shift 2 ;;
+    --only)            ONLY_MODULES="$2";   shift 2 ;;
+    --no-nav)          LAUNCH_NAV=false;    shift   ;;
     --no-yolo)         LAUNCH_YOLO=false;   shift   ;;
     --no-dialogue)     LAUNCH_DIALOGUE=false; shift  ;;
+    --no-dashboard)    LAUNCH_DASHBOARD=false; shift ;;
+    --dashboard-interval) DASHBOARD_INTERVAL="$2"; shift 2 ;;
+    --no-auto-start-docker) AUTO_START_DOCKER=false; shift ;;
     -h|--help)
       grep '^#' "$0" | head -40 | sed 's/^# \{0,2\}//'
       exit 0 ;;
     *) die "Unknown argument: $1" ;;
   esac
 done
+
+if [[ -n "${ONLY_MODULES}" ]]; then
+  LAUNCH_NAV=false
+  LAUNCH_YOLO=false
+  LAUNCH_DIALOGUE=false
+  LAUNCH_DASHBOARD=false
+  NEED_MASTER=false
+  IFS=',' read -r -a _mods <<< "${ONLY_MODULES}"
+  for m in "${_mods[@]}"; do
+    case "${m}" in
+      master) NEED_MASTER=true ;;
+      nav) LAUNCH_NAV=true; NEED_MASTER=true ;;
+      yolo) LAUNCH_YOLO=true; NEED_MASTER=true ;;
+      dialogue) LAUNCH_DIALOGUE=true; NEED_MASTER=true ;;
+      dashboard) LAUNCH_DASHBOARD=true; NEED_MASTER=true ;;
+      *) die "Unknown module in --only: ${m}" ;;
+    esac
+  done
+fi
+
+if ${LAUNCH_NAV} || ${LAUNCH_YOLO} || ${LAUNCH_DIALOGUE} || ${LAUNCH_DASHBOARD}; then
+  NEED_MASTER=true
+fi
 
 # ---------- 加载 deploy.env ----------
 if [[ -f "${SCRIPT_DIR}/deploy.env" ]]; then
@@ -166,6 +204,7 @@ _topic_has_publisher() {
 YOLO_PID=""
 BRIDGE_PID=""
 DIALOGUE_PID=""
+DASHBOARD_PID=""
 
 # ---------- 清理函数 ----------
 cleanup() {
@@ -190,10 +229,17 @@ cleanup() {
     kill "${DIALOGUE_PID}" 2>/dev/null || true
   fi
 
+  if [[ -n "${DASHBOARD_PID}" ]] && kill -0 "${DASHBOARD_PID}" 2>/dev/null; then
+    info "Stopping dashboard (pid ${DASHBOARD_PID})..."
+    kill "${DASHBOARD_PID}" 2>/dev/null || true
+  fi
+
   # 停止 Docker 内所有 target follow 相关节点 (包括 move_base)
-  info "Stopping target following + navigation nodes..."
-  ${DOCKER_EXEC} "pkill -f 'roslaunch.*target_follow' 2>/dev/null; sleep 1" \
-    2>/dev/null || true
+  if ${LAUNCH_NAV}; then
+    info "Stopping target following + navigation nodes..."
+    ${DOCKER_EXEC} "pkill -f 'roslaunch.*target_follow' 2>/dev/null; sleep 1" \
+      2>/dev/null || true
+  fi
 
   ok "Demo stopped. Pi base driver still running — stop it manually on the Pi."
   exit 0
@@ -215,16 +261,26 @@ echo -e "  UDP trig:   ${DIALOGUE_TRIGGER_UDP_PORT}  (nav_success -> dialogue)"
 echo -e "  UDP action: ${DIALOGUE_ACTION_UDP_PORT}  (dialogue -> /trash_action)"
 echo -e "  YOLO:       $(${LAUNCH_YOLO} && echo enabled || echo DISABLED)"
 echo -e "  Dialogue:   $(${LAUNCH_DIALOGUE} && echo enabled || echo DISABLED)"
+echo -e "  Navigation: $(${LAUNCH_NAV} && echo enabled || echo DISABLED)"
+echo -e "  Dashboard:  $(${LAUNCH_DASHBOARD} && echo enabled || echo DISABLED)"
 echo ""
 
 # =============================================================================
 step "STEP 0 — Preflight checks"
 
 # Docker running?
-if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${DOCKER_NAME}$"; then
-  die "Docker container '${DOCKER_NAME}' is not running. Start it first:\n  docker start ${DOCKER_NAME}"
+if ${NEED_MASTER} && ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${DOCKER_NAME}$"; then
+  if ${AUTO_START_DOCKER}; then
+    info "Docker container '${DOCKER_NAME}' not running, starting it..."
+    docker start "${DOCKER_NAME}" >/dev/null || die "Failed to start docker container ${DOCKER_NAME}"
+    sleep 2
+  else
+    die "Docker container '${DOCKER_NAME}' is not running. Start it first:\n  docker start ${DOCKER_NAME}"
+  fi
 fi
-ok "Docker container '${DOCKER_NAME}' is running"
+if ${NEED_MASTER}; then
+  ok "Docker container '${DOCKER_NAME}' is running"
+fi
 
 # Workspace built?
 if [[ ! -f "${CATKIN_WS}/devel/setup.bash" ]]; then
@@ -257,22 +313,30 @@ fi
 # =============================================================================
 step "STEP 1 — Ensure roscore is running"
 
-if ${DOCKER_EXEC} "pgrep -x rosmaster" &>/dev/null; then
-  ok "roscore already running"
-else
-  info "Starting roscore..."
-  ${DOCKER_EXEC} "( ${ROS_ENV} && source /opt/ros/noetic/setup.bash && exec roscore ) \
-    > /tmp/roscore.log 2>&1 &" 2>/dev/null || true
-  sleep 4
+if ${NEED_MASTER}; then
   if ${DOCKER_EXEC} "pgrep -x rosmaster" &>/dev/null; then
-    ok "roscore started"
+    ok "roscore already running"
   else
-    die "roscore failed to start. Check: docker exec ${DOCKER_NAME} tail /tmp/roscore.log"
+    info "Starting roscore..."
+    ${DOCKER_EXEC} "( ${ROS_ENV} && source /opt/ros/noetic/setup.bash && exec roscore ) \
+      > /tmp/roscore.log 2>&1 &" 2>/dev/null || true
+    sleep 4
+    if ${DOCKER_EXEC} "pgrep -x rosmaster" &>/dev/null; then
+      ok "roscore started"
+    else
+      die "roscore failed to start. Check: docker exec ${DOCKER_NAME} tail /tmp/roscore.log"
+    fi
   fi
+else
+  warn "Master disabled by module selection; skip roscore startup."
 fi
 
 # =============================================================================
 step "STEP 2 — Start target following (standalone: LiDAR + move_base + follower)"
+
+if ! ${LAUNCH_NAV}; then
+  warn "Navigation disabled (--no-nav or --only without nav); skipping STEP 2"
+else
 
 # Kill any existing mapping/nav/target-follow launch
 ${DOCKER_EXEC} "pkill -f 'roslaunch.*real_robot' 2>/dev/null; \
@@ -330,11 +394,13 @@ if [[ "${CORE_BRIDGE_OK}" -ne 1 ]]; then
   die "Core bridge nodes not ready. Check: docker exec ${DOCKER_NAME} tail -60 /tmp/target_follow.log"
 fi
 ok "Core bridge chain is up (udp_target_bridge + point_to_target_pose)"
+fi
 
 # =============================================================================
 step "STEP 3 — Start Hand-Object detection (host)"
 
 if ${LAUNCH_YOLO}; then
+  pkill -f "handobj_detection_rgbd.py" 2>/dev/null || true
   info "Starting handobj_detection_rgbd.py (UDP → 127.0.0.1:${TRASH_UDP_PORT})..."
   cd "${HANDOBJ_DIR}"
   python3 handobj_detection_rgbd.py \
@@ -461,6 +527,18 @@ fi
 # =============================================================================
 step "STEP 5 — System ready! Live status monitor"
 
+if ${LAUNCH_DASHBOARD} && [[ -x "${SCRIPT_DIR}/demo_dashboard.sh" ]]; then
+  pkill -f "demo_dashboard.sh" 2>/dev/null || true
+  MODULES="master"
+  ${LAUNCH_DIALOGUE} && MODULES="${MODULES},dialogue"
+  ${LAUNCH_YOLO} && MODULES="${MODULES},yolo"
+  MODULES="${MODULES},base"
+  nohup "${SCRIPT_DIR}/demo_dashboard.sh" --interval "${DASHBOARD_INTERVAL}" --modules "${MODULES}" \
+    > /tmp/demo_dashboard.log 2>&1 &
+  DASHBOARD_PID=$!
+  ok "Dashboard started (pid ${DASHBOARD_PID}), log: /tmp/demo_dashboard.log"
+fi
+
 echo ""
 echo -e "  ${GRN}All components launched.${NC}  Press ${BOLD}Ctrl+C${NC} to shut everything down."
 echo ""
@@ -472,6 +550,7 @@ echo -e "    ${CYN}rostopic echo /target_pose${NC}              — current targ
 echo -e "    ${CYN}tail -f /tmp/handobj.log${NC}                  — detection log"
 echo -e "    ${CYN}tail -f /tmp/dialogue_bridge.log${NC}           — dialogue bridge log"
 echo -e "    ${CYN}tail -f /tmp/dialogue_runner.log${NC}           — dialogue runner log"
+echo -e "    ${CYN}tail -f /tmp/demo_dashboard.log${NC}            — dashboard log"
 echo ""
 
 _ros_topic_val() {

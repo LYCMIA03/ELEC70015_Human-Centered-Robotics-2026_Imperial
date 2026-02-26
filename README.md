@@ -8,6 +8,34 @@ ROS1 Noetic · Ubuntu 20.04 · Docker (Jetson) · Raspberry Pi 4.
 > No Gazebo in the production stack (RViz only). See [Simulation (Development Only)](#simulation-development-only) for local testing.  
 > Practical runbook: [`doc.md`](doc.md)
 
+### Updated Startup Checklist (2026-02)
+
+Key script updates for stable bringup/testing:
+
+```bash
+# clean stop
+./scripts/stop_demo_all.sh
+./scripts/stop_demo_all.sh --dialogue
+./scripts/stop_demo_all.sh --master
+
+# dialogue chain one-command test (docker->host->docker)
+./scripts/test_dialogue_chain.sh --device 24 --ip 192.168.50.1 --wait 90
+
+# module-selective demo start
+./scripts/start_demo.sh --only master,dialogue,dashboard
+./scripts/start_demo.sh --only master,nav
+
+# dashboard
+./scripts/demo_dashboard.sh --interval 2 --modules master,dialogue,yolo,base
+```
+
+`start_demo.sh` now supports:
+- auto-start docker container when required
+- module selection (`--only master,nav,yolo,dialogue,dashboard`)
+- optional navigation skip (`--no-nav`)
+- optional dashboard (`--no-dashboard`, `--dashboard-interval`)
+- de-dup restart behavior for managed processes (avoid duplicate runners/bridges)
+
 ---
 
 ## Quick Start — Docker Environment

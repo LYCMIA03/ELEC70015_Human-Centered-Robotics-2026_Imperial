@@ -7,6 +7,76 @@ This document defines startup flows by module and uses one Docker convention:
 
 The same flows are merged into `README.md` under "Module Startup Flows".
 
+## 0. Updated Command Checklist (2026-02)
+
+### 0.1 Clean stop commands
+
+```bash
+# stop everything except docker container itself
+./scripts/stop_demo_all.sh
+
+# stop dialogue-only components (runner + bridges)
+./scripts/stop_demo_all.sh --dialogue
+
+# stop docker-side ROS master/nav stack components
+./scripts/stop_demo_all.sh --master
+```
+
+### 0.2 Dialogue single-chain test (recommended first)
+
+```bash
+# one-command docker->host(dialogue)->docker chain test
+./scripts/test_dialogue_chain.sh --device 24 --ip 192.168.50.1 --wait 90
+```
+
+This script performs:
+1. start/check docker + roscore  
+2. restart dialogue runner + docker bridges  
+3. send `/target_follower/result` false->true  
+4. wait `/trash_action` response
+
+### 0.3 start_demo module control
+
+`start_demo.sh` now supports selective startup and dashboard:
+
+```bash
+# full demo (default)
+./scripts/start_demo.sh
+
+# dialogue-focused startup (only master + dialogue + dashboard)
+./scripts/start_demo.sh --only master,dialogue,dashboard
+
+# custom set: master + nav (skip yolo/dialogue)
+./scripts/start_demo.sh --only master,nav
+
+# disable dashboard
+./scripts/start_demo.sh --no-dashboard
+```
+
+New options:
+- `--only master,nav,yolo,dialogue,dashboard`
+- `--no-nav`
+- `--no-dashboard`
+- `--dashboard-interval <sec>`
+- `--no-auto-start-docker`
+
+Behavior updates:
+- auto-start docker container `ros_noetic` when needed
+- managed processes are cleaned before relaunch to avoid duplicated competing instances
+- optional dashboard auto-launched to `/tmp/demo_dashboard.log`
+
+### 0.4 Dashboard (runtime status)
+
+```bash
+./scripts/demo_dashboard.sh --interval 2 --modules master,dialogue,yolo,base
+```
+
+Default monitored items:
+- `master`: rosmaster alive
+- `dialogue`: runner + two bridge nodes + `/target_follower/result` + `/trash_action`
+- `yolo`: detector process + `/trash_detection/target_point` publisher
+- `base`: `/cmd_vel` publisher status
+
 ## Docker Operation Convention (Unified)
 
 On Jetson:
