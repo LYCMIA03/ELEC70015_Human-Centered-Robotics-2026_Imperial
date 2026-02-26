@@ -8,9 +8,24 @@ ROS1 Noetic · Ubuntu 20.04 · Docker (Jetson) · Raspberry Pi 4.
 > No Gazebo in the production stack (RViz only). See [Simulation (Development Only)](#simulation-development-only) for local testing.  
 > Practical runbook: [`doc.md`](doc.md)
 
-### Updated Startup Checklist (2026-02)
+### Updated Startup Checklist (2026-02-26)
 
-Key script updates for stable bringup/testing:
+#### CLOSE_APPROACH state — direct cmd_vel last-metre approach (2026-02-26)
+
+DWA planner frequently fails to produce a path when the human target is within ~1.5 m because the human's legs are marked as lethal obstacles in the costmap. To solve this, `target_follower.py` now has a **`CLOSE_APPROACH`** state that cancels `move_base` and drives directly with `cmd_vel` for the final approach:
+
+| New parameter | Default | Description |
+|---|---|---|
+| `~close_approach_threshold` | `1.5 m` | Switch from move_base to direct drive when `d_cam_z < threshold` |
+| `~close_approach_speed` | `0.10 m/s` | Forward speed during direct approach |
+| `~close_approach_steer_gain` | `0.6` | Proportional gain: `ang_z = −gain × cam_x` (keeps target centred) |
+| `~close_approach_max_depth_jump` | `0.5 m` | Depth jump filter: ignores readings that increase by more than this in one tick |
+
+State machine change: `TRACKING → CLOSE_APPROACH` (at 1.5 m) `→ REACHED` (at 0.8 m)
+
+All REACHED / CLOSE_APPROACH distance checks use `camera_link` z-depth (`pose.position.z`) directly — **no TF transformation required**. The static TF `base_link → camera_link xyz=(0.208,0,1.0) quat=(-0.5,0.5,-0.5,0.5)` is only used for the `move_base` waypoint (global frame) and for logging.
+
+#### Key script updates for stable bringup/testing:
 
 ```bash
 # clean stop
@@ -2064,6 +2079,11 @@ NavfnROS:
 | `~action_wait_timeout_s` | `45.0` s | Timeout in WAITING_ACTION before resetting to IDLE |
 | `~retreat_distance` | `1.5` m | Distance to retreat when human refuses (away from target) |
 | `~retreat_timeout_s` | `20.0` s | Max time allowed for retreat navigation goal |
+| `~close_approach_threshold` | `1.5` m | Distance at which move_base is cancelled and cmd_vel direct drive begins |
+| `~close_approach_speed` | `0.10` m/s | Forward speed during CLOSE_APPROACH state |
+| `~close_approach_steer_gain` | `0.6` | Proportional angular gain: `ang_z = −gain × cam_x` |
+| `~close_approach_max_depth_jump` | `0.5` m | Depth jump filter threshold — ignores single-frame depth increases above this |
+| `~close_approach_timeout_s` | `15.0` s | Max time in CLOSE_APPROACH before returning to IDLE |
 
 ---
 
@@ -2072,6 +2092,8 @@ NavfnROS:
 - **`clearing_rotation_allowed: false` is safety-critical**: In-place rotation recovery has caused the P3-AT to tip over with Unitree L1 on top (high CoM). Do not re-enable without anti-tip analysis.
 
 - **Camera TF quaternion is `(-0.5, 0.5, -0.5, 0.5)` — do not change**: This corrects optical→robot frame for the Orbbec Femto Bolt. The previous value `(0.5, -0.5, 0.5, 0.5)` was incorrect (inverse quaternion) and caused all direction axes to be inverted. Verified correct in 2026 session.
+
+- **CLOSE_APPROACH state (2026-02-26)**: DWA planner fails to produce a path when the target person is within ~1.5 m because the human's legs appear as lethal obstacles. The `CLOSE_APPROACH` state bypasses `move_base` and drives with `cmd_vel` instead: forward at 0.10 m/s plus a proportional angular correction (`ang_z = −0.6 × cam_x`) to keep the target centred. A depth-jump filter (`max_depth_jump=0.5 m`) suppresses single-frame detection glitches where the depth reading jumps to background. Distance threshold to enter: 1.5 m (`d_cam_z`). State exits to `REACHED` at 0.8 m.
 
 - **REACHED → WAITING_ACTION → RETREATING state flow**: After reaching standoff distance, the robot enters `WAITING_ACTION` (freezes target-following) and waits for `/trash_action` (Bool) from the dialogue module. If `False` (human refuses), the robot enters `RETREATING` — a new `move_base` goal is computed `retreat_distance` metres directly away from the target and dispatched. After the retreat completes (or times out), the robot returns to `IDLE`. This entire flow is handled inside `target_follower.py` without any separate node. If no `/trash_action` is received within `action_wait_timeout_s`, the robot also resets to `IDLE`.
 
