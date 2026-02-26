@@ -28,6 +28,20 @@ def _parse_boolish(value):
     return None
 
 
+def _drain_socket(sock):
+    """Discard all buffered UDP packets after a dialogue round."""
+    sock.setblocking(False)
+    try:
+        while True:
+            try:
+                sock.recvfrom(65535)
+            except (BlockingIOError, OSError):
+                break
+    finally:
+        sock.setblocking(True)
+        sock.settimeout(0.2)
+
+
 def _extract_navigation_success(payload):
     if isinstance(payload, dict):
         for key in ("navigation_success", "value", "success", "result"):
@@ -151,6 +165,8 @@ def main():
         except Exception as exc:
             print(f"[Error] dialogue round failed: {exc}", flush=True)
             traceback.print_exc()
+            _drain_socket(recv_sock)
+            last_trigger_t = time.time()
             continue
 
         action = 1 if outcome.value == "proceed" else 0
@@ -169,6 +185,9 @@ def main():
         except Exception as exc:
             print(f"[Error] failed to send trash_action UDP: {exc}", flush=True)
             traceback.print_exc()
+
+        _drain_socket(recv_sock)
+        last_trigger_t = time.time()
 
 
 if __name__ == "__main__":

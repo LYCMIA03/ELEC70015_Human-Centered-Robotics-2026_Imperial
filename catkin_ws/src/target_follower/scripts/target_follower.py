@@ -87,7 +87,7 @@ def transform_pose_stamped(pose_in, tf_stamped, target_frame):
 
 class TargetFollower:
     # Valid states
-    STATES = ("IDLE", "TRACKING", "REACHED", "WAITING_ACTION",
+    STATES = ("IDLE", "TRACKING", "CLOSE_APPROACH", "REACHED", "WAITING_ACTION",
               "POST_ACCEPT_COOLDOWN", "RETREATING", "LOST", "FAILED")
 
     def __init__(self):
@@ -121,6 +121,27 @@ class TargetFollower:
         # Angular speed (rad/s) for in-place 180° turn during retreat
         self.retreat_turn_speed = float(rospy.get_param("~retreat_turn_speed", 0.5))
 
+        # ── Close-approach params (bypass move_base for last-metre approach) ──
+        # When d_cam_z < this threshold, switch from move_base to direct cmd_vel.
+        # Must be > standoff_distance.  Default: 2× standoff.
+        self.close_approach_threshold = float(
+            rospy.get_param("~close_approach_threshold", 1.5))
+        # Forward speed during close approach (m/s). Keep low for safety.
+        self.close_approach_speed = float(
+            rospy.get_param("~close_approach_speed", 0.10))
+        # Max time (s) for close approach before giving up
+        self.close_approach_timeout_s = float(
+            rospy.get_param("~close_approach_timeout_s", 15.0))
+        # Steering gain for close approach: angular.z = -gain * camera_x
+        # Camera optical convention: x = right, so negative gain steers left when target is right.
+        self.close_approach_steer_gain = float(
+            rospy.get_param("~close_approach_steer_gain", 0.6))
+        # Max depth jump (m) allowed between consecutive readings in CLOSE_APPROACH.
+        # If d_cam_z increases by more than this in one tick, the reading is
+        # treated as a detection glitch and the previous value is kept.
+        self.close_approach_max_depth_jump = float(
+            rospy.get_param("~close_approach_max_depth_jump", 0.5))
+
         # ── TF & action client ─────────────────────────────────────────────
         self.tfbuf = tf2_ros.Buffer(cache_time=rospy.Duration(10.0))
         self.tfl   = tf2_ros.TransformListener(self.tfbuf)
@@ -146,6 +167,8 @@ class TargetFollower:
         self._retreat_target_pos   = None   # (tx, ty) of last target, for retreat dir
         self._retreat_phase        = None   # "TURNING" | "DRIVING"
         self._retreat_target_yaw   = None   # target yaw after 180° turn
+        self._close_approach_start = None   # rospy.Time when CLOSE_APPROACH began
+        self._ca_last_good_depth   = None   # last accepted d_cam_z during CLOSE_APPROACH (depth filter)
 
         # ── Publishers ─────────────────────────────────────────────────────
         # cmd_vel for direct rotation control during retreat turn phase
@@ -171,6 +194,10 @@ class TargetFollower:
         self._param_reload_interval  = 2.0  # seconds between param server checks
 
         rospy.loginfo("standoff_distance = %.2f m", self.standoff_distance)
+        rospy.loginfo("close_approach_threshold = %.2f m", self.close_approach_threshold)
+        rospy.loginfo("close_approach_speed = %.2f m/s", self.close_approach_speed)
+        rospy.loginfo("close_approach_steer_gain = %.2f", self.close_approach_steer_gain)
+        rospy.loginfo("close_approach_max_depth_jump = %.2f m", self.close_approach_max_depth_jump)
         rospy.loginfo("face_target = %s", self.face_target)
         rospy.loginfo("trash_action_topic = %s", self.trash_action_topic)
         rospy.loginfo("action_wait_timeout = %.1f s", self.action_wait_timeout_s)
@@ -255,6 +282,40 @@ class TargetFollower:
     @staticmethod
     def _yaw_to_quaternion(yaw):
         return Quaternion(0.0, 0.0, math.sin(yaw / 2.0), math.cos(yaw / 2.0))
+
+    def _get_target_depth_in_camera(self):
+        """Return the z-distance (depth) of the current target in camera_link frame.
+
+        The detection pipeline (handobj_detection_rgbd / predict_15cls_rgbd) outputs
+        coordinates in the camera optical convention:
+            z = forward (depth),  x = right,  y = down
+        and labels the frame as camera_link.  This z-component is the most
+        reliable distance metric because it comes straight from the depth
+        sensor with no TF chain involved.
+
+        If the target is not in camera_link, we fall back to a TF lookup.
+        Returns None when target or TF is unavailable.
+        """
+        if self.last_target is None:
+            return None
+        # Fast path: target already in camera_link — just read z
+        if self.last_target.header.frame_id == self.camera_frame:
+            return self.last_target.pose.position.z
+        # Slow path: transform into camera_link
+        try:
+            tfm = self.tfbuf.lookup_transform(
+                self.camera_frame,
+                self.last_target.header.frame_id,
+                rospy.Time(0),
+                rospy.Duration(0.2),
+            )
+            target_cam = transform_pose_stamped(
+                self.last_target, tfm, self.camera_frame,
+            )
+            return target_cam.pose.position.z
+        except Exception as e:
+            rospy.logwarn_throttle(2.0, "TF error getting camera depth: %s", str(e))
+            return None
 
     def _reload_dynamic_params(self):
         now = rospy.Time.now()
@@ -559,6 +620,8 @@ class TargetFollower:
         self._retreat_target_pos   = None
         self._retreat_phase        = None
         self._retreat_target_yaw   = None
+        self._close_approach_start = None
+        self._ca_last_good_depth   = None
         self._target_lost_logged   = False
         self._suppress_done_cb     = False
         self._set_state("IDLE")
@@ -567,10 +630,128 @@ class TargetFollower:
     # Main following logic
     # ──────────────────────────────────────────────────────────────────────────
 
+    # ──────────────────────────────────────────────────────────────────────────
+    # CLOSE_APPROACH — direct cmd_vel drive when move_base can't plan (target=obstacle)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _start_close_approach(self):
+        """Cancel move_base and drive toward target with cmd_vel + steering."""
+        self._cancel_goal_if_active()
+        self._close_approach_start = rospy.Time.now()
+        # Initialise depth filter with current reading
+        d_cam_z = self._get_target_depth_in_camera()
+        self._ca_last_good_depth = d_cam_z
+        self._set_state("CLOSE_APPROACH")
+        rospy.loginfo(
+            "[TargetFollower] CLOSE_APPROACH started — driving at %.2f m/s toward target (steer_gain=%.2f)",
+            self.close_approach_speed, self.close_approach_steer_gain,
+        )
+
+    def _tick_close_approach(self):
+        """Drive toward target with depth filtering + proportional steering.
+
+        Depth filter:
+            Detection can jump when the tracker switches body parts or hits
+            background surfaces.  If d_cam_z *increases* by more than
+            ``close_approach_max_depth_jump`` compared with the last accepted
+            reading, the new reading is ignored and the previous value is kept.
+
+        Steering:
+            The camera optical x-coordinate indicates how far the target is
+            to the right (positive x) or left (negative x).  A proportional
+            angular velocity is applied:  angular.z = -steer_gain * cam_x
+            so the robot turns toward the target instead of driving blind.
+        """
+        if self._close_approach_start is None:
+            self._close_approach_start = rospy.Time.now()
+
+        # Timeout check
+        elapsed = (rospy.Time.now() - self._close_approach_start).to_sec()
+        if elapsed > self.close_approach_timeout_s:
+            rospy.logwarn(
+                "[TargetFollower] CLOSE_APPROACH timeout (%.1fs) — returning to IDLE",
+                elapsed,
+            )
+            self._stop_cmd_vel()
+            self._reset_to_idle()
+            return
+
+        # Check if target is still fresh
+        if self.last_target is None:
+            self._stop_cmd_vel()
+            self._reset_to_idle()
+            return
+        now = rospy.Time.now()
+        if self.last_target.header.stamp != rospy.Time(0):
+            age = (now - self.last_target.header.stamp).to_sec()
+            if age > self.target_timeout_s:
+                rospy.logwarn(
+                    "[TargetFollower] CLOSE_APPROACH target stale (%.2fs) — stopping",
+                    age,
+                )
+                self._stop_cmd_vel()
+                self._set_state("LOST")
+                self._publish_result(False)
+                return
+
+        # ── Read depth with jump filter ──────────────────────────────────
+        raw_d_cam_z = self._get_target_depth_in_camera()
+        d_cam_z = raw_d_cam_z
+
+        if d_cam_z is not None and self._ca_last_good_depth is not None:
+            jump = d_cam_z - self._ca_last_good_depth
+            if jump > self.close_approach_max_depth_jump:
+                rospy.logwarn(
+                    "[TargetFollower] CLOSE_APPROACH depth jump filtered: "
+                    "raw=%.3f  last_good=%.3f  jump=+%.3f > %.2f — keeping last value",
+                    d_cam_z, self._ca_last_good_depth, jump,
+                    self.close_approach_max_depth_jump,
+                )
+                d_cam_z = self._ca_last_good_depth
+            else:
+                self._ca_last_good_depth = d_cam_z
+        elif d_cam_z is not None:
+            # First reading — accept it
+            self._ca_last_good_depth = d_cam_z
+
+        # ── REACHED check ────────────────────────────────────────────────
+        if d_cam_z is not None:
+            rospy.loginfo_throttle(
+                1.0,
+                "[TargetFollower] CLOSE_APPROACH d_cam_z=%.3f (raw=%.3f)  standoff=%.2f",
+                d_cam_z,
+                raw_d_cam_z if raw_d_cam_z is not None else -1.0,
+                self.standoff_distance,
+            )
+            if d_cam_z <= self.standoff_distance:
+                rospy.loginfo(
+                    "[TargetFollower] CLOSE_APPROACH reached standoff "
+                    "(d_cam_z=%.3f <= %.2f) — REACHED",
+                    d_cam_z, self.standoff_distance,
+                )
+                self._stop_cmd_vel()
+                self._on_reached()
+                return
+
+        # ── Steering: proportional controller on camera x-offset ─────────
+        # camera_link optical convention: x = right, so target at positive x
+        # means it's to the right → robot should turn right (negative angular.z)
+        cam_x = 0.0
+        if self.last_target is not None and self.last_target.header.frame_id == self.camera_frame:
+            cam_x = self.last_target.pose.position.x
+
+        twist = Twist()
+        twist.linear.x = self.close_approach_speed
+        twist.angular.z = -self.close_approach_steer_gain * cam_x
+        # Clamp angular velocity to avoid spinning
+        max_ang = 0.35  # rad/s, same as DWA max_vel_theta
+        twist.angular.z = max(-max_ang, min(max_ang, twist.angular.z))
+        self.cmd_vel_pub.publish(twist)
+
     def maybe_send_goal(self):
         """Core target-following tick — only active in IDLE/TRACKING/LOST/FAILED."""
-        # Don't pursue targets while waiting for dialogue or retreating
-        if self._state in ("WAITING_ACTION", "POST_ACCEPT_COOLDOWN", "RETREATING"):
+        # Don't pursue targets while waiting for dialogue, retreating, or close-approaching
+        if self._state in ("WAITING_ACTION", "POST_ACCEPT_COOLDOWN", "RETREATING", "CLOSE_APPROACH"):
             return
 
         self._reload_dynamic_params()
@@ -630,45 +811,69 @@ class TargetFollower:
                 return
             rx, ry, tf_robot = robot_info
 
-            # Distance from base_link to target (for goal waypoint computation)
+            # Distance from base_link to target in global frame (for goal waypoint)
             dx = tx - rx
             dy = ty - ry
             d  = math.hypot(dx, dy)
 
-            # Distance from camera_link to target (for REACHED check)
-            # Camera is mounted ahead of base_link (e.g. +0.208 m in X),
-            # so camera distance is always shorter than base distance.
+            # ── REACHED check: camera_link z-depth ────────────────────────
+            # The depth camera reports the target's z-coordinate in
+            # camera_link (optical convention: z = forward / depth).
+            # This is the most direct and reliable distance metric.
+            d_cam_z = self._get_target_depth_in_camera()
+
+            # Also compute 2D global-frame camera distance for goal offset
             cam_pos = self._get_camera_pose_in_global()
             if cam_pos is not None:
                 cx, cy = cam_pos
-                d_cam = math.hypot(tx - cx, ty - cy)
+                d_cam_xy = math.hypot(tx - cx, ty - cy)
             else:
-                d_cam = d  # fallback: use base distance
+                d_cam_xy = d  # fallback
 
-            self.target_distance_pub.publish(Float32(data=d_cam))
+            # Publish camera depth (z) for monitoring; fall back to xy
+            d_report = d_cam_z if d_cam_z is not None else d_cam_xy
+            self.target_distance_pub.publish(Float32(data=d_report))
             rospy.loginfo_throttle(
                 2.0,
-                "[TargetFollower] d_base=%.3f  d_cam=%.3f  standoff=%.2f",
-                d, d_cam, self.standoff_distance,
+                "[TargetFollower] d_base=%.3f  d_cam_z=%s  d_cam_xy=%.3f  standoff=%.2f",
+                d,
+                "%.3f" % d_cam_z if d_cam_z is not None else "N/A",
+                d_cam_xy,
+                self.standoff_distance,
             )
 
             if self.standoff_distance > 0:
-                # REACHED check uses camera→target distance
+                # REACHED: use camera depth-z (preferred) or fallback to xy
+                reach_dist = d_cam_z if d_cam_z is not None else d_cam_xy
                 reach_threshold = self.standoff_distance
-                if d_cam <= reach_threshold:
+                if reach_dist <= reach_threshold:
                     if self._state not in ("REACHED", "WAITING_ACTION"):
                         rospy.loginfo(
-                            "[TargetFollower] Within standoff (d_cam=%.2f <= %.2f) — REACHED",
-                            d_cam, reach_threshold,
+                            "[TargetFollower] Within standoff "
+                            "(d_cam_z=%s <= %.2f) — REACHED",
+                            "%.3f" % reach_dist, reach_threshold,
                         )
                         self._on_reached()
                     return
-                # Goal waypoint: offset from base_link so that *camera* ends
-                # up at standoff.  Approximate: camera is roughly
-                # (d - d_cam) metres closer to target along the
-                # robot→target line, so the base should stop at
-                # standoff + (d - d_cam) from target.
-                cam_ahead = d - d_cam  # positive when camera is ahead
+
+                # ── Close approach: bypass move_base for last-metre ────
+                # When target is within close_approach_threshold but
+                # beyond standoff, switch to direct cmd_vel drive.
+                # This avoids DWA failure when the human is an obstacle.
+                if reach_dist < self.close_approach_threshold:
+                    rospy.loginfo(
+                        "[TargetFollower] Target within close-approach zone "
+                        "(d=%.3f < %.2f) — switching to CLOSE_APPROACH",
+                        reach_dist, self.close_approach_threshold,
+                    )
+                    self._start_close_approach()
+                    return
+
+                # Goal waypoint: offset from base_link so that *camera*
+                # depth ends up at standoff.  Camera is roughly
+                # (d - d_cam_xy) metres closer to target along the
+                # robot→target line.
+                cam_ahead = d - d_cam_xy  # positive when camera is ahead
                 base_standoff = self.standoff_distance + cam_ahead
                 if base_standoff >= d:
                     base_standoff = d * 0.9  # safety: don't send goal behind robot
@@ -726,6 +931,10 @@ class TargetFollower:
             # Dialogue waiting state tick
             if self._state == "WAITING_ACTION":
                 self._tick_waiting_action()
+
+            # Close approach tick
+            if self._state == "CLOSE_APPROACH":
+                self._tick_close_approach()
 
             # Post-accept cooldown tick
             if self._state == "POST_ACCEPT_COOLDOWN":

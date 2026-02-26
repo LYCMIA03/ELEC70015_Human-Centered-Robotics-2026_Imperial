@@ -289,6 +289,7 @@ def main():
     p.add_argument("--udp-port", type=int, default=16031, help="UDP 目标端口，默认 16031")
     p.add_argument("--udp-frame-id", default="camera_link", help="发送时使用的 frame_id，默认 camera_link")
     p.add_argument("--udp-rate", type=float, default=10.0, help="UDP 最大发送频率 (Hz)，默认 10")
+    p.add_argument("--udp-kind", default="holding", help="UDP 目标类型标签 (holding|person|waste)，默认 holding")
     args = p.parse_args()
 
     weights = Path(args.weights)
@@ -351,8 +352,8 @@ def main():
             source="handobj_detection_rgbd",
             max_rate_hz=args.udp_rate,
         )
-        print("UDP 发送已启用: %s:%s frame_id=%s kind=holding rate<=%.1f Hz" % (
-            args.udp_host, args.udp_port, args.udp_frame_id, args.udp_rate))
+        print("UDP 发送已启用: %s:%s frame_id=%s kind=%s rate<=%.1f Hz" % (
+            args.udp_host, args.udp_port, args.udp_frame_id, args.udp_kind, args.udp_rate))
     if not headless:
         cv2.namedWindow("Hand-Object RGB-D", cv2.WINDOW_NORMAL)
 
@@ -420,7 +421,7 @@ def main():
                         xyz[0], xyz[1], xyz[2], conf), flush=True)
 
             if sender is not None:
-                sender.send_xyz(nearest_xyz, "holding")
+                sender.send_xyz(nearest_xyz, args.udp_kind)
 
             fps_frame_count += 1
             elapsed_sec = time.perf_counter() - fps_interval_start

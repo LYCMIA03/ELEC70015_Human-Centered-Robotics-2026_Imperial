@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__SINGLETON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/single_instance.sh
-source "${SCRIPT_DIR}/lib/single_instance.sh"
+source "${__SINGLETON_DIR}/lib/single_instance.sh"
 single_instance::activate "$(basename "$0")"
 # =============================================================================
 # start_demo.sh — 一键启动完整 Target-Following + Dialogue Demo (无需先验地图)
@@ -58,12 +58,13 @@ die()   { echo -e "${RED}[FATAL]${NC} $*" >&2; exit 1; }
 step()  { echo -e "\n${BOLD}${CYN}── $* ${NC}"; }
 
 # ---------- 路径 ----------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CATKIN_WS="${REPO_ROOT}/catkin_ws"
 HANDOBJ_DIR="${REPO_ROOT}/handobj_detection"
 
 # ---------- 默认参数 ----------
-STANDOFF="0.8"
+STANDOFF="0.6"
 RETREAT_DIST="1.5"
 ACTION_WAIT="45.0"
 POST_ACCEPT_COOLDOWN="15.0"
@@ -119,6 +120,10 @@ if [[ -n "${ONLY_MODULES}" ]]; then
       *) die "Unknown module in --only: ${m}" ;;
     esac
   done
+fi
+
+if ${LAUNCH_NAV} || ${LAUNCH_YOLO} || ${LAUNCH_DIALOGUE} || ${LAUNCH_DASHBOARD}; then
+  NEED_MASTER=true
 fi
 
 # ---------- 加载 deploy.env ----------
@@ -213,40 +218,32 @@ BRIDGE_PID=""
 DIALOGUE_PID=""
 DASHBOARD_PID=""
 
-_kill_tree() {
-  local pid="$1"
-  if [[ -z "${pid}" ]]; then return; fi
-  kill -0 "${pid}" 2>/dev/null || return 0
-  local child
-  for child in $(pgrep -P "${pid}" 2>/dev/null || true); do
-    _kill_tree "${child}"
-  done
-  kill "${pid}" 2>/dev/null || true
-}
-
 # ---------- 清理函数 ----------
 cleanup() {
   echo ""
   step "Shutting down..."
 
+  # 杀掉 host 上的 YOLO
   if [[ -n "${YOLO_PID}" ]] && kill -0 "${YOLO_PID}" 2>/dev/null; then
     info "Stopping YOLO (pid ${YOLO_PID})..."
-    _kill_tree "${YOLO_PID}"
+    kill "${YOLO_PID}" 2>/dev/null || true
   fi
 
+  # 杀掉 host 上的对话 bridge
   if [[ -n "${BRIDGE_PID}" ]] && kill -0 "${BRIDGE_PID}" 2>/dev/null; then
     info "Stopping dialogue bridges (pid ${BRIDGE_PID})..."
-    _kill_tree "${BRIDGE_PID}"
+    kill "${BRIDGE_PID}" 2>/dev/null || true
   fi
 
+  # 杀掉 host 上的 dialogue runner
   if [[ -n "${DIALOGUE_PID}" ]] && kill -0 "${DIALOGUE_PID}" 2>/dev/null; then
     info "Stopping dialogue runner (pid ${DIALOGUE_PID})..."
-    _kill_tree "${DIALOGUE_PID}"
+    kill "${DIALOGUE_PID}" 2>/dev/null || true
   fi
 
   if [[ -n "${DASHBOARD_PID}" ]] && kill -0 "${DASHBOARD_PID}" 2>/dev/null; then
     info "Stopping dashboard (pid ${DASHBOARD_PID})..."
-    _kill_tree "${DASHBOARD_PID}"
+    kill "${DASHBOARD_PID}" 2>/dev/null || true
   fi
 
   # 停止 Docker 内所有 target follow 相关节点 (包括 move_base)
@@ -425,7 +422,6 @@ if ${LAUNCH_YOLO}; then
     --udp-host "127.0.0.1" \
     --udp-port "${TRASH_UDP_PORT}" \
     --udp-frame-id "camera_link" \
-    --udp-kind "${TARGET_KIND}" \
     --headless \
     --print-xyz \
     > /tmp/handobj.log 2>&1 &
@@ -478,7 +474,36 @@ if ${LAUNCH_DIALOGUE}; then
     fi
     ok "Dialogue runner started (pid ${DIALOGUE_PID}), log: /tmp/dialogue_runner.log"
 
-    _launch_dialogue_bridges() {
+    info "Starting dialogue docker bridges..."
+    MASTER_HOST=jetson \
+    DIALOGUE_TRIGGER_UDP_PORT=${DIALOGUE_TRIGGER_UDP_PORT} \
+    DIALOGUE_ACTION_UDP_PORT=${DIALOGUE_ACTION_UDP_PORT} \
+    "${SCRIPT_DIR}/start_dialogue_docker_bridges.sh" \
+      > /tmp/dialogue_bridge.log 2>&1 &
+    BRIDGE_PID=$!
+    sleep 2
+    if kill -0 "${BRIDGE_PID}" 2>/dev/null; then
+      ok "Dialogue bridges started (pid ${BRIDGE_PID}), log: /tmp/dialogue_bridge.log"
+      ok "  nav_success → UDP:${DIALOGUE_TRIGGER_UDP_PORT} → dialogue"
+      ok "  dialogue   → UDP:${DIALOGUE_ACTION_UDP_PORT}  → /trash_action"
+    else
+      die "Dialogue bridge exited early. Check: tail -40 /tmp/dialogue_bridge.log"
+    fi
+
+    info "Validating dialogue bridge mesh (runner + ROS bridge nodes + /trash_action publisher)..."
+    DIALOGUE_OK=0
+    for i in $(seq 1 15); do
+      if kill -0 "${DIALOGUE_PID}" 2>/dev/null \
+         && _ros_node_exists "navigation_success_udp_bridge" \
+         && _ros_node_exists "udp_trash_action_bridge" \
+         && _topic_has_publisher "/trash_action"; then
+        DIALOGUE_OK=1
+        break
+      fi
+      sleep 1
+    done
+    if [[ "${DIALOGUE_OK}" -ne 1 ]]; then
+      warn "Dialogue bridge mesh check failed; retrying bridge startup once..."
       if [[ -n "${BRIDGE_PID}" ]] && kill -0 "${BRIDGE_PID}" 2>/dev/null; then
         kill "${BRIDGE_PID}" 2>/dev/null || true
         sleep 1
@@ -490,34 +515,19 @@ if ${LAUNCH_DIALOGUE}; then
         > /tmp/dialogue_bridge.log 2>&1 &
       BRIDGE_PID=$!
       sleep 2
-      kill -0 "${BRIDGE_PID}" 2>/dev/null
-    }
 
-    _dialogue_mesh_healthy() {
-      local max_wait="$1"
-      for i in $(seq 1 "${max_wait}"); do
+      DIALOGUE_OK=0
+      for i in $(seq 1 10); do
         if kill -0 "${DIALOGUE_PID}" 2>/dev/null \
            && _ros_node_exists "navigation_success_udp_bridge" \
            && _ros_node_exists "udp_trash_action_bridge" \
            && _topic_has_publisher "/trash_action"; then
-          return 0
+          DIALOGUE_OK=1
+          break
         fi
         sleep 1
       done
-      return 1
-    }
-
-    info "Starting dialogue docker bridges..."
-    _launch_dialogue_bridges || die "Dialogue bridge exited early. Check: tail -40 /tmp/dialogue_bridge.log"
-    ok "Dialogue bridges started (pid ${BRIDGE_PID}), log: /tmp/dialogue_bridge.log"
-    ok "  nav_success → UDP:${DIALOGUE_TRIGGER_UDP_PORT} → dialogue"
-    ok "  dialogue   → UDP:${DIALOGUE_ACTION_UDP_PORT}  → /trash_action"
-
-    info "Validating dialogue bridge mesh (runner + ROS bridge nodes + /trash_action publisher)..."
-    if ! _dialogue_mesh_healthy 15; then
-      warn "Dialogue bridge mesh check failed; retrying bridge startup once..."
-      _launch_dialogue_bridges || die "Dialogue bridge retry failed. Check: tail -40 /tmp/dialogue_bridge.log"
-      if ! _dialogue_mesh_healthy 10; then
+      if [[ "${DIALOGUE_OK}" -ne 1 ]]; then
         die "Dialogue bridge mesh still unhealthy after retry. Check: tail -80 /tmp/dialogue_bridge.log and /tmp/dialogue_runner.log"
       fi
     fi
