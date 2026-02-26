@@ -6,7 +6,7 @@ State machine:
   IDLE
    └─ target received           → TRACKING
        └─ d <= standoff         → REACHED  (publishes result=True → triggers dialogue via bridge)
-           └─ /trash_action=True  → IDLE        (accepted, resume following)
+           └─ /trash_action=True  → POST_ACCEPT_COOLDOWN (pause before returning to IDLE)
            └─ /trash_action=False → RETREATING  (refused, navigate away)
            └─ timeout             → IDLE        (no response, give up)
        └─ /trash_action received during RETREATING → navigate retreat → IDLE
@@ -24,7 +24,7 @@ import actionlib
 from geometry_msgs.msg import PoseStamped, Quaternion, Twist
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool, Float32, String
 import tf2_ros
 
 # Pure-python quaternion helpers (no PyKDL required)
@@ -88,16 +88,17 @@ def transform_pose_stamped(pose_in, tf_stamped, target_frame):
 class TargetFollower:
     # Valid states
     STATES = ("IDLE", "TRACKING", "REACHED", "WAITING_ACTION",
-              "RETREATING", "LOST", "FAILED")
+              "POST_ACCEPT_COOLDOWN", "RETREATING", "LOST", "FAILED")
 
     def __init__(self):
         # ── Core following params ──────────────────────────────────────────
         self.target_topic = rospy.get_param("~target_topic", "/target_pose")
         self.global_frame = rospy.get_param("~global_frame", "map")
         self.robot_frame  = rospy.get_param("~robot_frame", "base_link")
+        self.camera_frame = rospy.get_param("~camera_frame", "camera_link")
         self.send_rate_hz      = float(rospy.get_param("~send_rate_hz", 2.0))
         self.min_update_dist   = float(rospy.get_param("~min_update_dist", 0.3))
-        self.target_timeout_s  = float(rospy.get_param("~target_timeout_s", 1.0))
+        self.target_timeout_s  = float(rospy.get_param("~target_timeout_s", 5.0))
         self.use_target_orientation = bool(
             rospy.get_param("~use_target_orientation", False))
 
@@ -111,6 +112,8 @@ class TargetFollower:
         self.trash_action_topic = rospy.get_param("~trash_action_topic", "/trash_action")
         # How long (s) to wait in WAITING_ACTION before giving up (no dialogue response)
         self.action_wait_timeout_s = float(rospy.get_param("~action_wait_timeout_s", 45.0))
+        # How long (s) to ignore targets after trash_action=True (allow user to drop trash)
+        self.post_accept_cooldown_s = float(rospy.get_param("~post_accept_cooldown_s", 15.0))
         # How far (m) to retreat when human refuses
         self.retreat_distance = float(rospy.get_param("~retreat_distance", 1.5))
         # Max time (s) allowed for the retreat navigation goal
@@ -138,6 +141,7 @@ class TargetFollower:
         # Dialogue integration state
         self._pending_trash_action = None   # None | True | False
         self._waiting_action_start = None   # rospy.Time when WAITING_ACTION began
+        self._post_accept_start    = None   # rospy.Time when POST_ACCEPT_COOLDOWN began
         self._retreat_start        = None   # rospy.Time when RETREATING began
         self._retreat_target_pos   = None   # (tx, ty) of last target, for retreat dir
         self._retreat_phase        = None   # "TURNING" | "DRIVING"
@@ -158,14 +162,19 @@ class TargetFollower:
         self.result_pub = rospy.Publisher("~result",  Bool,   queue_size=1, latch=True)
         # status: IDLE|TRACKING|REACHED|WAITING_ACTION|RETREATING|LOST|FAILED
         self.status_pub = rospy.Publisher("~status",  String, queue_size=1)
+        # debug: planar distance from base_link to target pose in global_frame (meters)
+        self.target_distance_pub = rospy.Publisher("~target_distance", Float32, queue_size=10)
 
         self._state = "IDLE"
         self._last_status_time = rospy.Time(0)
+        self._last_param_reload_time = rospy.Time(0)
+        self._param_reload_interval  = 2.0  # seconds between param server checks
 
         rospy.loginfo("standoff_distance = %.2f m", self.standoff_distance)
         rospy.loginfo("face_target = %s", self.face_target)
         rospy.loginfo("trash_action_topic = %s", self.trash_action_topic)
         rospy.loginfo("action_wait_timeout = %.1f s", self.action_wait_timeout_s)
+        rospy.loginfo("post_accept_cooldown = %.1f s", self.post_accept_cooldown_s)
         rospy.loginfo("retreat_distance = %.2f m", self.retreat_distance)
         rospy.loginfo("Result topic: %s/result (std_msgs/Bool)", rospy.get_name())
         rospy.loginfo("Status topic: %s/status (std_msgs/String)", rospy.get_name())
@@ -229,11 +238,29 @@ class TargetFollower:
             rospy.logwarn_throttle(2.0, "TF not ready for robot pose: %s", str(e))
             return None
 
+    def _get_camera_pose_in_global(self):
+        """Return (cx, cy) of camera_link in global_frame, or None."""
+        try:
+            tf_cam = self.tfbuf.lookup_transform(
+                self.global_frame, self.camera_frame,
+                rospy.Time(0), rospy.Duration(0.2),
+            )
+            cx = tf_cam.transform.translation.x
+            cy = tf_cam.transform.translation.y
+            return cx, cy
+        except Exception as e:
+            rospy.logwarn_throttle(2.0, "TF not ready for camera pose: %s", str(e))
+            return None
+
     @staticmethod
     def _yaw_to_quaternion(yaw):
         return Quaternion(0.0, 0.0, math.sin(yaw / 2.0), math.cos(yaw / 2.0))
 
     def _reload_dynamic_params(self):
+        now = rospy.Time.now()
+        if (now - self._last_param_reload_time).to_sec() < self._param_reload_interval:
+            return
+        self._last_param_reload_time = now
         self.standoff_distance = float(rospy.get_param("~standoff_distance", self.standoff_distance))
         self.face_target       = bool(rospy.get_param("~face_target",         self.face_target))
         self.send_rate_hz      = float(rospy.get_param("~send_rate_hz",       self.send_rate_hz))
@@ -319,8 +346,8 @@ class TargetFollower:
             self._pending_trash_action = None
 
             if action:
-                rospy.loginfo("[TargetFollower] Trash action ACCEPTED — returning to IDLE")
-                self._reset_to_idle()
+                rospy.loginfo("[TargetFollower] Trash action ACCEPTED — entering POST_ACCEPT_COOLDOWN")
+                self._start_post_accept_cooldown()
             else:
                 rospy.loginfo("[TargetFollower] Trash action REFUSED — starting retreat")
                 self._start_retreat()
@@ -331,6 +358,50 @@ class TargetFollower:
         if elapsed > self.action_wait_timeout_s:
             rospy.logwarn(
                 "[TargetFollower] No /trash_action received after %.1f s — returning to IDLE",
+                elapsed,
+            )
+            self._reset_to_idle()
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # POST_ACCEPT_COOLDOWN processing
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _start_post_accept_cooldown(self):
+        """Freeze tracking for a short period after acceptance."""
+        self._cancel_goal_if_active()
+        self._stop_cmd_vel()
+        # Reset latched result immediately so next REACHED publish is a clean rising edge.
+        self._publish_result(False)
+        self._post_accept_start = rospy.Time.now()
+        self._set_state("POST_ACCEPT_COOLDOWN")
+
+    def _tick_post_accept_cooldown(self):
+        """
+        During cooldown:
+          1) Ignore all targets for post_accept_cooldown_s.
+          2) If target stream becomes stale early, clear last_target and exit cooldown.
+        """
+        if self._post_accept_start is None:
+            self._post_accept_start = rospy.Time.now()
+
+        now = rospy.Time.now()
+
+        # Early exit if target stream is stale (same criterion as LOST check).
+        if self.last_target is not None and self.last_target.header.stamp != rospy.Time(0):
+            age = (now - self.last_target.header.stamp).to_sec()
+            if age > self.target_timeout_s:
+                rospy.loginfo(
+                    "[TargetFollower] POST_ACCEPT_COOLDOWN early-exit: target stale (age=%.2fs > %.2fs)",
+                    age, self.target_timeout_s,
+                )
+                self.last_target = None
+                self._reset_to_idle()
+                return
+
+        elapsed = (now - self._post_accept_start).to_sec()
+        if elapsed >= self.post_accept_cooldown_s:
+            rospy.loginfo(
+                "[TargetFollower] POST_ACCEPT_COOLDOWN complete (%.1fs) — returning to IDLE",
                 elapsed,
             )
             self._reset_to_idle()
@@ -361,6 +432,9 @@ class TargetFollower:
 
     def _start_retreat(self):
         """Start retreat: phase 1 = turn 180° in place, phase 2 = drive forward."""
+        # Safety: ensure move_base is not still sending cmd_vel
+        self._cancel_goal_if_active()
+
         robot_info = self._get_robot_pose_in_global()
         if robot_info is None:
             rospy.logwarn("[TargetFollower] Cannot get robot pose for retreat — resetting to IDLE")
@@ -480,6 +554,7 @@ class TargetFollower:
         self.last_sent_goal    = None
         self._pending_trash_action = None
         self._waiting_action_start = None
+        self._post_accept_start    = None
         self._retreat_start        = None
         self._retreat_target_pos   = None
         self._retreat_phase        = None
@@ -495,7 +570,7 @@ class TargetFollower:
     def maybe_send_goal(self):
         """Core target-following tick — only active in IDLE/TRACKING/LOST/FAILED."""
         # Don't pursue targets while waiting for dialogue or retreating
-        if self._state in ("WAITING_ACTION", "RETREATING"):
+        if self._state in ("WAITING_ACTION", "POST_ACCEPT_COOLDOWN", "RETREATING"):
             return
 
         self._reload_dynamic_params()
@@ -534,10 +609,13 @@ class TargetFollower:
             rospy.logwarn_throttle(1.0, "TF not ready for target transform: %s", str(e))
             return
 
-        if (now - self.last_send_time).to_sec() < (1.0 / max(self.send_rate_hz, 0.1)):
-            return
+        # Rate limiter — but allow immediate re-send after FAILED/LOST/IDLE
+        if self._state == "TRACKING":
+            if (now - self.last_send_time).to_sec() < (1.0 / max(self.send_rate_hz, 0.1)):
+                return
 
-        if self.last_sent_goal is not None and self._state not in ("FAILED", "LOST", "IDLE", "REACHED"):
+        # Skip if target hasn't moved enough (only while actively tracking)
+        if self.last_sent_goal is not None and self._state == "TRACKING":
             if dist_xy(target_g, self.last_sent_goal) < self.min_update_dist:
                 return
 
@@ -552,17 +630,49 @@ class TargetFollower:
                 return
             rx, ry, tf_robot = robot_info
 
+            # Distance from base_link to target (for goal waypoint computation)
             dx = tx - rx
             dy = ty - ry
             d  = math.hypot(dx, dy)
 
+            # Distance from camera_link to target (for REACHED check)
+            # Camera is mounted ahead of base_link (e.g. +0.208 m in X),
+            # so camera distance is always shorter than base distance.
+            cam_pos = self._get_camera_pose_in_global()
+            if cam_pos is not None:
+                cx, cy = cam_pos
+                d_cam = math.hypot(tx - cx, ty - cy)
+            else:
+                d_cam = d  # fallback: use base distance
+
+            self.target_distance_pub.publish(Float32(data=d_cam))
+            rospy.loginfo_throttle(
+                2.0,
+                "[TargetFollower] d_base=%.3f  d_cam=%.3f  standoff=%.2f",
+                d, d_cam, self.standoff_distance,
+            )
+
             if self.standoff_distance > 0:
-                if d <= self.standoff_distance:
-                    # Within standoff range — trigger REACHED → WAITING_ACTION
+                # REACHED check uses camera→target distance
+                reach_threshold = self.standoff_distance
+                if d_cam <= reach_threshold:
                     if self._state not in ("REACHED", "WAITING_ACTION"):
+                        rospy.loginfo(
+                            "[TargetFollower] Within standoff (d_cam=%.2f <= %.2f) — REACHED",
+                            d_cam, reach_threshold,
+                        )
                         self._on_reached()
                     return
-                ratio  = (d - self.standoff_distance) / d
+                # Goal waypoint: offset from base_link so that *camera* ends
+                # up at standoff.  Approximate: camera is roughly
+                # (d - d_cam) metres closer to target along the
+                # robot→target line, so the base should stop at
+                # standoff + (d - d_cam) from target.
+                cam_ahead = d - d_cam  # positive when camera is ahead
+                base_standoff = self.standoff_distance + cam_ahead
+                if base_standoff >= d:
+                    base_standoff = d * 0.9  # safety: don't send goal behind robot
+                ratio  = (d - base_standoff) / d
                 goal_x = rx + dx * ratio
                 goal_y = ry + dy * ratio
 
@@ -596,6 +706,11 @@ class TargetFollower:
         self._goal_active  = True
         self.last_sent_goal = target_g
         self.last_send_time = now
+        if self._state in ("FAILED", "LOST", "IDLE"):
+            rospy.loginfo(
+                "[TargetFollower] Resuming from %s → TRACKING (goal dist=%.2f m)",
+                self._state, math.hypot(goal_x - rx, goal_y - ry) if 'rx' in dir() else -1,
+            )
         self._set_state("TRACKING")
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -611,6 +726,10 @@ class TargetFollower:
             # Dialogue waiting state tick
             if self._state == "WAITING_ACTION":
                 self._tick_waiting_action()
+
+            # Post-accept cooldown tick
+            if self._state == "POST_ACCEPT_COOLDOWN":
+                self._tick_post_accept_cooldown()
 
             # Retreat timeout tick
             if self._state == "RETREATING":

@@ -24,7 +24,7 @@
 
     结果 topic:
       /target_follower/result  (std_msgs/Bool)   — True=到达目标(触发对话), False=失败/丢失
-      /target_follower/status  (std_msgs/String)  — 当前状态: IDLE|TRACKING|REACHED|WAITING_ACTION|RETREATING|LOST|FAILED
+      /target_follower/status  (std_msgs/String)  — 当前状态: IDLE|TRACKING|REACHED|WAITING_ACTION|POST_ACCEPT_COOLDOWN|RETREATING|LOST|FAILED
       /trash_action            (std_msgs/Bool)    — 对话结果输入: True=接受投递, False=拒绝→触发后退
   -->
 
@@ -50,6 +50,8 @@
        doc="udp_trash_action_bridge 发布的对话结果 topic (Bool: True=接受, False=拒绝)"/>
   <arg name="action_wait_timeout"    default="45.0"
        doc="等待对话结果的超时时间 (s), 超时后重置为 IDLE"/>
+  <arg name="post_accept_cooldown"   default="15.0"
+       doc="收到 trash_action=True 后的冷却时长 (s), 冷却期间忽略目标追踪"/>
   <arg name="retreat_distance"       default="1.5"
        doc="人类拒绝投垃圾后机器人后退的距离 (m)"/>
   <arg name="retreat_timeout"        default="20.0"
@@ -173,6 +175,7 @@
     <!-- Dialogue integration -->
     <param name="trash_action_topic"     value="$(arg trash_action_topic)"/>
     <param name="action_wait_timeout_s"  value="$(arg action_wait_timeout)"/>
+    <param name="post_accept_cooldown_s" value="$(arg post_accept_cooldown)"/>
     <param name="retreat_distance"       value="$(arg retreat_distance)"/>
     <param name="retreat_timeout_s"      value="$(arg retreat_timeout)"/>
   </node>

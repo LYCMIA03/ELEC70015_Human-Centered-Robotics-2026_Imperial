@@ -10,12 +10,12 @@ controller_patience: 20.0
 max_planning_retries: 5
 
 recovery_behavior_enabled: true
-clearing_rotation_allowed: false
+clearing_rotation_allowed: true
 shutdown_costmaps: false
 
 NavfnROS:
   allow_unknown: true
-  default_tolerance: 0.3
+  default_tolerance: 0.15
   visualize_potential: false
 
 DWAPlannerROS:
@@ -43,8 +43,8 @@ DWAPlannerROS:
   occdist_scale: 0.08
   forward_point_distance: 0.25
 
-  xy_goal_tolerance: 0.55
-  yaw_goal_tolerance: 0.5
+  xy_goal_tolerance: 0.15
+  yaw_goal_tolerance: 0.3
   latch_xy_goal_tolerance: true
 
   stop_time_buffer: 0.4

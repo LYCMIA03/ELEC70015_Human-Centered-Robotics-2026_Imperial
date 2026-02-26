@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+__SINGLETON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/single_instance.sh
+source "${__SINGLETON_DIR}/lib/single_instance.sh"
+single_instance::activate "$(basename "$0")"
 # =============================================================================
 # start_demo.sh — 一键启动完整 Target-Following + Dialogue Demo (无需先验地图)
 #
@@ -30,6 +35,7 @@
 #   --standoff M      停在目标前多远 (m), 默认 0.6
 #   --retreat M       人类拒绝后后退距离 (m), 默认 1.5
 #   --action-timeout S 等待对话结果超时 (s), 默认 45
+#   --post-accept-cooldown S 接受投递后的冷却时长 (s), 默认 15
 #   --target TYPE     检测目标类型 holding|person|waste, 默认 holding
 #   --dialogue-device N 对话麦克风设备号, 默认 24
 #   --only LIST       仅启动模块(逗号分隔): master,nav,yolo,dialogue,dashboard
@@ -61,6 +67,8 @@ HANDOBJ_DIR="${REPO_ROOT}/handobj_detection"
 STANDOFF="0.6"
 RETREAT_DIST="1.5"
 ACTION_WAIT="45.0"
+POST_ACCEPT_COOLDOWN="15.0"
+POST_ACCEPT_COOLDOWN_SET=false
 TARGET_KIND="holding"
 DIALOGUE_DEVICE="24"
 LAUNCH_YOLO=true
@@ -78,6 +86,7 @@ while [[ $# -gt 0 ]]; do
     --standoff)        STANDOFF="$2";       shift 2 ;;
     --retreat)         RETREAT_DIST="$2";   shift 2 ;;
     --action-timeout)  ACTION_WAIT="$2";    shift 2 ;;
+    --post-accept-cooldown) POST_ACCEPT_COOLDOWN="$2"; POST_ACCEPT_COOLDOWN_SET=true; shift 2 ;;
     --target)          TARGET_KIND="$2";    shift 2 ;;
     --dialogue-device) DIALOGUE_DEVICE="$2"; shift 2 ;;
     --only)            ONLY_MODULES="$2";   shift 2 ;;
@@ -130,6 +139,9 @@ TRASH_UDP_PORT="${TRASH_UDP_PORT:-16031}"
 DIALOGUE_TRIGGER_UDP_PORT="${DIALOGUE_TRIGGER_UDP_PORT:-16041}"
 DIALOGUE_ACTION_UDP_PORT="${DIALOGUE_ACTION_UDP_PORT:-16032}"
 DIALOGUE_DEVICE="${DIALOGUE_DEVICE:-${DEVICE:-24}}"
+if ! ${POST_ACCEPT_COOLDOWN_SET}; then
+  POST_ACCEPT_COOLDOWN="${POST_ACCEPT_COOLDOWN_S:-${POST_ACCEPT_COOLDOWN}}"
+fi
 UDP_PORT_WINDOW="${UDP_PORT_WINDOW:-500}"
 DOCKER_NAME="ros_noetic"
 ROS_MASTER="http://${JETSON_IP}:11311"
@@ -255,6 +267,7 @@ echo -e "  Mode:       standalone (no global map)"
 echo -e "  Standoff:   ${STANDOFF} m"
 echo -e "  Retreat:    ${RETREAT_DIST} m (on refusal)"
 echo -e "  Act.timeout:${ACTION_WAIT} s"
+echo -e "  Post-accept cooldown: ${POST_ACCEPT_COOLDOWN} s"
 echo -e "  Target:     ${TARGET_KIND}"
 echo -e "  UDP detect: ${TRASH_UDP_PORT}  (trash_detection -> ROS)"
 echo -e "  UDP trig:   ${DIALOGUE_TRIGGER_UDP_PORT}  (nav_success -> dialogue)"
@@ -353,6 +366,7 @@ ${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
     udp_port:=${TRASH_UDP_PORT} \
     retreat_distance:=${RETREAT_DIST} \
     action_wait_timeout:=${ACTION_WAIT} \
+    post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
   > /tmp/target_follow.log 2>&1 ) &" 2>/dev/null
 
 info "Waiting for move_base + target_follower to come up (up to 30 s)..."

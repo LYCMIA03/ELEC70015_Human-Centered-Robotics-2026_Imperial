@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+__SINGLETON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/single_instance.sh
+source "${__SINGLETON_DIR}/lib/single_instance.sh"
+single_instance::activate "$(basename "$0")"
 # ============================================================================
 # start_real_mapping_unitree.sh
 # 真机建图 — Unitree 4D Lidar L1

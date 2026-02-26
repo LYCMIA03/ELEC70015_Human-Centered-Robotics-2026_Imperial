@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+__SINGLETON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/single_instance.sh
+source "${__SINGLETON_DIR}/lib/single_instance.sh"
+single_instance::activate "$(basename "$0")"
 # ============================================================================
 # start_target_follow.sh
 # 真机目标追踪 — Target Following Overlay
