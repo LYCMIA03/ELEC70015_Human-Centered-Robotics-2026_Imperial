@@ -167,8 +167,8 @@ cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
 Host simulation:
 ```bash
 ./scripts/start_dialogue_host.sh --sim \
-  --first-user-wav dialogue/voice_data/sim_user_answer_other_b.wav \
-  --second-user-wav dialogue/voice_data/sim_user_answer_negative_a.wav
+  --first-user-wav voice_data/sim_user_answer_other_b.wav \
+  --second-user-wav voice_data/sim_user_answer_negative_a.wav
 ```
 
 ### 3.2 Start ROS bridges manually (inside container via `ros_noetic e`)
