@@ -17,6 +17,24 @@
   <arg name="use_rviz"           default="true"/>
   <arg name="use_target_follower" default="false"/>
   <arg name="use_rviz_goal_relay" default="false"/>
+  <arg name="use_udp_target_bridge" default="false"/>
+  <arg name="udp_bind_host" default="0.0.0.0"/>
+  <arg name="udp_bind_port" default="16031"/>
+  <arg name="udp_default_frame" default="camera_link"/>
+  <arg name="use_mock_detector" default="false"/>
+  <arg name="use_point_target_bridge" default="$(arg use_udp_target_bridge)"/>
+  <arg name="point_target_topic" default="/trash_detection/target_point"/>
+  <arg name="point_target_frame" default=""/>
+  <arg name="mock_target_frame" default="base_link"/>
+  <arg name="mock_mode" default="fixed"/>
+  <arg name="mock_rate_hz" default="5.0"/>
+  <arg name="mock_x" default="2.0"/>
+  <arg name="mock_y" default="0.0"/>
+  <arg name="mock_z" default="0.0"/>
+  <arg name="mock_circle_radius" default="1.5"/>
+  <arg name="mock_circle_center_x" default="2.0"/>
+  <arg name="mock_circle_center_y" default="0.0"/>
+  <arg name="mock_angular_speed" default="0.3"/>
   <arg name="standoff_distance"   default="0.0"/>
   <arg name="face_target"          default="false"/>
 
@@ -52,8 +70,49 @@
     <rosparam file="$(find p3at_lms_navigation)/param/move_base.yaml"      command="load"/>
   </node>
 
+  <!-- ========== Static TF: base_link → camera_link (仅在目标追踪模式需要) ========== -->
+  <group if="$(arg use_target_follower)">
+    <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_tf"
+          args="0.208 0 1.0 -0.5 0.5 -0.5 0.5 base_link camera_link"/>
+  </group>
+
   <!-- ========== 目标追踪（可选） ========== -->
   <group if="$(arg use_target_follower)">
+    <group if="$(arg use_udp_target_bridge)">
+      <node pkg="target_follower" type="udp_target_bridge.py"
+            name="udp_target_bridge" output="screen">
+        <param name="bind_host" value="$(arg udp_bind_host)"/>
+        <param name="bind_port" value="$(arg udp_bind_port)"/>
+        <param name="out_topic" value="$(arg point_target_topic)"/>
+        <param name="default_frame" value="$(arg udp_default_frame)"/>
+      </node>
+    </group>
+
+    <group if="$(arg use_mock_detector)">
+      <node pkg="target_follower" type="mock_target_point_publisher.py"
+            name="mock_target_point_publisher" output="screen">
+        <param name="topic" value="$(arg point_target_topic)"/>
+        <param name="frame_id" value="$(arg mock_target_frame)"/>
+        <param name="mode" value="$(arg mock_mode)"/>
+        <param name="rate_hz" value="$(arg mock_rate_hz)"/>
+        <param name="x" value="$(arg mock_x)"/>
+        <param name="y" value="$(arg mock_y)"/>
+        <param name="z" value="$(arg mock_z)"/>
+        <param name="circle_radius" value="$(arg mock_circle_radius)"/>
+        <param name="circle_center_x" value="$(arg mock_circle_center_x)"/>
+        <param name="circle_center_y" value="$(arg mock_circle_center_y)"/>
+        <param name="angular_speed" value="$(arg mock_angular_speed)"/>
+      </node>
+    </group>
+
+    <group if="$(arg use_point_target_bridge)">
+      <node pkg="target_follower" type="point_to_target_pose.py" name="point_to_target_pose" output="screen">
+        <param name="in_point_topic" value="$(arg point_target_topic)"/>
+        <param name="out_target_topic" value="/target_pose"/>
+        <param name="override_frame" value="$(arg point_target_frame)"/>
+      </node>
+    </group>
+
     <node pkg="target_follower" type="target_follower.py" name="target_follower" output="screen">
       <param name="target_topic" value="/target_pose"/>
       <param name="global_frame" value="map"/>
@@ -61,7 +120,7 @@
       <param name="send_rate_hz" value="2.0"/>
       <param name="min_update_dist" value="0.25"/>
       <param name="use_target_orientation" value="false"/>
-      <param name="target_timeout" value="2.0"/>
+      <param name="target_timeout_s" value="2.0"/>
       <param name="standoff_distance" value="$(arg standoff_distance)"/>
       <param name="face_target" value="$(arg face_target)"/>
     </node>

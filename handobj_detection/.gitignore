@@ -1,0 +1,3 @@
+# 不推送权重文件，请按 README 下载后放入 weight/
+*.pt
+weight/*.pt
