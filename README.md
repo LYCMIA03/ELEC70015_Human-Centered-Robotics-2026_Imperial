@@ -3,10 +3,10 @@
 Pioneer 3-AT autonomous navigation + trash-detection demo system.  
 ROS1 Noetic · Ubuntu 20.04 · Gazebo 11 (Simulation) / Docker (Real Robot).
 
-> **主分支 (`main`)** — 包含仿真开发 + 真机部署的完整文档。  
-> Unitree 4D Lidar L1 是**主传感器**，SICK LMS200 为备用。  
-> 真机部署使用 Docker 容器；仿真开发使用 Gazebo。  
-> 实操手册：[`doc.md`](doc.md)
+> **`main` branch** — full documentation for both simulation development and real-robot deployment.  
+> Unitree 4D Lidar L1 is the **primary sensor**; SICK LMS200 is the backup.  
+> Real-robot deployment runs in Docker; simulation uses Gazebo.  
+> Operational runbook: [`doc.md`](doc.md)
 
 ---
 
