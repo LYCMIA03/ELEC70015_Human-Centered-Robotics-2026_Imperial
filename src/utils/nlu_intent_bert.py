@@ -1,4 +1,8 @@
-"""DistilBERT-based NLU intent classifier."""
+"""DistilBERT-based NLU intent classifier.
+
+Inference path uses ONNX Runtime (no torch required at runtime).
+Training path lazily imports torch/transformers training utilities.
+"""
 
 import argparse
 from collections import Counter
@@ -6,20 +10,15 @@ from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import torch
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
-from transformers import (
-    DistilBertForSequenceClassification,
-    DistilBertTokenizerFast,
-    get_linear_schedule_with_warmup,
-)
+import numpy as np
+from transformers import DistilBertTokenizerFast
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_MODEL_PATH = PROJECT_ROOT / "models" / "nlu_intent_bert"
 DEFAULT_TRAIN_DATA = PROJECT_ROOT / "nlu_data" / "train.txt"
 DEFAULT_TEST_DATA = PROJECT_ROOT / "nlu_data" / "test.txt"
 BASE_MODEL = "distilbert-base-uncased"
+ONNX_FILENAME = "model.onnx"
 
 LABEL2ID = {"affirmative": 0, "negative": 1, "other": 2}
 ID2LABEL = {v: k for k, v in LABEL2ID.items()}
@@ -31,39 +30,53 @@ class Intent(str, Enum):
     OTHER = "other"
 
 
-class _IntentDataset(Dataset):
-    def __init__(self, encodings, labels: List[int]):
-        self.encodings = encodings
-        self.labels = labels
-
-    def __len__(self):
-        return len(self.labels)
-
-    def __getitem__(self, idx):
-        item = {k: torch.tensor(v[idx]) for k, v in self.encodings.items()}
-        item["labels"] = torch.tensor(self.labels[idx])
-        return item
-
-
 class IntentClassifierBert:
-    """DistilBERT-based three-class intent classifier."""
+    """DistilBERT intent classifier.
 
-    def __init__(self, model=None, tokenizer=None, device: Optional[str] = None):
+    - load()  → ONNX Runtime inference (preferred, no torch needed)
+    - train() → PyTorch fine-tuning (torch lazily imported)
+    - save()  → saves HuggingFace weights + exports ONNX automatically
+    """
+
+    def __init__(
+        self,
+        model=None,
+        tokenizer=None,
+        ort_session=None,
+        device: Optional[str] = None,
+    ):
         self._model = model
         self._tokenizer = tokenizer
-        self._device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self._ort_session = ort_session
+        self._device = device or "cpu"
         if self._model is not None:
             self._model.to(self._device)
 
+    # ------------------------------------------------------------------
+    # Construction
+    # ------------------------------------------------------------------
+
     @classmethod
     def load(cls, model_path: str = str(DEFAULT_MODEL_PATH)) -> "IntentClassifierBert":
+        """Load model. Uses ONNX Runtime if model.onnx exists, else PyTorch."""
         path = Path(model_path)
         if not path.exists():
             raise FileNotFoundError(f"Model not found: {path}")
         tokenizer = DistilBertTokenizerFast.from_pretrained(str(path))
+        onnx_path = path / ONNX_FILENAME
+        if onnx_path.exists():
+            import onnxruntime as ort
+            session = ort.InferenceSession(str(onnx_path))
+            print(f"  [NLU] Loaded ONNX model from {onnx_path}")
+            return cls(tokenizer=tokenizer, ort_session=session)
+        # Fallback: PyTorch weights
+        import torch
+        from transformers import DistilBertForSequenceClassification
         model = DistilBertForSequenceClassification.from_pretrained(str(path))
         model.eval()
-        return cls(model=model, tokenizer=tokenizer)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"  [NLU] Loaded PyTorch model from {path} (device={device})")
+        return cls(model=model, tokenizer=tokenizer, device=device)
 
     @classmethod
     def train(
@@ -75,6 +88,26 @@ class IntentClassifierBert:
         max_length: int = 64,
         base_model: str = BASE_MODEL,
     ) -> "IntentClassifierBert":
+        import torch
+        from torch.utils.data import DataLoader, Dataset
+        from transformers import (
+            DistilBertForSequenceClassification,
+            get_linear_schedule_with_warmup,
+        )
+
+        class _IntentDataset(Dataset):
+            def __init__(self, encodings, labels):
+                self.encodings = encodings
+                self.labels = labels
+
+            def __len__(self):
+                return len(self.labels)
+
+            def __getitem__(self, idx):
+                item = {k: torch.tensor(v[idx]) for k, v in self.encodings.items()}
+                item["labels"] = torch.tensor(self.labels[idx])
+                return item
+
         train_file = data_path or str(DEFAULT_TRAIN_DATA)
         if not Path(train_file).exists():
             raise FileNotFoundError(f"Training file not found: {train_file}")
@@ -127,33 +160,107 @@ class IntentClassifierBert:
         model.eval()
         return cls(model=model, tokenizer=tokenizer, device=device)
 
+    # ------------------------------------------------------------------
+    # Inference
+    # ------------------------------------------------------------------
+
     def predict(self, text: str) -> Tuple[Intent, float]:
-        if self._model is None or self._tokenizer is None:
+        if self._tokenizer is None or (self._model is None and self._ort_session is None):
             raise RuntimeError("Model not loaded. Call train() or load() first.")
         scores = self._get_scores(text)
         idx = int(scores.argmax())
         return self._to_intent(ID2LABEL[idx]), float(scores[idx])
 
     def predict_all(self, text: str) -> List[Tuple[Intent, float]]:
-        if self._model is None or self._tokenizer is None:
+        if self._tokenizer is None or (self._model is None and self._ort_session is None):
             raise RuntimeError("Model not loaded. Call train() or load() first.")
         scores = self._get_scores(text)
         return [
             (self._to_intent(ID2LABEL[int(i)]), float(scores[i]))
-            for i in scores.argsort(descending=True)
+            for i in scores.argsort()[::-1]
         ]
 
+    def _get_scores(self, text: str) -> np.ndarray:
+        """Run forward pass and return softmax probabilities as numpy array."""
+        enc = self._tokenizer(
+            text.strip(), return_tensors="np", truncation=True, padding=True, max_length=64
+        )
+        if self._ort_session is not None:
+            logits = self._ort_session.run(
+                ["logits"],
+                {"input_ids": enc["input_ids"], "attention_mask": enc["attention_mask"]},
+            )[0][0]
+        else:
+            import torch
+            pt_enc = {k: torch.tensor(v).to(self._device) for k, v in enc.items()}
+            with torch.no_grad():
+                logits = self._model(**pt_enc).logits[0].cpu().numpy()
+        e = np.exp(logits - logits.max())
+        return e / e.sum()
+
+    # ------------------------------------------------------------------
+    # Persistence
+    # ------------------------------------------------------------------
+
     def save(self, model_path: str = str(DEFAULT_MODEL_PATH)) -> Path:
+        """Save HuggingFace weights and export ONNX in one step."""
         if self._model is None or self._tokenizer is None:
-            raise RuntimeError("No model to save.")
+            raise RuntimeError("No PyTorch model to save.")
         path = Path(model_path)
         path.mkdir(parents=True, exist_ok=True)
         self._model.save_pretrained(str(path))
         self._tokenizer.save_pretrained(str(path))
+        self._export_onnx(path)
         return path
 
+    def _export_onnx(self, model_dir: Path) -> Path:
+        import torch
+        onnx_path = model_dir / ONNX_FILENAME
+        dummy = self._tokenizer(
+            "export", return_tensors="pt",
+            padding="max_length", max_length=64, truncation=True,
+        )
+        with torch.no_grad():
+            torch.onnx.export(
+                self._model,
+                (
+                    dummy["input_ids"].to(self._device),
+                    dummy["attention_mask"].to(self._device),
+                ),
+                str(onnx_path),
+                input_names=["input_ids", "attention_mask"],
+                output_names=["logits"],
+                dynamic_axes={
+                    "input_ids":      {0: "batch", 1: "sequence"},
+                    "attention_mask": {0: "batch", 1: "sequence"},
+                },
+                opset_version=14,
+                dynamo=False,
+            )
+        print(f"  ONNX model exported to: {onnx_path}")
+        return onnx_path
+
+    @classmethod
+    def export_onnx(cls, model_path: str = str(DEFAULT_MODEL_PATH)) -> Path:
+        """Convert an existing HuggingFace model directory to ONNX (one-off utility)."""
+        import torch
+        from transformers import DistilBertForSequenceClassification
+        path = Path(model_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Model not found: {path}")
+        tokenizer = DistilBertTokenizerFast.from_pretrained(str(path))
+        model = DistilBertForSequenceClassification.from_pretrained(str(path))
+        model.eval()
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        obj = cls(model=model, tokenizer=tokenizer, device=device)
+        return obj._export_onnx(path)
+
+    # ------------------------------------------------------------------
+    # Evaluation
+    # ------------------------------------------------------------------
+
     def evaluate(self, test_path: str = str(DEFAULT_TEST_DATA)):
-        if self._model is None:
+        if self._tokenizer is None or (self._model is None and self._ort_session is None):
             raise RuntimeError("Model not loaded.")
         test_file = Path(test_path)
         if not test_file.exists():
@@ -208,15 +315,9 @@ class IntentClassifierBert:
 
         return {"accuracy": accuracy, "per_class": per_class, "errors": errors}
 
-    def _get_scores(self, text: str) -> torch.Tensor:
-        """Return softmax probabilities over all intent classes."""
-        enc = self._tokenizer(
-            text.strip(), return_tensors="pt", truncation=True, padding=True, max_length=64
-        )
-        enc = {k: v.to(self._device) for k, v in enc.items()}
-        with torch.no_grad():
-            logits = self._model(**enc).logits
-        return F.softmax(logits[0], dim=-1)
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
 
     @staticmethod
     def _to_intent(label: str) -> Intent:
@@ -266,18 +367,25 @@ class IntentClassifierBert:
             print(f"  Exact text overlap(train/eval): {overlap}")
 
 
+# ------------------------------------------------------------------
+# CLI
+# ------------------------------------------------------------------
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="NLU Intent Classifier (DistilBERT)")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_train = sub.add_parser("train", help="Fine-tune a new model")
-    p_train.add_argument("--data", type=str, default=None, help="Training data file")
+    p_train.add_argument("--data", type=str, default=None)
     p_train.add_argument("--output", type=str, default=str(DEFAULT_MODEL_PATH))
     p_train.add_argument("--epoch", type=int, default=5)
     p_train.add_argument("--lr", type=float, default=2e-5)
     p_train.add_argument("--batch-size", type=int, default=32)
     p_train.add_argument("--max-length", type=int, default=64)
     p_train.add_argument("--base-model", type=str, default=BASE_MODEL)
+
+    p_export = sub.add_parser("export-onnx", help="Export existing HuggingFace model to ONNX")
+    p_export.add_argument("--model", type=str, default=str(DEFAULT_MODEL_PATH))
 
     p_pred = sub.add_parser("predict", help="Predict intent for text")
     p_pred.add_argument("--text", type=str, required=True)
@@ -306,6 +414,9 @@ def main() -> None:
         )
         path = classifier.save(args.output)
         print(f"Model saved to: {path}")
+    elif args.command == "export-onnx":
+        path = IntentClassifierBert.export_onnx(args.model)
+        print(f"ONNX exported to: {path}")
     elif args.command == "predict":
         classifier = IntentClassifierBert.load(args.model)
         intent, confidence = classifier.predict(args.text)
