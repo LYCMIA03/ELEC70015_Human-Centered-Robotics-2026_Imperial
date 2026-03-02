@@ -5,681 +5,896 @@ __label__affirmative yup
 __label__affirmative sure
 __label__affirmative ok
 __label__affirmative okay
-__label__affirmative right
 __label__affirmative fine
-__label__affirmative correct
+__label__affirmative right
+__label__affirmative alright
 __label__affirmative absolutely
 __label__affirmative definitely
 __label__affirmative certainly
 __label__affirmative indeed
-__label__affirmative exactly
-__label__affirmative alright
-__label__affirmative agreed
-__label__affirmative affirmative
-__label__affirmative aye
-__label__affirmative totally
 __label__affirmative please
 __label__affirmative great
 __label__affirmative perfect
-__label__affirmative wonderful
-__label__affirmative good
-__label__affirmative true
-__label__affirmative uh huh
-__label__affirmative mm hmm
-__label__affirmative yea
-__label__affirmative ya
 __label__affirmative cool
+__label__affirmative correct
+__label__affirmative totally
+__label__affirmative agreed
+__label__affirmative affirmative
+__label__affirmative brilliant
+__label__affirmative excellent
+__label__affirmative wonderful
+__label__affirmative gladly
+__label__affirmative aye
 __label__affirmative nice
-__label__affirmative fair enough
-__label__affirmative for sure
+__label__affirmative lovely
+__label__affirmative true
 __label__affirmative of course
 __label__affirmative go ahead
 __label__affirmative why not
-__label__affirmative all right
 __label__affirmative sure thing
 __label__affirmative yes please
-__label__affirmative yes sure
-__label__affirmative yes ok
-__label__affirmative yeah sure
-__label__affirmative yeah okay
-__label__affirmative yep sure
-__label__affirmative ok sure
+__label__affirmative all right
+__label__affirmative fair enough
 __label__affirmative sounds good
 __label__affirmative sounds great
-__label__affirmative sounds awesome
-__label__affirmative sounds fantastic
-__label__affirmative sounds perfect
-__label__affirmative sounds nice
-__label__affirmative sounds wonderful
-__label__affirmative sounds lovely
-__label__affirmative sounds amazing
-__label__affirmative sounds brilliant
-__label__affirmative sounds fair
-__label__affirmative that sounds good
-__label__affirmative that sounds great
-__label__affirmative that sounds amazing
-__label__affirmative that sounds perfect
-__label__affirmative that sounds lovely
-__label__affirmative that sounds wonderful
-__label__affirmative that sounds fantastic
-__label__affirmative that sounds brilliant
-__label__affirmative sounds good to me
-__label__affirmative sounds perfect to me
-__label__affirmative sounds fine to me
-__label__affirmative that's fine with me
-__label__affirmative works for me
-__label__affirmative good by me
-__label__affirmative okay by me
-__label__affirmative that's fine by me
-__label__affirmative that's okay by me
-__label__affirmative that works by me
+__label__affirmative for sure
+__label__affirmative you bet
+__label__affirmative uh huh
+__label__affirmative mm hmm
+__label__affirmative yes thanks
+__label__affirmative yeah sure
+__label__affirmative yep sure
+__label__affirmative ok sure
+__label__affirmative yeah okay
+__label__affirmative yes absolutely
+__label__affirmative yes definitely
+__label__affirmative oh yes
 __label__affirmative i agree
-__label__affirmative i do
 __label__affirmative i will
 __label__affirmative i can
-__label__affirmative i shall
+__label__affirmative i do
+__label__affirmative happy to
+__label__affirmative with pleasure
+__label__affirmative no problem
+__label__affirmative i'm ready
+__label__affirmative bring it
+__label__affirmative bin please
+__label__affirmative do it
+__label__affirmative please do
+__label__affirmative good idea
+__label__affirmative hand it over
+__label__affirmative pass it here
+__label__affirmative give it here
+__label__affirmative yes bring it
+__label__affirmative bring it here
+__label__affirmative bring it over
+__label__affirmative yes the bin
+__label__affirmative the bin please
+__label__affirmative go on then
+__label__affirmative fine by me
+__label__affirmative works for me
+__label__affirmative i want to
+__label__affirmative yes i do
+__label__affirmative yes i will
+__label__affirmative yes i can
+__label__affirmative sure i will
+__label__affirmative sure go ahead
+__label__affirmative ok go ahead
+__label__affirmative that sounds good
+__label__affirmative that sounds great
+__label__affirmative yeah go ahead
+__label__affirmative yeah let's go
+__label__affirmative i need it
+__label__affirmative i want it
+__label__affirmative i'd like that
 __label__affirmative i think so
-__label__affirmative i guess so
 __label__affirmative i suppose so
 __label__affirmative i believe so
-__label__affirmative i reckon so
-__label__affirmative i'd love to
-__label__affirmative i would
-__label__affirmative i'd like that
-__label__affirmative i'd enjoy that
-__label__affirmative i'd appreciate that
-__label__affirmative i'm in
-__label__affirmative i'm ready
-__label__affirmative i'm sure
-__label__affirmative i'm game
-__label__affirmative i'm down
-__label__affirmative i'm happy to
-__label__affirmative i'm glad to
-__label__affirmative i'm willing
-__label__affirmative i'm on board
-__label__affirmative i'm fine with that
-__label__affirmative i'm okay with that
-__label__affirmative i'm happy with that
-__label__affirmative i'm good with that
-__label__affirmative i'm comfortable with that
-__label__affirmative that's right
-__label__affirmative that's correct
-__label__affirmative that's fine
-__label__affirmative that's good
-__label__affirmative that's great
-__label__affirmative that's perfect
-__label__affirmative that's wonderful
-__label__affirmative that works
-__label__affirmative that's true
-__label__affirmative no problem
-__label__affirmative no problem at all
-__label__affirmative no worries
-__label__affirmative no worries at all
-__label__affirmative no issues
-__label__affirmative no complaints
+__label__affirmative i guess so
 __label__affirmative not a problem
-__label__affirmative no objection
-__label__affirmative not bad at all
-__label__affirmative yeah no problem
-__label__affirmative yeah no worries
-__label__affirmative of course i do
-__label__affirmative yes i do
-__label__affirmative yes i can
-__label__affirmative yes i will
-__label__affirmative yes i have
 __label__affirmative yes of course
-__label__affirmative yes definitely
-__label__affirmative yes certainly
-__label__affirmative count me in
+__label__affirmative yes right now
 __label__affirmative let's do it
-__label__affirmative let's go
-__label__affirmative let's go for it
-__label__affirmative let's try it
-__label__affirmative bring it on
-__label__affirmative you got it
-__label__affirmative go for it
-__label__affirmative good idea
-__label__affirmative great idea
-__label__affirmative nice idea
-__label__affirmative wonderful idea
-__label__affirmative excellent idea
-__label__affirmative i think so too
-__label__affirmative i think that would be nice
-__label__affirmative i think that's good
-__label__affirmative i think that's wonderful
-__label__affirmative i think that sounds right
-__label__affirmative i think we should do that
-__label__affirmative i think it's the right call
-__label__affirmative i think yes
-__label__affirmative yes that sounds good
-__label__affirmative yeah that's fine
-__label__affirmative sure i'd like that
+__label__affirmative i'd love to
+__label__affirmative give me the bin
+__label__affirmative hand me the bin
+__label__affirmative bring me the bin
+__label__affirmative pass me the bin
+__label__affirmative i am ready
+__label__affirmative i can do it
+__label__affirmative sounds good thanks
+__label__affirmative sounds perfect
+__label__affirmative sounds wonderful
+__label__affirmative sounds amazing
+__label__affirmative right away
+__label__affirmative that's fine
+__label__affirmative ok bring it
+__label__affirmative sure bring it
+__label__affirmative yeah for sure
+__label__affirmative yeah go on
+__label__affirmative yeah thanks
+__label__affirmative sure thanks
+__label__affirmative ok let's go
+__label__affirmative yes here please
+__label__affirmative ok do it
+__label__affirmative i'm willing
+__label__affirmative i'm happy to
+__label__affirmative yes i want to
 __label__affirmative yes i would like that
-__label__affirmative that would be great
-__label__affirmative that would be nice
-__label__affirmative that would be lovely
-__label__affirmative that would be excellent
-__label__affirmative that sounds wonderful
-__label__affirmative i would appreciate that
-__label__affirmative yes that's what i want
-__label__affirmative that is exactly right
-__label__affirmative i completely agree with you
-__label__affirmative yes please carry on
-__label__affirmative sure that works for me
-__label__affirmative yeah i think that's really good
-__label__affirmative absolutely i would love to do that
-__label__affirmative of course you can go ahead and do that
-__label__affirmative yes please i would really appreciate your help
-__label__affirmative definitely that sounds like the right thing to do
-__label__affirmative i totally agree with what you just said
-__label__affirmative yes i am very happy with that suggestion
-__label__affirmative i think that would be really great thank you
-__label__affirmative that is a very good suggestion i like it
-__label__affirmative yes i would be very happy to go along with that
-__label__affirmative i have to say i think that's excellent
-__label__affirmative sure why don't we go ahead and do that
-__label__affirmative i'd be more than happy to help with that
-__label__affirmative oh that sounds like a wonderful plan
-__label__affirmative yes i think that makes a lot of sense
-__label__affirmative sounds like a plan
-__label__affirmative i'm all for it
-__label__affirmative couldn't agree more
-__label__affirmative i second that
-__label__affirmative you're right about that
-__label__affirmative i like that idea
-__label__affirmative i love that idea
-__label__affirmative that's a great plan
-__label__affirmative will do
-__label__affirmative happy to help
-__label__affirmative with pleasure
-__label__affirmative my pleasure
-__label__affirmative gladly
-__label__affirmative by all means
-__label__affirmative you bet i'm in
-__label__affirmative you betcha
-__label__affirmative you bet i'll do it
-__label__affirmative you bet i'd love to
-__label__affirmative not bad at all i like it
-__label__affirmative not bad i think we should try it
-__label__affirmative i can't think of a reason to refuse
-__label__affirmative i can't argue with that
-__label__affirmative i can't say anything bad about it
-__label__affirmative i can't find any fault with that
-__label__affirmative i see nothing wrong with doing that
-__label__affirmative i see nothing wrong with this plan
-__label__affirmative i see no issue with that
-__label__affirmative there's nothing wrong with that idea
-__label__affirmative nothing wrong with that at all
-__label__affirmative i have nothing bad to say about it
-__label__affirmative i never said i didn't like it
-__label__affirmative i never said i wouldn't do it
-__label__affirmative i never said i was opposed to it
-__label__affirmative it's not like i'm opposed to it
-__label__affirmative it's not like i'm against that
-__label__affirmative it's not as if i'm refusing
-__label__affirmative it's not that i don't want to
-__label__affirmative it's not that i dislike the idea
-__label__affirmative i don't disagree with that
-__label__affirmative i wouldn't disagree
-__label__affirmative i can't disagree with you on that
-__label__affirmative that's not wrong at all
-__label__affirmative you're not wrong about that
-__label__affirmative that's not a problem
-__label__affirmative that's not an issue for me
-__label__affirmative i don't dislike that idea
-__label__affirmative i wouldn't call that a bad plan
-__label__affirmative i'm not against that at all
-__label__affirmative i'm not opposed to doing that
-__label__affirmative i'm not going to refuse that
-__label__affirmative that's exactly what i was hoping for
-__label__affirmative that's exactly what i need
-__label__affirmative that's precisely what i wanted
-__label__affirmative yeah i don't see why not
-__label__affirmative i don't mind at all
-__label__affirmative i don't have any objections
-__label__affirmative i don't see any problem with that
-__label__affirmative i wouldn't say no to that
-__label__affirmative i can't say no to that
-__label__affirmative that's not a bad idea actually
-__label__affirmative not a bad suggestion at all
-__label__affirmative i can't complain about that
-__label__affirmative there's nothing wrong with that
-__label__affirmative i have no objection whatsoever
-__label__affirmative i have nothing against it
-__label__affirmative i see no reason to refuse
-__label__affirmative i wouldn't mind that at all
-__label__affirmative that doesn't sound bad to me
-__label__affirmative well i can't argue with that
-__label__affirmative i never said i didn't want to
-__label__affirmative it's not like i'm going to say no
-__label__affirmative i suppose there's no harm in trying
-__label__affirmative i can't think of any reason not to
-__label__affirmative i have no problem doing that for you
-__label__affirmative that's not bad at all i'm impressed
-__label__affirmative yes please give me the rubbish bin
-__label__affirmative yes i want to throw this rubbish now
-__label__affirmative sure hand me the bin please
-__label__affirmative please bring the bin i am ready
-__label__affirmative i can throw it away now
-__label__affirmative yes i will use the rubbish bin
-__label__affirmative yes please i need to dispose of this bag
-__label__affirmative okay i will put this trash in the bin now
-__label__affirmative yes pass me the bin and i will throw this away
-__label__affirmative i agree please let me dispose of this rubbish first
-__label__affirmative yes i want to clean this up now so please bring the bin
-__label__affirmative that works, i will throw these wrappers away right now
-__label__affirmative yes, i have finished sorting, please hand over the bin
-__label__affirmative yes please hand me the rubbish bin now because i have been carrying this trash bag for a while and i want to throw it away immediately
-__label__affirmative i would really appreciate it if you could bring the bin closer to me since my hands are full with food containers and tissues
-__label__affirmative that sounds perfect, please give me the bin and i will sort the plastic and paper before putting everything in
-__label__affirmative absolutely, i want to dispose of this rubbish properly, so please stay here and pass me the bin
-__label__affirmative yes, even though i was about to leave, i can throw the rubbish first if you give me the bin right now
-__label__affirmative sure, go ahead and bring the trash bin over, because i do not want to leave this bottle and wrapper on the table
-__label__affirmative i agree with your suggestion, and i am happy to use the bin now so the area stays clean for everyone
-__label__affirmative yes that works for me, please come closer with the rubbish bin and i will drop this waste inside carefully
-__label__affirmative definitely, i have mixed waste in my hand and i need the bin from you so i can finish this quickly
-__label__affirmative i am fine with that plan, please provide the bin and i will throw away the rubbish before we move on
-__label__affirmative yes please, if you can hold the bin steady for a second, i will put these cans and napkins in without spilling
-__label__affirmative of course i want to throw this away now, so please hand me the bin instead of leaving yet
-__label__affirmative i can do it now, and i would be grateful if you pass the rubbish bin to me because i cannot walk far at the moment
-__label__affirmative sure thing, let me dispose of these leftovers first and then we can continue with the next task
-__label__affirmative yes i am ready, please bring the trash bin over and i will make sure all this rubbish goes in the correct place
-__label__affirmative that is exactly what i need, because this bag is leaking a little and i should throw it out immediately
-__label__affirmative yes, please do, and thank you for helping me keep the hallway tidy while i clean up this mess
-__label__affirmative i would like that, please give me the bin so i can get rid of the rubbish before it starts to smell
-__label__affirmative absolutely yes, and once i finish throwing this away, i will be ready to follow your next instruction
-__label__affirmative yes bring the bin, since i have already separated recyclable and non-recyclable waste and just need to drop them in
-__label__affirmative you bet
-__label__affirmative yes, even though i am in a hurry, i can still throw this bag out first if you give me the bin
-__label__affirmative yes even if i am rushing i can throw this rubbish first if you pass me the bin
-__label__affirmative i can still do it now, just give me the bin and i will throw this trash away
+__label__affirmative i want to throw it away now
+__label__affirmative sure i will throw it away
+__label__affirmative yes hand me the bin please
+__label__affirmative yes please bring the bin over
+__label__affirmative i would like to use it
+__label__affirmative i am happy to do it
+__label__affirmative sure bring the rubbish bin here
+__label__affirmative ok i will use the bin
+__label__affirmative yeah i want to throw this
+__label__affirmative yes please i need the bin
+__label__affirmative of course bring it to me
+__label__affirmative sure i can throw this away
+__label__affirmative go ahead and bring the bin
+__label__affirmative i want to dispose of this
+__label__affirmative yes i need the rubbish bin
+__label__affirmative absolutely i will throw it away
+__label__affirmative i would love to throw this
+__label__affirmative sure thing bring the bin here
+__label__affirmative yes that would be very helpful
+__label__affirmative i am ready to throw it
+__label__affirmative ok i'd like to throw this
+__label__affirmative bring the bin to me please
+__label__affirmative yes i'd like to throw this
+__label__affirmative sure i need the bin now
+__label__affirmative yeah i will use the bin
+__label__affirmative yes i'm ready for the bin
+__label__affirmative right bring the rubbish bin here
+__label__affirmative i will throw this away now
+__label__affirmative sure let me use the bin
+__label__affirmative yes i can throw it now
+__label__affirmative ok let me have the bin
+__label__affirmative i'll take the bin thank you
+__label__affirmative that would be great thank you
+__label__affirmative i'd be happy to throw it
+__label__affirmative yes i want the rubbish bin
+__label__affirmative ok i'll throw this away now
+__label__affirmative sounds great bring the bin please
+__label__affirmative perfect please bring the bin here
+__label__affirmative sure i'm ready to throw it
+__label__affirmative absolutely bring it here right now
+__label__affirmative of course i will throw it
+__label__affirmative yes give me the bin please
+__label__affirmative i'll dispose of this rubbish now
+__label__affirmative yeah let me throw it away
+__label__affirmative ok bring the bin right now
+__label__affirmative great let me use the bin
+__label__affirmative yeah i want the bin please
+__label__affirmative definitely i want the rubbish bin
+__label__affirmative certainly bring the bin over here
+__label__affirmative sure i'll take care of it
+__label__affirmative yeah please bring the bin closer
+__label__affirmative i'll handle this rubbish right away
+__label__affirmative yes pass me the bin please
+__label__affirmative yeah i'm happy to throw it
+__label__affirmative sure i'll throw everything in there
+__label__affirmative yes i'll do it right now
+__label__affirmative right let me throw this away
+__label__affirmative i need the bin right now
+__label__affirmative yes please put the bin here
+__label__affirmative ok sounds great bring it over
+__label__affirmative yes that works perfectly for me
+__label__affirmative sure just bring the bin closer
+__label__affirmative yes i will put it in
+__label__affirmative i want to clean this up
+__label__affirmative yes let me throw this out
+__label__affirmative bring it over i am ready
+__label__affirmative yeah absolutely bring the bin here
+__label__affirmative yes i'll take the rubbish bin
+__label__affirmative i'd love to use the bin
+__label__affirmative sure thing hand it to me
+__label__affirmative yeah i can do it now
+__label__affirmative yes please i'm done eating now
+__label__affirmative bring it here i have rubbish
+__label__affirmative i'm ready to throw it away
+__label__affirmative i want to use the bin
+__label__affirmative ok yes bring the bin over
+__label__affirmative i can throw this away now
+__label__affirmative sure i'll do it right away
+__label__affirmative yeah that's exactly what i need
+__label__affirmative definitely i need the bin now
+__label__affirmative ok hand the bin over please
+__label__affirmative sure i want to throw this
+__label__affirmative yes i'll throw these wrappers away
+__label__affirmative i'm happy to use the bin
+__label__affirmative of course hand it to me
+__label__affirmative let me throw this away please
+__label__affirmative yeah sure bring the bin over
+__label__affirmative yes i've been waiting for this
+__label__affirmative of course i need the bin
+__label__affirmative yes please let me throw this
+__label__affirmative yes please give me the rubbish bin i need to throw this away
+__label__affirmative sure i would love to throw away this rubbish right now please bring it
+__label__affirmative yes i am ready to throw this trash away so please bring the bin
+__label__affirmative absolutely please hand me the rubbish bin because i have been holding this trash
+__label__affirmative yes i would really like to use the bin to throw this rubbish out
+__label__affirmative of course bring the bin here because i need to dispose of these wrappers
+__label__affirmative definitely yes please give me the bin so i can throw this bag away
+__label__affirmative yes please i have a lot of rubbish and i need the bin now
+__label__affirmative sure thing bring the rubbish bin over here and i will put everything inside
+__label__affirmative i would really like to throw this away now so please give me the bin
+__label__affirmative yes i have been carrying this trash for a while and want to throw it
+__label__affirmative absolutely bring the bin to me because i want to keep this area clean
+__label__affirmative yes that would be great because i have some rubbish that needs to go
+__label__affirmative i am ready to throw this rubbish away so please bring the bin closer
+__label__affirmative ok please hand me the bin because i need to get rid of this trash
+__label__affirmative yes i would appreciate it if you could bring the rubbish bin over here
+__label__affirmative sure i am done eating and i would like to throw these containers away
+__label__affirmative yes please come closer with the bin so i can dispose of this waste
+__label__affirmative definitely i want to throw this away before i leave so bring the bin
+__label__affirmative yes bring the bin here because i have sorted the recycling and general waste
+__label__affirmative of course i would like to use the bin to dispose of all this rubbish
+__label__affirmative yes i want to clean up this mess so please hand me the rubbish bin
+__label__affirmative sure i have some trash in my hand and i would like to throw it
+__label__affirmative yes please bring the rubbish bin because i do not want to leave a mess
+__label__affirmative i would love to throw this away right now so please hand me the bin
+__label__affirmative yes that is exactly what i need because i have been waiting to throw this
+__label__affirmative absolutely yes please give me the rubbish bin now and i will clean up
+__label__affirmative bring the bin over to me and i will throw all of this away
+__label__affirmative yes please let me use the bin because i have waste from my lunch
+__label__affirmative i am happy to throw this away so please bring the rubbish bin over
+__label__affirmative ok i have some bottles and wrappers that i need to put in the bin
+__label__affirmative yes i want to dispose of this properly so please hand me the bin now
+__label__affirmative sure bring the bin here because i have finished sorting everything and i am ready
+__label__affirmative yes i would like the bin now because my hands are full of trash
+__label__affirmative absolutely bring the rubbish bin to me so i can throw these leftovers away
+__label__affirmative i need the bin now because i have been holding this rubbish for too long
+__label__affirmative yes i am definitely ready to throw this away so bring the bin please
+__label__affirmative yes please i want to throw all of this rubbish away before it starts smelling
+__label__affirmative sure i can do that now if you bring the bin a little closer please
+__label__affirmative of course i will use the bin because i want to dispose of this correctly
+__label__affirmative yes please give me the bin and i will throw these food containers away carefully
+__label__affirmative i would really appreciate it if you could bring the bin here right now thanks
+__label__affirmative yes bring the rubbish bin to me because i need to throw away this bottle
+__label__affirmative definitely i want to clean up now so please hand me the bin immediately
+__label__affirmative sure thing i have all this rubbish ready to go so bring the bin here
+__label__affirmative yes i am more than happy to throw this rubbish away if you pass the bin
+__label__affirmative ok please bring the bin because i have been waiting to throw this paper cup away
+__label__affirmative yes that works perfectly for me so please come here with the rubbish bin now
+__label__affirmative i want to throw this rubbish out right now so please bring the bin closer
+__label__affirmative absolutely i have a pile of wrappers and tissues that need to go in the bin
+__label__affirmative yes please hand me the bin so i can throw this trash away before leaving
+__label__affirmative sure i would be glad to use the bin because this desk needs to be cleaned
+__label__affirmative yes i am ready and i would like to put everything in the bin right now
+__label__affirmative yes bring the bin over because i want to throw this out before the others arrive
+__label__affirmative definitely i have finished eating and i want to throw all the packaging away now
+__label__affirmative of course please give me the rubbish bin because i need to clean up this area
+__label__affirmative yes i want to throw this away now so bring the bin and i will do it
+__label__affirmative sure please hand me the bin because i do not want to carry this rubbish anymore
+__label__affirmative i would like the bin now please because i want to throw these things away quickly
+__label__affirmative yes let me throw this away right now because i have been waiting for the bin
+__label__affirmative sounds brilliant
+__label__affirmative sounds fair
+__label__affirmative yes hurry
+__label__affirmative good plan
+__label__affirmative ok yes
+__label__affirmative sure yes
+__label__affirmative i'm game
+__label__affirmative yep ok
+__label__affirmative yeah right
+__label__affirmative great idea
+__label__affirmative yes ok
+__label__affirmative yes i'd really like the bin
+__label__affirmative ok perfect just bring it here
+__label__affirmative yes please i'll throw this out
+__label__affirmative alright i'm ready for the bin
+__label__affirmative yes that's what i was waiting for
+__label__affirmative sure i can handle this right now
+__label__affirmative yes i've got rubbish to throw away
+__label__affirmative yeah sounds perfect bring it right over
+__label__affirmative ok wonderful i will do it now
+__label__affirmative yes definitely i'm ready to throw this
+__label__affirmative great i'll take care of this trash
+__label__affirmative yes please i am ready to dispose of this rubbish right now so bring it over
+__label__affirmative ok i think this is the right time to throw everything away so please give me the bin
+__label__affirmative sure i would be happy to throw all of this rubbish in the bin if you bring it closer
+__label__affirmative yes i really need the rubbish bin right now because these wrappers are making a mess everywhere
+__label__affirmative definitely yes i want to throw this away before anyone else sees the mess i have made here
 __label__negative no
 __label__negative nope
 __label__negative nah
 __label__negative never
-__label__negative nay
-__label__negative negative
 __label__negative stop
-__label__negative cancel
-__label__negative quit
 __label__negative don't
 __label__negative denied
-__label__negative rejected
-__label__negative refuse
-__label__negative disagree
-__label__negative not really
-__label__negative no way
 __label__negative no thanks
 __label__negative not now
 __label__negative not yet
+__label__negative no way
+__label__negative no chance
+__label__negative forget it
+__label__negative leave it
+__label__negative stop it
+__label__negative go away
+__label__negative no thank you
+__label__negative not really
 __label__negative not at all
 __label__negative not quite
-__label__negative not exactly
-__label__negative no thank you
-__label__negative no chance
-__label__negative no way
-__label__negative no never
-__label__negative no sir
-__label__negative no ma'am
 __label__negative i can't
 __label__negative i won't
 __label__negative i don't
 __label__negative i refuse
 __label__negative i decline
-__label__negative i disagree
 __label__negative i pass
-__label__negative i shouldn't
-__label__negative i mustn't
-__label__negative i couldn't
-__label__negative i wouldn't
-__label__negative that's not right
-__label__negative that's not true
-__label__negative that's not it
-__label__negative that's bad
-__label__negative no i don't
-__label__negative no i can't
-__label__negative no i won't
-__label__negative no not really
-__label__negative nah not really
-__label__negative nope not at all
-__label__negative definitely not
-__label__negative absolutely not
-__label__negative certainly not
-__label__negative of course not
-__label__negative not a chance
-__label__negative no not now
-__label__negative no not yet
-__label__negative forget it
-__label__negative forget about it
-__label__negative leave it
-__label__negative leave me alone
-__label__negative stop it
-__label__negative stop that
-__label__negative go away
-__label__negative stop right now please
 __label__negative please stop
 __label__negative please no
 __label__negative please don't
-__label__negative please cancel
-__label__negative please no more
-__label__negative please go away
-__label__negative please leave me alone
-__label__negative please don't do that
-__label__negative i don't want to
-__label__negative i don't think so
-__label__negative i don't like that
-__label__negative i don't need that
-__label__negative i don't agree
-__label__negative i don't care for that
-__label__negative i don't want it
-__label__negative i don't believe so
-__label__negative i don't approve
-__label__negative i'd rather not
-__label__negative i'm not sure
-__label__negative i'm not interested
-__label__negative i'm not ready
-__label__negative i'm not doing that
-__label__negative i'm not happy with that
-__label__negative i'm not keen
-__label__negative i'm not convinced
-__label__negative i'm not on board
-__label__negative i'm good thanks
+__label__negative leave me alone
+__label__negative absolutely not
+__label__negative definitely not
+__label__negative certainly not
+__label__negative of course not
+__label__negative not a chance
+__label__negative not interested
+__label__negative not happening
+__label__negative not today
+__label__negative not for me
+__label__negative no i'm good
 __label__negative no i'm fine
 __label__negative no i'm okay
-__label__negative that's a bad idea
-__label__negative that's such a terrible idea
-__label__negative that's a horrible idea
-__label__negative that's an awful idea
-__label__negative terrible
-__label__negative horrible
-__label__negative awful
-__label__negative that's terrible
-__label__negative that's horrible
-__label__negative that's awful
-__label__negative that's disgusting
-__label__negative that's stupid
-__label__negative that's dreadful
-__label__negative that's appalling
-__label__negative what a bad idea
-__label__negative what a terrible idea
-__label__negative i hate that
-__label__negative i hate this
-__label__negative that sucks
-__label__negative that's the worst
-__label__negative that's rubbish
-__label__negative that's garbage
-__label__negative not happening
+__label__negative i'm good thanks
+__label__negative i'd rather not
+__label__negative i'm not interested
+__label__negative i'm not ready
+__label__negative i'm not keen
+__label__negative no not now
+__label__negative no not yet
+__label__negative no leave it
+__label__negative nah not now
+__label__negative nah forget it
+__label__negative nope never
+__label__negative just leave
+__label__negative go away please
+__label__negative take it away
+__label__negative back off
+__label__negative no just go
+__label__negative no just leave
+__label__negative i'll pass
+__label__negative i'll skip
+__label__negative hard no
+__label__negative no leave please
+__label__negative no i can't
+__label__negative no i won't
+__label__negative no i don't
+__label__negative i said no
+__label__negative maybe later
+__label__negative perhaps later
+__label__negative nope maybe later
+__label__negative nah maybe later
+__label__negative i'll pass thanks
+__label__negative no not really
+__label__negative no not ever
+__label__negative no no no
+__label__negative i'm all good
+__label__negative nah i'm good
+__label__negative nah i'm fine
+__label__negative nope i'm good
+__label__negative nope i'm fine
+__label__negative no i pass
+__label__negative i'm passing
+__label__negative not for now
+__label__negative no i'm busy
+__label__negative can't right now
+__label__negative i don't want
+__label__negative i don't need
+__label__negative not this time
+__label__negative i'm done here
+__label__negative move along
+__label__negative no need
 __label__negative not gonna happen
-__label__negative count me out
-__label__negative hard pass
-__label__negative not in a million years
-__label__negative i would rather not do that
-__label__negative no that's not what i want
-__label__negative i don't want you to do that
-__label__negative no thanks i don't need any help
-__label__negative i really don't think that is a good idea
-__label__negative no i would prefer not to do that
-__label__negative that is definitely not what i was looking for
-__label__negative absolutely not i do not want that at all
-__label__negative i strongly disagree with that suggestion
-__label__negative no thank you i am perfectly fine without that
-__label__negative please stop i don't want to continue
-__label__negative no way i don't think that's going to work out
-__label__negative i really don't feel like doing that right now
-__label__negative that doesn't sound right to me at all
-__label__negative i am not comfortable with that idea at all
-__label__negative sorry but i have to say no to that
-__label__negative i don't think so maybe some other time
-__label__negative no i already said i don't want to
-__label__negative not right now maybe later
-__label__negative i would prefer something else if possible
-__label__negative no that is the wrong answer
-__label__negative please cancel that i changed my mind
-__label__negative that won't work for me
-__label__negative i'm afraid i can't
-__label__negative sorry no
-__label__negative sorry but no
-__label__negative i must decline
-__label__negative no not this time
-__label__negative maybe not
-__label__negative probably not
-__label__negative i doubt it
-__label__negative unlikely
-__label__negative i'm against it
-__label__negative i think that's a bad idea
-__label__negative i think that's wrong
-__label__negative i think not
-__label__negative i think we shouldn't
-__label__negative i think that won't work
-__label__negative i don't think that's right at all
-__label__negative i think that's a really terrible suggestion
-__label__negative no i'm not interested in that at all
-__label__negative that is a really terrible suggestion
-__label__negative i think we should definitely not do that
-__label__negative i'm fairly sure that's the wrong approach
-__label__negative i think you're wrong about that
-__label__negative that idea is not going to work out well
-__label__negative i strongly feel we should not proceed with that
-__label__negative no that's completely wrong and i reject it
-__label__negative i'm very unhappy with that decision
-__label__negative i think that's one of the worst ideas i've heard
-__label__negative sounds great but i'm still saying no
-__label__negative nice try but the answer is still no
-__label__negative good for you but i'm not interested
-__label__negative love it but no thanks
-__label__negative i appreciate the thought but no
-__label__negative thank you but i'll pass
-__label__negative thanks but no thanks
-__label__negative that's kind but no
-__label__negative that's nice of you but i don't want it
-__label__negative that's sweet but i'd rather not
-__label__negative sounds lovely but i can't
-__label__negative i like the idea but i have to say no
-__label__negative it's a good thought but not for me
-__label__negative ok i hear you but no
-__label__negative yes i understand but i still refuse
-__label__negative right but i still don't want to
-__label__negative sure i get it but no
-__label__negative fine but i'm still not doing it
-__label__negative i'm going to pass on this one
-__label__negative i'll pass on that
-__label__negative i think i'll pass
-__label__negative i'm going to have to pass
-__label__negative i'll have to pass on that one
-__label__negative i'd like to pass on this
-__label__negative i would not want that
-__label__negative i would not enjoy that
-__label__negative i would not be happy with that
-__label__negative i would not recommend that
-__label__negative i would prefer not to
-__label__negative i would rather you didn't
-__label__negative i would have to say no to that
-__label__negative sorry but i would not agree to that
-__label__negative no i do not want to throw this away now
-__label__negative no please leave i will handle the rubbish later
-__label__negative not now i want to keep this packaging
-__label__negative no thanks i do not need the bin
-__label__negative i refuse please do not bring the rubbish bin
-__label__negative please leave i am not ready to dispose of this
-__label__negative no i want to keep these items for now
-__label__negative i said no do not ask me to throw rubbish again
-__label__negative no i am busy and cannot deal with this trash now
-__label__negative i understand but i still do not want the bin
-__label__negative no, i do not agree to dispose of these items right now
-__label__negative please stop, i will decide about this rubbish later
-__label__negative no, i am not giving up this bag until i check it first
-__label__negative no thanks, i do not need the rubbish bin right now because i want to keep this packaging for later
-__label__negative please leave, i am not ready to throw anything away yet and i do not want to continue this interaction
-__label__negative i understand your suggestion, but i prefer not to use the bin now because i might need these items again
-__label__negative no, do not bring the bin, i am still deciding what to keep and what to throw out
-__label__negative i would rather you leave the area for now since i do not want help with rubbish disposal at this moment
-__label__negative absolutely not, i am not comfortable handing over this trash bag until i check what is inside
-__label__negative no thank you, even if the place looks messy, i will clean it later and i do not need the bin from you
-__label__negative please stop insisting, i said i do not want to throw this rubbish away right now
-__label__negative i hear you, but the answer is still no, because i am in a hurry and cannot deal with this trash now
-__label__negative no, and i would like you to move away from me because i do not want any assistance
-__label__negative i do not agree with this step, and i am choosing not to use the rubbish bin at this time
-__label__negative thanks, but i refuse, since these containers still have useful labels that i need to read first
-__label__negative no please leave, i am busy and i do not want to sort rubbish while people are waiting for me
-__label__negative definitely no, because i am wearing gloves for another task and cannot handle waste right now
-__label__negative i would prefer not to do that, and i want you to leave instead of asking again
-__label__negative no, i am not throwing anything out now, so please end this and go to the next room
-__label__negative please do not give me the bin, i changed my mind and i will keep these items for reuse
-__label__negative i appreciate your help, but i still decline, because i need to show this package to my colleague first
-__label__negative no that will not work for me, and i would like to stop this conversation here
-__label__negative i am saying no clearly, so please leave and do not ask me to throw rubbish again right away
-__label__negative sorry i can't do that
-__label__negative i'm going to pass on that
-__label__negative i said no already, and i want you to leave instead of repeating the same question again
-__label__negative i already said no, please leave and stop asking me the same thing
-__label__negative oh great another disaster
-__label__negative sure go ahead and ruin everything
-__label__negative wonderful now nothing works
-__label__negative yeah great, this is exactly why i am saying no
-__label__negative i understand what you mean but i still reject this
-__label__negative i am not okay with this plan
-__label__negative i'm really not okay with that at all
-__label__negative sorry i really can't do that right now
-__label__negative sorry but i can't do that
-__label__negative i refuse to do this
-__label__negative i absolutely refuse to do that
-__label__negative i would not like this option
-__label__negative i really would not like that
-__label__negative i don't agree with that at all
-__label__negative i really don't agree with that
-__label__negative sure go ahead and make everything worse
-__label__negative wonderful now the whole system is broken
-__label__negative that sounds nice but i still refuse
-__label__negative thanks but i still don't want to do that
-__label__negative i hear you but i still say no
-__label__negative no thanks i have to decline this
-__label__negative i am going to pass on this option
-__label__negative i think i'll pass on that one
-__label__other where is the rubbish bin
-__label__other where can i throw this rubbish
-__label__other which bin should i use for this
-__label__other is this bin for plastic or general waste
-__label__other should i separate this rubbish first
-__label__other do i need to sort paper and plastic before throwing them away
-__label__other can you explain the rubbish sorting rule again
-__label__other what kind of waste goes into this bin
-__label__other i have some rubbish but i am not sure what to do
-__label__other i am not sure whether this bottle is recyclable
-__label__other does this food box go into general waste
-__label__other can i throw this cup away here
-__label__other can you repeat your question about the rubbish
-__label__other sorry i did not hear the rubbish question clearly
-__label__other sorry what did you ask me to throw away
-__label__other i didn't catch that can you say it again
-__label__other i don't understand should i throw this away now
-__label__other can you explain that differently
-__label__other wait a second i need to check this bag first
-__label__other hold on i want to see what is inside this rubbish bag
-__label__other let me think about whether this should be recycled
-__label__other i have a question before i decide
-__label__other can you tell me why you need me to throw it now
-__label__other are you asking me to throw everything away
-__label__other do you mean only the wrappers on the table
-__label__other what should i do with this half-full drink
-__label__other should i empty the liquid before using the bin
-__label__other should i rinse this container before recycling
-__label__other i might throw it away but i need more details first
-__label__other i cannot decide yet please explain the process
-__label__other i am confused about your instruction
-__label__other i am not saying yes or no yet
-__label__other maybe but i need to know which bin is correct
-__label__other perhaps i should check with my teammate first
-__label__other can you guide me to the recycling point
+__label__negative no way ever
+__label__negative stop asking
+__label__negative leave me be
+__label__negative i'm ok thanks
+__label__negative no thanks really
+__label__negative definitely no
+__label__negative no i'm keeping
+__label__negative i prefer not
+__label__negative not interested sorry
+__label__negative no keep it
+__label__negative no take it
+__label__negative please go away
+__label__negative leave the bin
+__label__negative not happening ever
+__label__negative i refuse absolutely
+__label__negative no leave me
+__label__negative i decline this
+__label__negative no need thanks
+__label__negative nope not interested
+__label__negative i don't want to
+__label__negative nah not right now
+__label__negative no i don't want the bin
+__label__negative nope i don't need it now
+__label__negative no thanks i will pass on it
+__label__negative i don't want to throw anything
+__label__negative no please take the bin away
+__label__negative i'm not ready to throw it
+__label__negative i don't need the rubbish bin
+__label__negative no i will do it later
+__label__negative i'd rather not use the bin
+__label__negative no thanks maybe some other time
+__label__negative nope i'm not interested right now
+__label__negative please leave i don't need help
+__label__negative i don't want to clean up
+__label__negative no take the bin away please
+__label__negative i refuse to throw it away
+__label__negative i won't be needing the bin
+__label__negative not now i'm busy with something
+__label__negative no i'd prefer not to thanks
+__label__negative sorry but i don't want to
+__label__negative i'm not going to throw it
+__label__negative no i'm keeping this for now
+__label__negative nah i'll throw it away later
+__label__negative no i will handle it myself
+__label__negative please go away i'm not interested
+__label__negative no thanks i'm perfectly fine here
+__label__negative i don't think i need it
+__label__negative i will deal with this later
+__label__negative nope i don't want to yet
+__label__negative i'd rather keep this for now
+__label__negative no please just leave me alone
+__label__negative i'm not throwing this away yet
+__label__negative no i have other things to do
+__label__negative not now i'll handle it myself
+__label__negative i really don't want the bin
+__label__negative i don't feel like throwing anything
+__label__negative sorry i can't do that now
+__label__negative no i will keep these items
+__label__negative please don't bring the bin closer
+__label__negative no i changed my mind about it
+__label__negative nah i'll sort it out myself
+__label__negative leave me alone i said no
+__label__negative i don't need your help now
+__label__negative no please stop asking me that
+__label__negative i refuse to do it now
+__label__negative not today i have other plans
+__label__negative nope not interested in the bin
+__label__negative i'd prefer to do it later
+__label__negative no thanks i'm still using these
+__label__negative please take that bin away now
+__label__negative i won't throw anything away yet
+__label__negative no i'm going to keep this
+__label__negative i really don't need the bin
+__label__negative nah take the bin somewhere else
+__label__negative i don't want to right now
+__label__negative no i already said i don't
+__label__negative sorry but the answer is no
+__label__negative i'm declining the bin for now
+__label__negative please leave with the bin thanks
+__label__negative i can't throw this away yet
+__label__negative no i'd rather you leave now
+__label__negative no i still need these things
+__label__negative i'm not done with this yet
+__label__negative no i don't want your help
+__label__negative i'm fine without the rubbish bin
+__label__negative i won't be throwing anything today
+__label__negative nah maybe next time not now
+__label__negative not happening please take it away
+__label__negative i don't want the bin here
+__label__negative no just take it somewhere else
+__label__negative please move away with the bin
+__label__negative i already decided not to throw
+__label__negative i'd prefer you leave me alone
+__label__negative no i said not right now
+__label__negative nah i don't need the bin
+__label__negative no i'm keeping all of this
+__label__negative please stop i don't want it
+__label__negative i'm busy and don't need it
+__label__negative no let me handle it myself
+__label__negative nope i'm not ready for that
+__label__negative not interested please move on now
+__label__negative i'd rather not throw it now
+__label__negative no i've already decided against it
+__label__negative take it away i said no
+__label__negative sorry i'm going to refuse this
+__label__negative i won't use the rubbish bin
+__label__negative no please don't ask me again
+__label__negative not now i will decide later
+__label__negative nope i'm not throwing anything out
+__label__negative please go i don't need help
+__label__negative i don't need it right now
+__label__negative no that won't work for me
+__label__negative i'm not interested in the bin
+__label__negative nah i'll pass on that one
+__label__negative no i think i'll keep this
+__label__negative i'm refusing the bin right now
+__label__negative definitely not i don't want it
+__label__negative absolutely not take it away please
+__label__negative not a chance take it away
+__label__negative i won't do it forget it
+__label__negative no i prefer to keep it
+__label__negative i would rather not right now
+__label__negative nah not now try later please
+__label__negative no i don't want to throw this away right now so please leave
+__label__negative nope i am not interested in using the rubbish bin at this moment
+__label__negative no thanks i still need to check what is inside this bag first
+__label__negative sorry but i am not going to throw anything away right now please leave
+__label__negative no i would rather keep these items for now and clean up later myself
+__label__negative please take the bin away because i am not ready to dispose of anything yet
+__label__negative i don't want to use the bin right now because i am still busy
+__label__negative no i am keeping this packaging for now so please take the bin away
+__label__negative absolutely not i do not want the rubbish bin and i want you to leave
+__label__negative i refuse to throw this away because i need to show it to someone first
+__label__negative no thanks i will handle the rubbish myself later when i have more time
+__label__negative please leave me alone i already said i don't want to throw anything away
+__label__negative no i am busy right now and i cannot deal with the rubbish at this moment
+__label__negative i'd rather not use the bin right now because i am in the middle of something
+__label__negative no thank you i appreciate the offer but i prefer to throw it away later
+__label__negative nope i don't need the bin because i want to keep these items for reuse
+__label__negative sorry i really can't do that right now because i have other things to finish
+__label__negative no please take the bin away and don't come back until i ask for it
+__label__negative i am not throwing anything away today so please leave me alone and move on
+__label__negative definitely not i have already decided to keep these things so take the bin away
+__label__negative i don't want the bin right now because i need to check this bag before throwing
+__label__negative no i still need these packages for reference so i will not use the bin
+__label__negative i'd prefer not to throw anything away at this moment because i might need them
+__label__negative please go away with the bin because i already told you i don't want it
+__label__negative no i changed my mind and i don't want to throw anything away right now
+__label__negative i am not interested in the rubbish bin at all so please stop asking me
+__label__negative no i will sort this out by myself later when i am done with work
+__label__negative sorry but i refuse to use the bin because these items might still be useful
+__label__negative no take the bin somewhere else because i am not ready to clean up yet
+__label__negative absolutely not i already said no and i want you to respect my decision please
+__label__negative no i don't need the rubbish bin because i plan to throw this away on my way out
+__label__negative i really don't want to do this now because i am waiting for someone to arrive
+__label__negative no please move the bin away from me because i am not going to use it
+__label__negative i refuse to throw my rubbish in the bin right now and i would like you to leave
+__label__negative nope i am not going to throw anything away because i still have things to sort
+__label__negative no thanks i would rather handle this by myself later when it is more convenient
+__label__negative please stop insisting i already said i don't want to throw this rubbish away now
+__label__negative i decline to use the bin because i need more time to decide what to throw
+__label__negative no i am not comfortable throwing this away yet because i want to check it first
+__label__negative i'd rather you leave now because i will deal with the rubbish on my own time
+__label__negative no i have already decided not to throw anything away and i want you to go
+__label__negative sorry but the answer is no because i am in a rush and cannot stop right now
+__label__negative no i won't use the bin because i am keeping this bag and its contents for now
+__label__negative i really don't need your help with the rubbish so please take the bin and leave
+__label__negative no please don't bring the bin closer because i have no intention of throwing anything
+__label__negative definitely not i am saving these containers for reuse so please take the bin away
+__label__negative no i said i don't want it so stop asking and please move on to someone else
+__label__negative i am refusing the bin because i have other priorities right now and cannot deal with rubbish
+__label__negative nope i am not throwing this out because i want to recycle it at a different station
+__label__negative no i would prefer to keep all of this for now and throw it away later myself
+__label__negative sorry but i must decline because i have not finished sorting through this bag of items
+__label__negative no i will not throw anything away right now so please leave with the rubbish bin
+__label__negative i'd rather not use the bin at this time because i have things to do first
+__label__negative no please go and ask someone else because i don't need the rubbish bin right now
+__label__negative i am not going to use the bin because i need to hold on to these things
+__label__negative no thanks i will take care of the rubbish later on my own without any help
+__label__negative absolutely not i don't want to throw anything away and i would like you to stop asking
+__label__negative no i am busy with something important right now so i cannot throw rubbish away at this moment
+__label__negative i refuse to throw anything away because i need to discuss with my colleague about what to keep
+__label__negative no please take the bin and leave because i am not planning to throw any rubbish out now
+__label__negative never ever
+__label__negative not once
+__label__negative i object
+__label__negative i'm off
+__label__negative no forget it
+__label__negative i won't ever
+__label__negative drop it
+__label__negative nope stop
+__label__negative not interested thanks
+__label__negative no way no
+__label__negative no i'm not throwing anything at all
+__label__negative nah i prefer to do it myself
+__label__negative not now just take the bin away
+__label__negative absolutely not i'm keeping all of this
+__label__negative no chance i want you to leave
+__label__negative nope i've got my own plan thanks
+__label__negative please stop asking me about the bin
+__label__negative i'm not interested take it away now
+__label__negative no i think i'll keep everything here
+__label__negative never i don't want to throw anything
+__label__negative no i am not going to throw this away because i have already made plans to reuse everything
+__label__negative please stop asking me to throw rubbish because i have clearly said no multiple times already
+__label__negative i will not throw anything away right now because i need to wait for my friend first
+__label__negative no thank you i do not need the bin today or any other day so please stop coming back
+__label__negative i am not willing to throw anything away and i would appreciate it if you stopped insisting
+__label__other what
+__label__other huh
+__label__other pardon
+__label__other sorry
+__label__other excuse me
+__label__other come again
+__label__other say again
+__label__other hold on
+__label__other wait
+__label__other one moment
+__label__other who are you
+__label__other what's that
+__label__other where am i
+__label__other which bin
+__label__other how much
+__label__other what time
+__label__other what floor
+__label__other how long
+__label__other where is it
+__label__other who made you
+__label__other how old
+__label__other which way
+__label__other is it free
+__label__other is it open
+__label__other just a moment
+__label__other i'm confused
+__label__other i don't know
+__label__other let me think
+__label__other not sure yet
+__label__other still thinking
+__label__other maybe
+__label__other possibly
+__label__other perhaps
+__label__other i need time
+__label__other give me time
+__label__other let me decide
+__label__other i'm thinking
+__label__other never mind
+__label__other one more question
+__label__other tell me more
+__label__other can you explain
+__label__other what do you mean
+__label__other before i answer
+__label__other what happens next
+__label__other what is next
+__label__other where's the exit
+__label__other where's the bathroom
+__label__other where is the lift
+__label__other speak up please
+__label__other slow down please
+__label__other i can't hear
+__label__other i didn't catch
+__label__other repeat that please
+__label__other say that again
+__label__other is anyone there
+__label__other something is wrong
+__label__other who built you
+__label__other follow me please
+__label__other wait for me
+__label__other come with me
+__label__other i'm lost
+__label__other i'm busy
+__label__other i'm eating
+__label__other what's going on
+__label__other what a joke
+__label__other are you serious
+__label__other are you kidding
+__label__other oh come on
+__label__other unbelievable
+__label__other seriously
+__label__other ridiculous
+__label__other whatever
+__label__other that's absurd
+__label__other that's ridiculous
+__label__other that's dumb
+__label__other you're stupid
+__label__other you're annoying
+__label__other you're useless
+__label__other you're terrible
+__label__other you're dumb
+__label__other you look funny
+__label__other you stink
+__label__other how rude
+__label__other rude robot
+__label__other stupid machine
+__label__other dumb robot
+__label__other silly robot
+__label__other useless thing
+__label__other piece of junk
+__label__other shut up
+__label__other how dare you
+__label__other you're irritating
+__label__other what nonsense
+__label__other what a mess
+__label__other i hate this
+__label__other that's offensive
+__label__other you're not helpful
+__label__other i need help
+__label__other what should i
+__label__other i have questions
+__label__other this is confusing
+__label__other this is weird
+__label__other this is silly
+__label__other this is crazy
+__label__other this is pointless
+__label__other this stinks
+__label__other that makes no sense
+__label__other what the heck
+__label__other you're so rude
+__label__other how annoying
+__label__other that's wrong
+__label__other i'm not sure
+__label__other show me around
+__label__other what happened
+__label__other what language
+__label__other my phone died
+__label__other i need water
+__label__other is this recyclable
+__label__other what goes here
+__label__other is this clean
+__label__other i do not follow
+__label__other please clarify
+__label__other what does that mean
+__label__other can you repeat that for me
+__label__other what did you just say to me
+__label__other i did not hear you clearly
 __label__other where is the nearest recycling station
-__label__other is there a separate bin for food waste
-__label__other where do i put this cardboard box
-__label__other where should i put this tissue and bottle
-__label__other do i throw this in the bin or keep it
-__label__other can you wait while i sort this rubbish
-__label__other i need help understanding the waste categories
-__label__other this bag has mixed waste what should i do
-__label__other is this hazardous waste or normal waste
-__label__other can you check whether this should be recycled
-__label__other before i answer can you repeat the question
-__label__other i cannot hear you clearly
-__label__other please speak a little louder
-__label__other i am not sure what you expect from me
-__label__other should i throw this now or later
-__label__other i need one minute to decide about this rubbish
-__label__other i have some trash but i am still thinking
-__label__other can i throw this away after i finish sorting
-__label__other if i throw this now can you hold the bin steady
-__label__other could you move the bin a bit closer first
-__label__other should recyclable and non-recyclable go together
-__label__other is this wrapper recyclable
-__label__other should this glass bottle go into another bin
-__label__other is this paper cup recyclable or general waste
-__label__other could you remind me of the disposal steps
-__label__other i want to do it correctly so please explain one more time
-__label__other i have rubbish in my hand and need clarification
-__label__other i heard bin and table but not the full sentence
-__label__other can you ask that question again slowly
-__label__other i need to call someone before deciding what to do with this trash
-__label__other i am still deciding whether to keep this package
-__label__other i have another question about rubbish disposal
-__label__other what happens after i give you this rubbish
-__label__other are you asking for immediate disposal
-__label__other do you want me to throw it away right now
-__label__other should i throw this first and then leave
-__label__other sure but what should i do with this rubbish exactly
-__label__other okay great so what is the next disposal step
-__label__other right then where exactly is the bin you mentioned
-__label__other would it be better to wait until i finish sorting
-__label__other i can't tell whether this waste is recyclable
-__label__other if this is not recyclable where should i put it
-__label__other i am unsure so can you clarify the rubbish instruction
-__label__other before i decide can you tell me which bin is correct
-__label__other can we go through the disposal process once more
-__label__other i need clarification because i did not hear the full question
-__label__other i am not ready to answer yet i just need more details
-__label__other can you remind me which bin is for plastic bottles and which one is for food waste because i always mix them up
-__label__other where is the nearest recycling point in this building, and is it open at this hour
-__label__other i have some rubbish in my hand, but before deciding, could you explain the sorting rules one more time
-__label__other if i throw this cup away now, will someone clean the floor in case any liquid spills out
-__label__other i am not saying yes or no yet, i just want to know whether this bin is for general waste
-__label__other can you wait for a moment while i check if this container should be recycled or washed first
-__label__other what should i do with this half-full drink, should i pour it out before using the rubbish bin
-__label__other i am a bit confused, because you asked about rubbish, but i also need directions to the washroom
-__label__other before i decide, could you tell me why the robot is responsible for bringing the bin in this workflow
-__label__other i might throw it away, but can you first tell me if this bag belongs to hazardous waste
-__label__other sorry i did not hear the question clearly, can you repeat whether you want me to throw this rubbish now
-__label__other do you mean i should throw everything away, or only the paper and plastic that are on the desk
-__label__other i am thinking about it, but i need to call someone before i decide what to do with this trash
-__label__other if i choose to throw it away, can you guide me to the correct bin instead of handing one directly
-__label__other i am not sure what you are asking, because i heard bin, table, and hallway at the same time
-__label__other wait a second, should i separate this waste first, or can i just put everything in one bag
-__label__other i have a question: if this is recyclable cardboard, should it go to another station rather than your bin
-__label__other maybe, but i need more details about what happens after i give you the rubbish
-__label__other i cannot decide yet, please explain the process step by step so i know what you expect
-__label__other i have a bag of trash here
-__label__other take this to the bin please
-__label__other i didn't catch that
-__label__other what was that noise
-__label__other i think the door is locked
-__label__other i'm looking for room two oh three
+__label__other can you explain what you mean
+__label__other i don't understand your question sorry
+__label__other which bin should i use here
+__label__other is this bin for recycling only
+__label__other where is the exit from here
+__label__other what time does this place close
 __label__other do you know the wifi password
-__label__other isn't the meeting supposed to start already
-__label__other i can't tell if it's broken or not
-__label__other ok great now which way is the exit
-__label__other that's nice but how much does it cost
-__label__other yes but can you explain the process first
-__label__other sure, but what exactly should i do next
-__label__other okay, before i answer yes or no, i need more details
-__label__other i am not refusing, i just need clarification first
-__label__other i am not agreeing yet, can you explain one more time
-__label__other i might do it, but i need to confirm which bin is correct
-__label__other maybe yes maybe no, i still need more information
-__label__other yes i heard you, but i have a question first
-__label__other no i am not deciding yet, i am still asking about the rules
-__label__other can you clarify what you mean by throw it away now
-__label__other are you asking me to decide now or after sorting
-__label__other i need clarification because the instruction is not fully clear
-__label__other can you repeat the question in a simpler way
-__label__other i am confused about whether this is recycling or general waste
-__label__other i need to know the cost and then i can decide
-__label__other before saying yes or no, i need to check this bag
+__label__other where is the bathroom around here
+__label__other can you show me the way out
+__label__other i need directions to the car park
+__label__other how do i get to reception
+__label__other is there a coffee machine nearby
+__label__other what is the temperature outside today
+__label__other can you help me find something
+__label__other i need to speak to someone
+__label__other where can i find a seat
+__label__other before i answer tell me more
+__label__other i need more information before deciding
+__label__other can you explain the process first
+__label__other which bin is for which type
+__label__other should i sort this rubbish first
+__label__other is this bottle recyclable or not
+__label__other does this cup go in recycling
+__label__other what kind of waste is this
+__label__other where does this packaging go exactly
+__label__other what happens after i throw it
+__label__other could you move the bin closer first
+__label__other should i rinse this container first
+__label__other can i ask you something else
+__label__other i have a completely different question
+__label__other that has nothing to do with rubbish
+__label__other you are so rude to me
+__label__other that was really stupid of you
+__label__other you are being very annoying right now
+__label__other you are the worst robot ever
+__label__other this is the dumbest thing ever
+__label__other what a complete waste of my time
+__label__other you are not very smart are you
+__label__other do you even understand what i said
+__label__other that is the most useless suggestion
+__label__other this robot is absolutely terrible honestly
+__label__other i think something is wrong with you
+__label__other you are making me really frustrated now
+__label__other how can you be so annoying
+__label__other your voice is really getting on nerves
+__label__other i cannot believe how useless this is
+__label__other this is so frustrating to deal with
+__label__other why are you even here bothering me
+__label__other can you just shut up already
+__label__other i am so tired of this robot
+__label__other who designed this terrible robot anyway
+__label__other you are the most irritating machine around
+__label__other i was just talking to my friend
+__label__other i think it's going to rain today
+__label__other the weather is really nice outside today
+__label__other i had a really long day today
+__label__other i am waiting for someone right now
+__label__other my phone battery is about to die
+__label__other do you know where the stairs are
+__label__other i am looking for room two three
+__label__other i left my bag somewhere around here
+__label__other has anyone seen my umbrella today
+__label__other what is the schedule for today please
+__label__other i think the meeting started already
+__label__other someone told me to come here today
+__label__other is the cafeteria open at this hour
+__label__other where can i get some water here
+__label__other do you know where the lift is
+__label__other can you take this bag for me
+__label__other i think the lights are broken here
+__label__other my friend told me to wait here
+__label__other i need to call someone right now
+__label__other how long have you been here today
+__label__other are you the only robot here
+__label__other how many rooms are on this floor
+__label__other what is your name robot
+__label__other what other things can you do
+__label__other can you play some music for me
+__label__other i don't have any rubbish with me
+__label__other there is no rubbish in my hands
+__label__other i am not the one who littered
+__label__other this mess was here when i arrived
+__label__other someone already helped me with the rubbish
+__label__other the rubbish on the floor isn't mine
+__label__other i think you have the wrong person
+__label__other i was not even eating anything here
+__label__other i already threw my rubbish away earlier
+__label__other could you bring me some water instead
+__label__other can you repeat what you just said because i did not hear you clearly
+__label__other i am not sure what you are asking me so could you explain it again
+__label__other before i give you an answer i need to know which bin is for recycling
+__label__other i have a question about the waste sorting rules before i decide what to do
+__label__other could you explain the difference between the recycling bin and the general waste bin please
+__label__other i need a moment to think about this and i will let you know shortly
+__label__other i am still trying to figure out whether this bottle is recyclable or general waste
+__label__other wait a second i need to check what is inside this bag before answering you
+__label__other could you tell me where the nearest recycling station is in this building right now
+__label__other i would like to ask you something completely unrelated to rubbish before we continue this
+__label__other i don't understand why you keep asking me about rubbish when i have a different question
+__label__other this is so frustrating because i have been trying to ask you about the exit instead
+__label__other you are honestly the most annoying robot i have ever met in my entire life
+__label__other i cannot believe how stupid this robot is because it keeps asking the same question
+__label__other what a complete waste of time this conversation is because you don't understand anything at all
+__label__other you are driving me absolutely crazy today and i wish they would replace you already
+__label__other i think something is seriously wrong with your programming because you make no sense at all
+__label__other who designed this terrible robot because they did an absolutely awful job at making it useful
+__label__other this is the worst experience i have had with any robot and i am very frustrated
+__label__other you are so unbelievably annoying that i want to complain to whoever is in charge here
+__label__other i was not even talking to you so why did you come over and interrupt me
+__label__other i am busy having a conversation right now so could you come back in a few minutes
+__label__other i think there is a more important issue here because the lights seem to be broken
+__label__other can you tell me where the bathroom is because that is what i actually need right now
+__label__other i was looking for room two zero four and i ended up here by mistake somehow
+__label__other do you know if the cafeteria on the ground floor is still open at this hour
+__label__other i need to charge my phone desperately so do you know where an outlet is nearby
+__label__other someone told me there is a vending machine on this floor but i cannot find it
+__label__other i think the meeting in the main hall has already started and i need directions there
+__label__other could you help me find my colleague instead of asking me about rubbish all the time
+__label__other i left my bag somewhere in this building and i need help looking for it please
+__label__other i have no idea what you are saying because you are speaking too fast for me
+__label__other could you slow down and say that again because i only caught part of your sentence
+__label__other i need you to explain the whole process from start to finish before i say anything
+__label__other i have mixed waste here and i am not sure which items go in which bin
+__label__other should i separate the plastic from the paper before putting anything in or do they go together
+__label__other i am wondering if this food container needs to be rinsed before it can be recycled
+__label__other what should i do with this half empty bottle because there is still liquid inside it
+__label__other if i throw this away now will someone clean the floor in case something spills
+__label__other i am not saying yes or no yet because i need more information about the process
+__label__other before i decide can you tell me if there is a separate bin for food waste
+__label__other i cannot hear you very well because it is quite noisy in here right now
+__label__other could you speak a bit louder because there is a lot of background noise today
+__label__other i think you are confusing me with someone else because i was just walking by
+__label__other the rubbish you see on the floor was already here when i arrived a minute ago
+__label__other i don't actually have any rubbish on me right now so your question doesn't apply
+__label__other someone already helped me throw away my rubbish earlier so i don't need assistance again
+__label__other i was not the one eating here so this mess has nothing to do with me
+__label__other i am just a visitor and i don't know the rules about rubbish disposal here
+__label__other how long is this going to take because i have somewhere i need to be soon
+__label__other i am in a bit of a rush so can we deal with this later instead
+__label__other maybe i will throw it away but first let me ask my colleague about it
+__label__other i need to make a phone call first and then i can think about the rubbish
+__label__other let me finish what i am doing and then we can talk about the rubbish situation
+__label__other i have no idea whether this is recyclable or not and i don't want to guess wrong
+__label__other sorry but i was not paying attention at all so can you start from the beginning
+__label__other what bin
+__label__other say what
+__label__other speak clearly
+__label__other i wonder
+__label__other hmm
+__label__other who cares
+__label__other big deal
+__label__other not my problem
+__label__other you're so loud
+__label__other that's embarrassing
+__label__other what a robot
+__label__other oh no
+__label__other i wonder if this goes in recycling
+__label__other where exactly is the bin supposed to go
+__label__other is there a reason you're asking me
+__label__other that's a really weird question honestly
+__label__other why do you keep following me around
+__label__other i already did this task earlier today
+__label__other should i wait or do it now
+__label__other do i need to wash this first
+__label__other where did you come from just now
+__label__other is this the only bin you have
+__label__other how many times will you ask that
+__label__other what's the point of all this anyway
+__label__other i honestly have no idea what you want from me and i think you should explain more clearly
+__label__other my friend was just telling me something important and then you came over and interrupted our conversation
+__label__other i am not sure if you are talking to me because there are other people around here too
+__label__other could you tell me what the recycling rules are in this building before i make any decisions
+__label__other i just want to know if this cup needs to be empty before i put it in any bin
