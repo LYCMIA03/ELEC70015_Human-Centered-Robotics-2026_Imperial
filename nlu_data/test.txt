@@ -148,3 +148,153 @@ __label__other sorry i did not catch that could you say again whether you want i
 __label__other i am confused because i also need to know where to wash this container before deciding
 __label__other you are honestly the most annoying robot i have spoken to and i want to talk to a person instead
 __label__other i don't even have any rubbish with me right now so i have no idea why you are asking me this
+__label__affirmative yes throw it
+__label__affirmative bin it please
+__label__affirmative toss it away
+__label__affirmative chuck it in
+__label__affirmative yes bin it
+__label__affirmative throw it away
+__label__affirmative put it there
+__label__affirmative yes do it
+__label__affirmative bin it now
+__label__affirmative drop it in
+__label__affirmative yes let me put this in now
+__label__affirmative ok bring the bin over here
+__label__affirmative sure i can throw these out now
+__label__affirmative yes let's get rid of this rubbish
+__label__affirmative fine give me the bin please
+__label__affirmative ok i will drop this in the bin
+__label__affirmative sure just bring the bin here now
+__label__affirmative yes i want to get rid of this rubbish
+__label__affirmative yes go ahead and bring the bin please
+__label__affirmative sure i will take the bin from you
+__label__affirmative yeah let me clean this up right now
+__label__affirmative yes give me a second to throw this out
+__label__affirmative alright i will use the bin right now
+__label__affirmative yes i will toss all this in the bin
+__label__affirmative ok i am ready to throw this out now
+__label__affirmative yeah bring the bin i have food containers
+__label__affirmative yes let me bin these wrappers first please
+__label__affirmative sure hand it here and i will throw this out
+__label__affirmative ok yes i want to dispose of these leftovers
+__label__affirmative yes perfect i was hoping you would bring the bin
+__label__affirmative yes please bring the rubbish bin here because i finished my meal and need to throw the packaging
+__label__affirmative of course i will throw this away right now if you just pass me the bin quickly
+__label__affirmative sure bring it over and i will get rid of all this food packaging immediately
+__label__affirmative yes i would like to dispose of this now so please keep the bin steady for me
+__label__affirmative absolutely i have several items to throw away and i would appreciate it if you held the bin
+__label__affirmative yes please come here with the bin because my hands are full and i cannot walk to it
+__label__affirmative sure i will throw these things away as soon as you bring the bin a bit closer to me
+__label__affirmative yes i am done with this packaging and i want to put it all in the bin now
+__label__affirmative of course just bring the bin here and i will drop all these empty containers inside it
+__label__affirmative yes i need to get rid of this before i leave so please pass me the rubbish bin
+__label__affirmative sure bring the bin please because i have a bag of leftovers that i need to throw out
+__label__affirmative yes i want to dispose of this food waste now and i would be grateful for your help
+__label__affirmative definitely bring the bin because i have both recyclable and non-recyclable items to sort and throw
+__label__affirmative yes please i have been standing here with this rubbish for a while and i need the bin now
+__label__affirmative of course give me the bin and i will make sure to separate the plastic from the food waste
+__label__affirmative yes i am happy to throw this away right now so please bring the bin over here to me
+__label__affirmative sure i will put this in the bin but please hold it steady while i drop everything inside
+__label__affirmative yes bring the bin here please because i have several paper cups and food wrappers to throw away
+__label__affirmative absolutely i want to throw this rubbish in the bin before the area gets any messier than it already is
+__label__affirmative yes please pass the bin to me because i have a full bag of rubbish from my lunch break
+__label__negative no hold onto it
+__label__negative just leave me be
+__label__negative go away now please
+__label__negative no bin needed
+__label__negative take it back
+__label__negative no not today
+__label__negative stop that please
+__label__negative not my rubbish
+__label__negative no i refuse this
+__label__negative remove it from here
+__label__negative no i am not throwing this away now
+__label__negative please take the bin somewhere else
+__label__negative i do not want to use it today
+__label__negative no thanks i will sort this out later
+__label__negative please stop offering me the rubbish bin
+__label__negative no i need to check this bag first please
+__label__negative i am not ready to throw anything out yet
+__label__negative no just leave it there for now thanks
+__label__negative please stop i do not need the bin at all
+__label__negative no this rubbish is not mine to throw away
+__label__negative i refuse to use the bin right now sorry
+__label__negative no i have already decided to keep this item
+__label__negative please take it away i do not need it now
+__label__negative no stop i am still using this packaging here
+__label__negative i am not in the mood to throw anything out
+__label__negative no thanks i am keeping all of this for now
+__label__negative please go away i will handle this rubbish myself
+__label__negative no i do not want to throw this out right now
+__label__negative stop offering the bin because i already said no
+__label__negative no i am busy right now and cannot deal with this
+__label__negative no i do not want to throw this away because i still need to check what is inside the bag
+__label__negative please take the bin somewhere else because i am not ready to dispose of anything right now
+__label__negative no thank you i would rather keep this packaging until i have a chance to read the label on it
+__label__negative i refuse to throw this away now because i want to show it to my colleague first
+__label__negative no i am not going to use the bin today and i would appreciate you leaving me alone now
+__label__negative please stop insisting because i have already made up my mind and i do not want to throw this out
+__label__negative no i do not need the bin because someone else already took care of the rubbish in this area
+__label__negative i am not throwing this away right now because i might need the container for something later today
+__label__negative no thank you i prefer to handle my own rubbish disposal without any assistance from you today
+__label__negative please take the bin away because i am not planning to throw anything out at this moment
+__label__negative no i am still eating and i will throw the packaging away myself when i am completely finished
+__label__negative i refuse to give this bag to you because it contains items i need to sort through carefully first
+__label__negative no i do not want to use the bin you are holding because i am already on my way out now
+__label__negative please leave because i am not comfortable throwing away items while someone is standing so close to me
+__label__negative no i have changed my mind and i am keeping this bottle because i want to reuse it later
+__label__negative i do not want to throw this away now because i need to check if there is anything still inside it
+__label__negative no please do not come any closer with the bin because i am not going to throw anything away today
+__label__negative i am keeping all of this rubbish for now so please take the bin back and leave me in peace
+__label__negative no i do not need your help with the rubbish because i am perfectly capable of dealing with it myself
+__label__negative please stop and go away because i have told you already that i am not throwing anything in your bin
+__label__other which bin please
+__label__other recyclable or not
+__label__other is it full
+__label__other food waste only
+__label__other show me first
+__label__other can this be recycled
+__label__other mixed or separate
+__label__other where exactly
+__label__other what type bin
+__label__other how do i
+__label__other is this the right bin for plastic
+__label__other where should i put this food container
+__label__other can you tell me what goes in here
+__label__other do i need to separate these items first
+__label__other is this bin for recyclables or general waste
+__label__other how do i know which bin to use here
+__label__other where exactly is the nearest recycling point
+__label__other can i put glass and plastic in together
+__label__other should i rinse this container before throwing it
+__label__other is there a separate bin for food waste here
+__label__other what do i do with this half-full drink cup
+__label__other do i put the lid on or take it off
+__label__other can you point me to the recycling area please
+__label__other what category does this cardboard box belong to
+__label__other is this wrapper recyclable or general waste here
+__label__other do i need to remove the label before throwing this
+__label__other where do i put this used coffee cup please
+__label__other can i throw wet and dry waste in together
+__label__other should i compact the rubbish before putting it in
+__label__other do you want me to throw everything in at once
+__label__other i am not sure if this bottle should go in the recycling bin or the general waste bin
+__label__other can you tell me whether i need to separate the cardboard from the plastic before throwing everything away
+__label__other i am still deciding what to do so could you wait a moment while i check this bag
+__label__other before i answer yes or no could you explain what happens to the rubbish after i put it in
+__label__other i am not sure what you are asking me to do so could you please explain it more clearly
+__label__other do you mean i should throw this away right now or wait until i have sorted everything out first
+__label__other i am confused because there are two different bins here and i do not know which one to use
+__label__other sorry i was not paying attention so could you repeat what you said about the rubbish disposal please
+__label__other i want to throw this away but i need to know if the bin you have is for general waste
+__label__other before i decide i need to ask whether this type of plastic can actually be recycled in this bin
+__label__other i am not saying yes or no yet because i need to check whether this packaging is actually recyclable
+__label__other can you wait a moment because i am trying to figure out if there is anything valuable left in this bag
+__label__other i do not know what category this container belongs to so can you help me figure it out first
+__label__other sorry but i need clarification because i heard you say bin but i am not sure what kind you mean
+__label__other i am undecided right now because i want to make sure i am putting this in the correct bin
+__label__other could you tell me whether the bin you are holding is specifically for food packaging or all types of rubbish
+__label__other i need a moment to think about whether it is better to keep this bag or throw it away now
+__label__other before i throw this away could you confirm whether this area has separate bins for glass and plastic bottles
+__label__other i am not ready to answer because i want to make sure i understand the disposal instructions correctly first
+__label__other can you explain the difference between the two bins because i want to throw this away in the right one
