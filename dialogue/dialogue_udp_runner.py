@@ -59,7 +59,17 @@ def parse_args():
     parser.add_argument("--listen-port", type=int, default=16041, help="UDP listen port for navigation_success trigger.")
     parser.add_argument("--send-host", default="127.0.0.1", help="UDP destination host for trash_action.")
     parser.add_argument("--send-port", type=int, default=16032, help="UDP destination port for trash_action.")
-    parser.add_argument("--nlu-model", default=None, help="NLU model path. Default: <dialogue-root>/models/nlu_intent.bin")
+    parser.add_argument(
+        "--nlu-model",
+        default=None,
+        help="NLU model path. Default auto-order: <dialogue-root>/models/nlu_intent_bert then nlu_intent.bin",
+    )
+    parser.add_argument(
+        "--nlu-backend",
+        default="auto",
+        choices=("auto", "bert", "fasttext"),
+        help="NLU backend. auto: try BERT first then FastText fallback.",
+    )
     parser.add_argument("--device", type=int, default=None, help="Microphone input device index.")
     parser.add_argument("--no-play", action="store_true", help="Skip playing robot wav prompts.")
     parser.add_argument("--sim", action="store_true", help="Use wav files instead of microphone input.")
@@ -89,6 +99,61 @@ def _resolve_user_wav_arg(wav_arg, dialogue_root, launch_cwd):
     return wav_arg
 
 
+def _resolve_fasttext_model_path(path: Path) -> Path:
+    if path.is_dir():
+        for name in ("nlu_intent.bin", "nlu_intent_fast_text.bin"):
+            candidate = path / name
+            if candidate.is_file():
+                return candidate
+        raise FileNotFoundError(f"No FastText model found under: {path}")
+    return path
+
+
+def _load_nlu_classifier(dialogue_root: Path, backend: str, model_arg):
+    bert_default = dialogue_root / "models" / "nlu_intent_bert"
+    fasttext_default = dialogue_root / "models" / "nlu_intent.bin"
+
+    def _load_bert(path: Path):
+        if not path.exists():
+            raise FileNotFoundError(f"BERT model path not found: {path}")
+        from src.utils.nlu_intent_bert import IntentClassifierBert
+        return IntentClassifierBert.load(str(path))
+
+    def _load_fasttext(path: Path):
+        from src.utils.nlu_intent import IntentClassifier
+        resolved = _resolve_fasttext_model_path(path)
+        if not resolved.is_file():
+            raise FileNotFoundError(f"FastText model not found: {resolved}")
+        return IntentClassifier.load(str(resolved))
+
+    if backend == "bert":
+        chosen = Path(model_arg).resolve() if model_arg else bert_default
+        return _load_bert(chosen), "bert", chosen
+
+    if backend == "fasttext":
+        chosen = Path(model_arg).resolve() if model_arg else fasttext_default
+        return _load_fasttext(chosen), "fasttext", _resolve_fasttext_model_path(chosen)
+
+    if model_arg:
+        model_path = Path(model_arg).resolve()
+        candidates = [("bert", model_path), ("fasttext", model_path)]
+    else:
+        candidates = [("bert", bert_default), ("fasttext", fasttext_default)]
+
+    errors = []
+    for candidate_backend, candidate_path in candidates:
+        try:
+            if candidate_backend == "bert":
+                return _load_bert(candidate_path), "bert", candidate_path
+            model_file = _resolve_fasttext_model_path(candidate_path)
+            return _load_fasttext(candidate_path), "fasttext", model_file
+        except Exception as exc:
+            errors.append(f"{candidate_backend}@{candidate_path}: {exc}")
+            continue
+
+    raise RuntimeError("Failed to load NLU classifier. " + " | ".join(errors))
+
+
 def main():
     args = parse_args()
     launch_cwd = Path.cwd()
@@ -109,15 +174,15 @@ def main():
     args.second_user_wav = _resolve_user_wav_arg(args.second_user_wav, dialogue_root, launch_cwd)
 
     from src.dialogue_manager import STT_LANG, STT_MODEL_NAME, decide_two_rounds
-    from src.utils.nlu_intent import IntentClassifier
     from src.utils.speech_to_text import load_model
 
-    model_path = Path(args.nlu_model).resolve() if args.nlu_model else dialogue_root / "models" / "nlu_intent.bin"
-    if not model_path.is_file():
-        raise FileNotFoundError(f"NLU model not found: {model_path}")
-
     print("[Init] Loading dialogue models...", flush=True)
-    classifier = IntentClassifier.load(str(model_path))
+    classifier, backend_used, model_used = _load_nlu_classifier(
+        dialogue_root=dialogue_root,
+        backend=args.nlu_backend,
+        model_arg=args.nlu_model,
+    )
+    print(f"[Init] NLU backend={backend_used}, model={model_used}", flush=True)
     stt_model = load_model(model_path=None, model_name=STT_MODEL_NAME, lang=STT_LANG)
     print("[Init] Dialogue runner ready.", flush=True)
 

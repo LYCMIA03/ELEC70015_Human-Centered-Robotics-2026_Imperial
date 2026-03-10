@@ -3,3 +3,4 @@ onnxruntime>=1.11.0
 vosk
 sounddevice
 fasttext
+transformers>=4.40.0,<=4.57.0
