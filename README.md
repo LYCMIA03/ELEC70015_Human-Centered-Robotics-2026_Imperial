@@ -974,7 +974,41 @@ cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
 ./scripts/start_demo.sh
 ```
 
-This starts: roscore + `target_follow_real.launch` + `handobj_detection_rgbd.py`.
+This starts the demo in this order:
+
+1. `roscore`
+2. `handobj_detection_rgbd.py`
+3. `dialogue_udp_runner.py` + Docker dialogue bridges
+4. `target_follow_real.launch`
+
+The navigation stack is started last on purpose, so YOLO and dialogue are already healthy before the robot begins searching or triggering dialogue.
+
+#### Partial Startup / Repair
+
+When a single module dies during testing, you do not need to stop the whole demo.
+
+Bring up only selected modules:
+
+```bash
+./scripts/start_demo.sh --only master
+./scripts/start_demo.sh --only master,dialogue
+./scripts/start_demo.sh --only master,yolo
+./scripts/start_demo.sh --only master,nav
+```
+
+Restart one or more running modules using the current demo runtime parameters:
+
+```bash
+./scripts/restart_demo_modules.sh --only yolo
+./scripts/restart_demo_modules.sh --only dialogue
+./scripts/restart_demo_modules.sh --only nav
+./scripts/restart_demo_modules.sh --only yolo,dialogue
+```
+
+Notes:
+
+- `restart_demo_modules.sh` reads the runtime state written by `start_demo.sh`, so start the demo once before using it.
+- This is intended for field repair when YOLO or dialogue occasionally fails to start cleanly.
 
 #### Camera → Robot Coordinate Transform
 
@@ -1019,6 +1053,27 @@ Static TF `base_link → camera_link`: xyz=`(0.208, 0, 1.0)`, quat=`(-0.5, 0.5, 
 - `--explore-step`: exploration step distance.
 - `--explore-no-repeat-sec`: region no-repeat time window.
 - `--no-explore`: disable active exploration (debug only).
+
+#### Stop Demo Cleanly
+
+Use the stop script instead of manually killing a few processes:
+
+```bash
+./scripts/stop_demo_all.sh
+```
+
+Useful scoped stop modes:
+
+```bash
+./scripts/stop_demo_all.sh --dialogue
+./scripts/stop_demo_all.sh --master
+```
+
+Current behavior:
+
+- Stops host-side YOLO, dialogue runner, bridges, and dashboard processes.
+- Stops Docker-side ROS demo processes without stopping the Docker container itself.
+- Verifies that key demo processes are actually gone, instead of always printing success.
 
 #### Manual Test (No Hardware)
 
