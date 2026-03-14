@@ -63,6 +63,7 @@ step()  { echo -e "\n${BOLD}${CYN}── $* ${NC}"; }
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CATKIN_WS="${REPO_ROOT}/catkin_ws"
 HANDOBJ_DIR="${REPO_ROOT}/handobj_detection"
+RUNTIME_STATE_FILE="${XDG_RUNTIME_DIR:-/tmp}/hcr_demo_runtime.env"
 
 # ---------- 默认参数 ----------
 STANDOFF="0.8"
@@ -200,11 +201,37 @@ _select_udp_port() {
   echo "${selected}"
 }
 
+_write_runtime_state() {
+  cat > "${RUNTIME_STATE_FILE}" <<EOF
+REPO_ROOT='${REPO_ROOT}'
+CATKIN_WS='${CATKIN_WS}'
+HANDOBJ_DIR='${HANDOBJ_DIR}'
+DOCKER_NAME='${DOCKER_NAME}'
+JETSON_IP='${JETSON_IP}'
+ROS_MASTER='${ROS_MASTER}'
+TRASH_UDP_PORT='${TRASH_UDP_PORT}'
+DIALOGUE_TRIGGER_UDP_PORT='${DIALOGUE_TRIGGER_UDP_PORT}'
+DIALOGUE_ACTION_UDP_PORT='${DIALOGUE_ACTION_UDP_PORT}'
+STANDOFF='${STANDOFF}'
+RETREAT_DIST='${RETREAT_DIST}'
+RETREAT_TURN_DEG='${RETREAT_TURN_DEG}'
+ACTION_WAIT='${ACTION_WAIT}'
+POST_ACCEPT_COOLDOWN='${POST_ACCEPT_COOLDOWN}'
+ENABLE_AUTO_EXPLORE='${ENABLE_AUTO_EXPLORE}'
+EXPLORE_STEP='${EXPLORE_STEP}'
+EXPLORE_NO_REPEAT_SEC='${EXPLORE_NO_REPEAT_SEC}'
+TARGET_KIND='${TARGET_KIND}'
+DIALOGUE_DEVICE='${DIALOGUE_DEVICE}'
+RUNNER_READY_TIMEOUT='${RUNNER_READY_TIMEOUT}'
+EOF
+}
+
 # ---------- 动态端口分配 ----------
 USED_UDP_PORTS=()
 TRASH_UDP_PORT="$(_select_udp_port "trash_detection->ROS" "${TRASH_UDP_PORT}")"
 DIALOGUE_TRIGGER_UDP_PORT="$(_select_udp_port "nav_success->dialogue" "${DIALOGUE_TRIGGER_UDP_PORT}")"
 DIALOGUE_ACTION_UDP_PORT="$(_select_udp_port "dialogue->trash_action" "${DIALOGUE_ACTION_UDP_PORT}")"
+_write_runtime_state
 
 # ---------- Bridge 健康检查 ----------
 _ros_node_exists() {
@@ -260,6 +287,8 @@ cleanup() {
     info "Stopping dashboard (pid ${DASHBOARD_PID})..."
     _kill_tree "${DASHBOARD_PID}"
   fi
+
+  rm -f "${RUNTIME_STATE_FILE}"
 
   # 停止 Docker 内所有 target follow 相关节点 (包括 move_base)
   if ${LAUNCH_NAV}; then
@@ -363,78 +392,7 @@ else
 fi
 
 # =============================================================================
-step "STEP 2 — Start target following (standalone: LiDAR + move_base + follower)"
-
-if ! ${LAUNCH_NAV}; then
-  warn "Navigation disabled (--no-nav or --only without nav); skipping STEP 2"
-else
-
-# Kill any existing mapping/nav/target-follow launch
-${DOCKER_EXEC} "pkill -f 'roslaunch.*real_robot' 2>/dev/null; \
-                 pkill -f 'roslaunch.*target_follow' 2>/dev/null; sleep 1" 2>/dev/null || true
-sleep 1
-
-info "Launching target_follow_real.launch (standalone mode — no global map)..."
-${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
-  exec roslaunch target_follower target_follow_real.launch \
-    launch_move_base:=true \
-    standoff_distance:=${STANDOFF} \
-    face_target:=true \
-    target_timeout:=5.0 \
-    udp_port:=${TRASH_UDP_PORT} \
-    retreat_distance:=${RETREAT_DIST} \
-    retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \
-    action_wait_timeout:=${ACTION_WAIT} \
-    enable_auto_explore:=${ENABLE_AUTO_EXPLORE} \
-    explore_goal_distance:=${EXPLORE_STEP} \
-    explore_revisit_window:=${EXPLORE_NO_REPEAT_SEC} \
-    target_reacquire_block_s:=${EXPLORE_NO_REPEAT_SEC} \
-    post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
-  > /tmp/target_follow.log 2>&1 ) &" 2>/dev/null
-
-info "Waiting for move_base + target_follower to come up (up to 30 s)..."
-for i in $(seq 1 30); do
-  sleep 1
-  NODES=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rosnode list 2>/dev/null" 2>/dev/null || true)
-  HAS_MB=$(echo "${NODES}" | grep -c move_base || true)
-  HAS_TF=$(echo "${NODES}" | grep -c target_follower || true)
-  if [[ "${HAS_MB}" -ge 1 && "${HAS_TF}" -ge 1 ]]; then
-    ok "move_base + target_follower are up (${i}s)"
-    break
-  fi
-  if [[ $i -eq 30 ]]; then
-    die "Nodes not ready after 30 s.\n  Check: docker exec ${DOCKER_NAME} tail -30 /tmp/target_follow.log"
-  fi
-done
-
-# Check LiDAR data
-info "Checking LiDAR data..."
-SCAN_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
-  timeout 6 rostopic hz /unitree/scan 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
-if [[ -n "${SCAN_RATE}" ]]; then
-  ok "/unitree/scan: ${SCAN_RATE} Hz"
-else
-  warn "/unitree/scan: no data — LiDAR may not be fully up yet (OK to proceed)"
-fi
-
-# Check core in-Docker bridge chain
-info "Validating in-Docker bridge nodes (/udp_target_bridge, /point_to_target_pose)..."
-CORE_BRIDGE_OK=0
-for i in $(seq 1 20); do
-  if _ros_node_exists "udp_target_bridge" && _ros_node_exists "point_to_target_pose"; then
-    CORE_BRIDGE_OK=1
-    break
-  fi
-  sleep 1
-done
-if [[ "${CORE_BRIDGE_OK}" -ne 1 ]]; then
-  die "Core bridge nodes not ready. Check: docker exec ${DOCKER_NAME} tail -60 /tmp/target_follow.log"
-fi
-ok "Core bridge chain is up (udp_target_bridge + point_to_target_pose)"
-fi
-
-# =============================================================================
-step "STEP 3 — Start Hand-Object detection (host)"
+step "STEP 2 — Start Hand-Object detection (host)"
 
 if ${LAUNCH_YOLO}; then
   pkill -f "handobj_detection_rgbd.py" 2>/dev/null || true
@@ -463,7 +421,7 @@ else
 fi
 
 # =============================================================================
-step "STEP 4 — Start Dialogue (runner + Docker bridges)"
+step "STEP 3 — Start Dialogue (runner + Docker bridges)"
 
 if ${LAUNCH_DIALOGUE}; then
   if [[ ! -f "${REPO_ROOT}/dialogue/dialogue_udp_runner.py" ]]; then
@@ -551,6 +509,77 @@ if ${LAUNCH_DIALOGUE}; then
 else
   warn "Dialogue bridge disabled (--no-dialogue). /trash_action will not be published."
   warn "  Simulate with: rostopic pub /trash_action std_msgs/Bool 'data: false'"
+fi
+
+# =============================================================================
+step "STEP 4 — Start target following (standalone: LiDAR + move_base + follower)"
+
+if ! ${LAUNCH_NAV}; then
+  warn "Navigation disabled (--no-nav or --only without nav); skipping STEP 4"
+else
+
+# Kill any existing mapping/nav/target-follow launch
+${DOCKER_EXEC} "pkill -f 'roslaunch.*real_robot' 2>/dev/null; \
+                 pkill -f 'roslaunch.*target_follow' 2>/dev/null; sleep 1" 2>/dev/null || true
+sleep 1
+
+info "Launching target_follow_real.launch (standalone mode — no global map)..."
+${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
+  exec roslaunch target_follower target_follow_real.launch \
+    launch_move_base:=true \
+    standoff_distance:=${STANDOFF} \
+    face_target:=true \
+    target_timeout:=5.0 \
+    udp_port:=${TRASH_UDP_PORT} \
+    retreat_distance:=${RETREAT_DIST} \
+    retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \
+    action_wait_timeout:=${ACTION_WAIT} \
+    enable_auto_explore:=${ENABLE_AUTO_EXPLORE} \
+    explore_goal_distance:=${EXPLORE_STEP} \
+    explore_revisit_window:=${EXPLORE_NO_REPEAT_SEC} \
+    target_reacquire_block_s:=${EXPLORE_NO_REPEAT_SEC} \
+    post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
+  > /tmp/target_follow.log 2>&1 ) &" 2>/dev/null
+
+info "Waiting for move_base + target_follower to come up (up to 30 s)..."
+for i in $(seq 1 30); do
+  sleep 1
+  NODES=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rosnode list 2>/dev/null" 2>/dev/null || true)
+  HAS_MB=$(echo "${NODES}" | grep -c move_base || true)
+  HAS_TF=$(echo "${NODES}" | grep -c target_follower || true)
+  if [[ "${HAS_MB}" -ge 1 && "${HAS_TF}" -ge 1 ]]; then
+    ok "move_base + target_follower are up (${i}s)"
+    break
+  fi
+  if [[ $i -eq 30 ]]; then
+    die "Nodes not ready after 30 s.\n  Check: docker exec ${DOCKER_NAME} tail -30 /tmp/target_follow.log"
+  fi
+done
+
+# Check LiDAR data
+info "Checking LiDAR data..."
+SCAN_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
+  timeout 6 rostopic hz /unitree/scan 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
+if [[ -n "${SCAN_RATE}" ]]; then
+  ok "/unitree/scan: ${SCAN_RATE} Hz"
+else
+  warn "/unitree/scan: no data — LiDAR may not be fully up yet (OK to proceed)"
+fi
+
+# Check core in-Docker bridge chain
+info "Validating in-Docker bridge nodes (/udp_target_bridge, /point_to_target_pose)..."
+CORE_BRIDGE_OK=0
+for i in $(seq 1 20); do
+  if _ros_node_exists "udp_target_bridge" && _ros_node_exists "point_to_target_pose"; then
+    CORE_BRIDGE_OK=1
+    break
+  fi
+  sleep 1
+done
+if [[ "${CORE_BRIDGE_OK}" -ne 1 ]]; then
+  die "Core bridge nodes not ready. Check: docker exec ${DOCKER_NAME} tail -60 /tmp/target_follow.log"
+fi
+ok "Core bridge chain is up (udp_target_bridge + point_to_target_pose)"
 fi
 
 # =============================================================================
