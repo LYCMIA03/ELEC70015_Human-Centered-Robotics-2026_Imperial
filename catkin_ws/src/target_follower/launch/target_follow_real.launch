@@ -24,8 +24,8 @@
 
     结果 topic:
       /target_follower/result  (std_msgs/Bool)   — True=到达目标(触发对话), False=失败/丢失
-      /target_follower/status  (std_msgs/String)  — 当前状态: IDLE|TRACKING|REACHED|WAITING_ACTION|POST_ACCEPT_COOLDOWN|RETREATING|LOST|FAILED
-      /trash_action            (std_msgs/Bool)    — 对话结果输入: True=接受投递, False=拒绝→触发后退
+      /target_follower/status  (std_msgs/String)  — 当前状态: IDLE|EXPLORING|TRACKING|REACHED|WAITING_ACTION|RETREATING|LOST|FAILED
+      /trash_action            (std_msgs/Bool)    — 对话结果输入: True/False 都触发同一套撤离策略
   -->
 
   <!-- ========== 参数 ========== -->
@@ -56,6 +56,24 @@
        doc="人类拒绝投垃圾后机器人后退的距离 (m)"/>
   <arg name="retreat_timeout"        default="20.0"
        doc="后退导航的最大等待时间 (s)"/>
+    <arg name="retreat_turn_angle_deg" default="180.0"
+      doc="撤离前原地转向角度 (deg), 建议使用大角度以脱离相机视野"/>
+
+    <!-- Auto-explore params: keep robot moving to search for next target -->
+    <arg name="enable_auto_explore"      default="true"
+      doc="无目标时自动探索"/>
+    <arg name="explore_goal_distance"    default="2.0"
+      doc="每次探索目标前进距离 (m)"/>
+    <arg name="explore_goal_timeout"     default="30.0"
+      doc="单个探索目标超时 (s)"/>
+    <arg name="explore_revisit_window"   default="120.0"
+      doc="探索去重时间窗 (s), 该时间内避免回到相同区域"/>
+    <arg name="explore_revisit_radius"   default="1.5"
+      doc="探索区域去重半径 (m)"/>
+    <arg name="target_reacquire_block_s" default="120.0"
+      doc="对话后屏蔽重复目标的时长 (s)"/>
+    <arg name="target_reacquire_radius"  default="1.6"
+      doc="对话后屏蔽重复目标的半径 (m)"/>
 
   <!-- Resolve global_frame: standalone→odom, overlay→map -->
   <arg name="global_frame" default="odom" if="$(arg launch_move_base)"/>
@@ -178,5 +196,13 @@
     <param name="post_accept_cooldown_s" value="$(arg post_accept_cooldown)"/>
     <param name="retreat_distance"       value="$(arg retreat_distance)"/>
     <param name="retreat_timeout_s"      value="$(arg retreat_timeout)"/>
+    <param name="retreat_turn_angle_deg" value="$(arg retreat_turn_angle_deg)"/>
+    <param name="enable_auto_explore"    value="$(arg enable_auto_explore)"/>
+    <param name="explore_goal_distance"  value="$(arg explore_goal_distance)"/>
+    <param name="explore_goal_timeout_s" value="$(arg explore_goal_timeout)"/>
+    <param name="explore_revisit_window_s" value="$(arg explore_revisit_window)"/>
+    <param name="explore_revisit_radius" value="$(arg explore_revisit_radius)"/>
+    <param name="target_reacquire_block_s" value="$(arg target_reacquire_block_s)"/>
+    <param name="target_reacquire_radius" value="$(arg target_reacquire_radius)"/>
   </node>
 </launch>

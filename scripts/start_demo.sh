@@ -18,8 +18,7 @@ single_instance::activate "$(basename "$0")"
 #
 # 对话流程：
 #   REACHED → result=True → UDP:16041 → dialogue_udp_runner → UDP:16032 → /trash_action
-#   /trash_action=True  → IDLE (接受, 继续)
-#   /trash_action=False → RETREATING (拒绝, 后退 ${RETREAT_DIST}m) → IDLE
+#   /trash_action=True/False → 统一撤离策略：原地大角度转向 + 前进撤离 → auto explore 继续寻找下一个目标
 #
 # 前提（需手动完成）：
 #   - Raspberry Pi 已启动: ./scripts/start_base.sh  (on Pi)
@@ -33,9 +32,12 @@ single_instance::activate "$(basename "$0")"
 #
 # 参数：
 #   --standoff M      停在目标前多远 (m), 默认 0.6
-#   --retreat M       人类拒绝后后退距离 (m), 默认 1.5
+#   --retreat M       对话后前进撤离距离 (m), 默认 1.5
+#   --retreat-turn-deg DEG 对话后原地转向角度(度), 默认 180
 #   --action-timeout S 等待对话结果超时 (s), 默认 45
-#   --post-accept-cooldown S 接受投递后的冷却时长 (s), 默认 15
+#   --explore-step M  auto explore 单步距离 (m), 默认 2.0
+#   --explore-no-repeat-sec S 2分钟区域去重窗口(秒), 默认 120
+#   --no-explore      关闭 auto explore（仅调试用）
 #   --target TYPE     检测目标类型 holding|person|waste, 默认 holding
 #   --dialogue-device N 对话麦克风设备号, 默认 24
 #   --only LIST       仅启动模块(逗号分隔): master,nav,yolo,dialogue,dashboard
@@ -68,6 +70,10 @@ RETREAT_DIST="1.5"
 ACTION_WAIT="45.0"
 POST_ACCEPT_COOLDOWN="15.0"
 POST_ACCEPT_COOLDOWN_SET=false
+RETREAT_TURN_DEG="180.0"
+ENABLE_AUTO_EXPLORE=true
+EXPLORE_STEP="2.0"
+EXPLORE_NO_REPEAT_SEC="120.0"
 TARGET_KIND="holding"
 DIALOGUE_DEVICE="24"
 LAUNCH_YOLO=true
@@ -84,8 +90,12 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --standoff)        STANDOFF="$2";       shift 2 ;;
     --retreat)         RETREAT_DIST="$2";   shift 2 ;;
+    --retreat-turn-deg) RETREAT_TURN_DEG="$2"; shift 2 ;;
     --action-timeout)  ACTION_WAIT="$2";    shift 2 ;;
     --post-accept-cooldown) POST_ACCEPT_COOLDOWN="$2"; POST_ACCEPT_COOLDOWN_SET=true; shift 2 ;;
+    --explore-step)    EXPLORE_STEP="$2"; shift 2 ;;
+    --explore-no-repeat-sec) EXPLORE_NO_REPEAT_SEC="$2"; shift 2 ;;
+    --no-explore)      ENABLE_AUTO_EXPLORE=false; shift ;;
     --target)          TARGET_KIND="$2";    shift 2 ;;
     --dialogue-device) DIALOGUE_DEVICE="$2"; shift 2 ;;
     --only)            ONLY_MODULES="$2";   shift 2 ;;
@@ -268,9 +278,12 @@ echo -e "${BOLD}${CYN}║  P3-AT Target Following Demo — Local Planning    ║
 echo -e "${BOLD}${CYN}╚══════════════════════════════════════════════════╝${NC}"
 echo -e "  Mode:       standalone (no global map)"
 echo -e "  Standoff:   ${STANDOFF} m"
-echo -e "  Retreat:    ${RETREAT_DIST} m (on refusal)"
+echo -e "  Retreat:    ${RETREAT_DIST} m (after dialogue)"
+echo -e "  Turn angle: ${RETREAT_TURN_DEG} deg"
 echo -e "  Act.timeout:${ACTION_WAIT} s"
-echo -e "  Post-accept cooldown: ${POST_ACCEPT_COOLDOWN} s"
+echo -e "  Auto explore: $(${ENABLE_AUTO_EXPLORE} && echo enabled || echo DISABLED)"
+echo -e "  Explore step: ${EXPLORE_STEP} m"
+echo -e "  Explore no-repeat: ${EXPLORE_NO_REPEAT_SEC} s"
 echo -e "  Target:     ${TARGET_KIND}"
 echo -e "  UDP detect: ${TRASH_UDP_PORT}  (trash_detection -> ROS)"
 echo -e "  UDP trig:   ${DIALOGUE_TRIGGER_UDP_PORT}  (nav_success -> dialogue)"
@@ -368,7 +381,12 @@ ${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
     target_timeout:=5.0 \
     udp_port:=${TRASH_UDP_PORT} \
     retreat_distance:=${RETREAT_DIST} \
+    retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \
     action_wait_timeout:=${ACTION_WAIT} \
+    enable_auto_explore:=${ENABLE_AUTO_EXPLORE} \
+    explore_goal_distance:=${EXPLORE_STEP} \
+    explore_revisit_window:=${EXPLORE_NO_REPEAT_SEC} \
+    target_reacquire_block_s:=${EXPLORE_NO_REPEAT_SEC} \
     post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
   > /tmp/target_follow.log 2>&1 ) &" 2>/dev/null
 

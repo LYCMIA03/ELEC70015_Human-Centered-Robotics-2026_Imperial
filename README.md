@@ -954,6 +954,19 @@ rosrun p3at_lms_navigation autonomous_explorer.py \
 > **Primary demo task.** Robot follows a detected target using YOLO + depth-camera detection.  
 > **No pre-built map required** in standalone mode.
 
+#### Workflow Update (2026-03-14)
+
+- Startup behavior changed from passive waiting to **active search**: the robot now starts in auto-explore when no fresh target is available.
+- Post-dialogue behavior is now unified: **both** `/trash_action=True` and `/trash_action=False` trigger the same retreat policy.
+- Unified retreat policy:
+  1. Record current dialogue location and traveled path.
+  2. Rotate in place by a large angle (`retreat_turn_angle_deg`, default 180°).
+  3. Drive away forward (`retreat_distance`, default 1.5 m).
+  4. Resume auto-explore to find the next person/object.
+- Anti-repeat policy:
+  - Exploration avoids recently visited areas for `explore_revisit_window_s` (default 120 s).
+  - Targets near recent dialogue locations are temporarily ignored (`target_reacquire_block_s`, default 120 s).
+
 #### Quick Start — One Command
 
 ```bash
@@ -982,8 +995,30 @@ Static TF `base_link → camera_link`: xyz=`(0.208, 0, 1.0)`, quat=`(-0.5, 0.5, 
 | `face_target` | `true` | Orient robot toward target at REACHED |
 | `target_timeout` | `5.0` s | Cancel goal if no detection for this long |
 | `udp_port` | `16031` | Must match detection `--udp-port` |
-| `retreat_distance` | `1.5` m | How far to retreat when human refuses |
+| `retreat_distance` | `1.5` m | Forward retreat distance after dialogue |
+| `retreat_turn_angle_deg` | `180.0` deg | In-place turn angle before retreat (large angle to avoid re-detection) |
 | `action_wait_timeout` | `45.0` s | Timeout waiting for `/trash_action` |
+| `enable_auto_explore` | `true` | Enable active exploration when no target is tracked |
+| `explore_goal_distance` | `2.0` m | Step distance for each explore navigation goal |
+| `explore_goal_timeout` | `30.0` s | Timeout for one explore goal |
+| `explore_revisit_window` | `120.0` s | Time window for no-repeat exploration |
+| `explore_revisit_radius` | `1.5` m | Spatial radius for no-repeat exploration |
+| `target_reacquire_block_s` | `120.0` s | Block re-querying targets near recent dialogue points |
+| `target_reacquire_radius` | `1.6` m | Radius for target reacquire suppression |
+
+#### start_demo.sh Common Options (New)
+
+```bash
+./scripts/start_demo.sh \
+  --retreat-turn-deg 180 \
+  --explore-step 2.0 \
+  --explore-no-repeat-sec 120
+```
+
+- `--retreat-turn-deg`: large in-place turn before leaving.
+- `--explore-step`: exploration step distance.
+- `--explore-no-repeat-sec`: region no-repeat time window.
+- `--no-explore`: disable active exploration (debug only).
 
 #### Manual Test (No Hardware)
 
@@ -1073,6 +1108,13 @@ global_costmap:
 
 ```
                          ┌───────────────────────────────────────────────────────────┐
+                         │                    EXPLORING                              │
+                         │  No fresh target: send short move_base goals to search    │
+                         │  Avoid areas visited in last 120s                          │
+                         └───────────────────────┬───────────────────────────────────┘
+                                                 │  fresh target detected
+                                                 ▼
+                         ┌───────────────────────────────────────────────────────────┐
                          │                      IDLE                                 │
                          │  Wait for /trash_detection/target_point                   │
                          └───────────────────────┬───────────────────────────────────┘
@@ -1095,7 +1137,7 @@ global_costmap:
                          ┌───────────────────────────────────────────────────────────┐
                          │                    REACHED                                │
                          │  Stop robot; optionally face target; publish success     │
-                         │  /target_follower/result (String: "REACHED")              │
+                         │  /target_follower/result (Bool: True)                     │
                          │  Trigger dialogue (UDP 16041 → dialogue system)           │
                          └───────────────────────┬───────────────────────────────────┘
                                                  │  wait for /trash_action
@@ -1106,16 +1148,14 @@ global_costmap:
                          │  on /trash_action (from dialogue UDP 16032)               │
                          └──────────────┬───────────────────────────┬────────────────┘
                           True (accept) │                           │ False (decline)
-                                        │                           ▼
-                                        │  ┌────────────────────────────────────────┐
-                                        │  │              RETREATING               │
-                                        │  │  Back away retreat_distance (1.5 m)    │
-                                        │  │  Then return to IDLE                   │
-                                        │  └────────────────────────────────────────┘
-                                        ▼
+                                        ▼                           ▼
                          ┌───────────────────────────────────────────────────────────┐
-                         │                   TASK_DONE                               │
-                         │  Flash LEDs / log success; return to IDLE                 │
+                         │                    RETREATING                             │
+                         │  Unified policy for both outcomes:                        │
+                         │  1) record dialogue point/path                            │
+                         │  2) in-place large-angle turn                             │
+                         │  3) drive forward retreat_distance                         │
+                         │  4) return to IDLE then resume EXPLORING                  │
                          └───────────────────────────────────────────────────────────┘
 ```
 
@@ -1127,9 +1167,11 @@ global_costmap:
 | `/target_pose` | `geometry_msgs/PoseStamped` | internal | Transformed pose for MoveBase |
 | `/move_base` | `MoveBaseAction` | → | Navigation goal |
 | `/cmd_vel` | `geometry_msgs/Twist` | → | Direct drive (CLOSE_APPROACH) |
-| `/target_follower/state` | `std_msgs/String` | → | Current state name |
-| `/target_follower/result` | `std_msgs/String` | → | "REACHED" / "ABORTED" / etc. |
-| `/trash_action` | `std_msgs/Bool` | ← | Human response (true=accept) |
+| `/target_follower/status` | `std_msgs/String` | → | Current state: `IDLE|EXPLORING|TRACKING|...` |
+| `/target_follower/result` | `std_msgs/Bool` | → | `True` = reached target, `False` = reset/failed/lost |
+| `/trash_action` | `std_msgs/Bool` | ← | Human response (`true/false`, both trigger unified retreat) |
+| `/target_follower/path_history` | `nav_msgs/Path` | → | Recorded recent robot path (for no-repeat exploration) |
+| `/target_follower/dialogue_points` | `nav_msgs/Path` | → | Recorded dialogue positions (for anti-repeat filtering) |
 
 ### Key Parameters
 
@@ -1140,7 +1182,13 @@ approach_speed: 0.1          # m/s during CLOSE_APPROACH
 face_target: true            # Rotate to face target at REACHED
 target_timeout: 5.0          # Cancel goal if no detection (seconds)
 action_wait_timeout: 45.0    # Max wait for dialogue result
-retreat_distance: 1.5        # How far to back away on decline
+retreat_distance: 1.5        # Forward retreat distance after dialogue
+retreat_turn_angle_deg: 180  # In-place turn angle before retreat
+enable_auto_explore: true    # Explore while no fresh target
+explore_revisit_window_s: 120
+explore_revisit_radius: 1.5
+target_reacquire_block_s: 120
+target_reacquire_radius: 1.6
 ```
 
 ---
@@ -1853,13 +1901,15 @@ source devel/setup.bash   # or setup.zsh
   - [ ] `handobj_detection_rgbd.py --udp-enable`
 - [ ] Hold object in front of camera → robot follows
 - [ ] Robot stops at standoff distance
-- [ ] `/target_follower/result` publishes "REACHED"
+- [ ] `/target_follower/result` publishes `True`
+- [ ] After dialogue, robot performs large-angle turn + forward retreat
+- [ ] Robot resumes auto-explore instead of waiting in place
 
 ### Real Robot — Dialogue Integration
 - [ ] Dialogue system: `python3 dialogue/dialogue_udp_runner.py`
 - [ ] Robot says prompt after reaching target
-- [ ] Voice "yes" → `/trash_action` publishes True
-- [ ] Voice "no" → robot retreats
+- [ ] Voice "yes" → `/trash_action` publishes True → unified retreat policy triggered
+- [ ] Voice "no" → `/trash_action` publishes False → same unified retreat policy triggered
 
 ### Real Robot — SICK (Backup) — Only If Unitree Unavailable
 - [ ] LMS200 detected: `ls /dev/ttyUSB0`

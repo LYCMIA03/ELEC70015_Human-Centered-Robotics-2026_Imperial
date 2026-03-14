@@ -18,12 +18,15 @@ Dialogue bridge flow (external, started by start_dialogue_docker_bridges.sh):
     → UDP:16032 → udp_trash_action_bridge → /trash_action (Bool)
 """
 import math
+import random
+from collections import deque
 import rospy
 import actionlib
 
 from geometry_msgs.msg import PoseStamped, Quaternion, Twist
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
+from nav_msgs.msg import Path
 from std_msgs.msg import Bool, Float32, String
 import tf2_ros
 
@@ -87,7 +90,7 @@ def transform_pose_stamped(pose_in, tf_stamped, target_frame):
 
 class TargetFollower:
     # Valid states
-    STATES = ("IDLE", "TRACKING", "CLOSE_APPROACH", "REACHED", "WAITING_ACTION",
+    STATES = ("IDLE", "EXPLORING", "TRACKING", "CLOSE_APPROACH", "REACHED", "WAITING_ACTION",
               "POST_ACCEPT_COOLDOWN", "RETREATING", "LOST", "FAILED")
 
     def __init__(self):
@@ -120,6 +123,21 @@ class TargetFollower:
         self.retreat_timeout_s = float(rospy.get_param("~retreat_timeout_s", 20.0))
         # Angular speed (rad/s) for in-place 180° turn during retreat
         self.retreat_turn_speed = float(rospy.get_param("~retreat_turn_speed", 0.5))
+        # Turn angle (degrees) during retreat. Large angle avoids re-detecting same person/object.
+        self.retreat_turn_angle_deg = float(rospy.get_param("~retreat_turn_angle_deg", 180.0))
+        self.retreat_turn_tolerance_deg = float(rospy.get_param("~retreat_turn_tolerance_deg", 10.0))
+
+        # ── Auto explore params (active when no target is being tracked) ─────
+        self.enable_auto_explore = bool(rospy.get_param("~enable_auto_explore", True))
+        self.explore_goal_distance = float(rospy.get_param("~explore_goal_distance", 2.0))
+        self.explore_goal_timeout_s = float(rospy.get_param("~explore_goal_timeout_s", 30.0))
+        self.explore_goal_min_dist = float(rospy.get_param("~explore_goal_min_dist", 0.8))
+        self.explore_revisit_window_s = float(rospy.get_param("~explore_revisit_window_s", 120.0))
+        self.explore_revisit_radius = float(rospy.get_param("~explore_revisit_radius", 1.5))
+        self.target_reacquire_block_s = float(rospy.get_param("~target_reacquire_block_s", 120.0))
+        self.target_reacquire_radius = float(rospy.get_param("~target_reacquire_radius", 1.6))
+        self.path_sample_min_dist = float(rospy.get_param("~path_sample_min_dist", 0.25))
+        self.max_path_points = int(rospy.get_param("~max_path_points", 2000))
 
         # ── Close-approach params (bypass move_base for last-metre approach) ──
         # When d_cam_z < this threshold, switch from move_base to direct cmd_vel.
@@ -156,6 +174,7 @@ class TargetFollower:
         self.last_target     = None
         self.last_send_time  = rospy.Time(0)
         self._goal_active    = False
+        self._active_goal_kind = None  # TRACKING | EXPLORING | RETREATING
         self._target_lost_logged = False
         self._suppress_done_cb   = False  # suppress next done_cb after manual cancel
 
@@ -167,8 +186,17 @@ class TargetFollower:
         self._retreat_target_pos   = None   # (tx, ty) of last target, for retreat dir
         self._retreat_phase        = None   # "TURNING" | "DRIVING"
         self._retreat_target_yaw   = None   # target yaw after 180° turn
+        self._retreat_reason       = ""
         self._close_approach_start = None   # rospy.Time when CLOSE_APPROACH began
         self._ca_last_good_depth   = None   # last accepted d_cam_z during CLOSE_APPROACH (depth filter)
+        self._explore_goal_start   = None
+        self._next_explore_time    = rospy.Time(0)
+        self._last_explore_goal_xy = None
+
+        # Path memory and dialogue-location memory for anti-repeat behaviour.
+        self._path_history = deque(maxlen=max(self.max_path_points, 100))  # (stamp, x, y)
+        self._dialogue_points = deque(maxlen=200)  # (stamp, x, y, reason)
+        self._last_path_pub_time = rospy.Time(0)
 
         # ── Publishers ─────────────────────────────────────────────────────
         # cmd_vel for direct rotation control during retreat turn phase
@@ -187,6 +215,9 @@ class TargetFollower:
         self.status_pub = rospy.Publisher("~status",  String, queue_size=1)
         # debug: planar distance from base_link to target pose in global_frame (meters)
         self.target_distance_pub = rospy.Publisher("~target_distance", Float32, queue_size=10)
+        # debug: remembered path and dialogue points for runtime inspection
+        self.path_history_pub = rospy.Publisher("~path_history", Path, queue_size=1)
+        self.dialogue_points_pub = rospy.Publisher("~dialogue_points", Path, queue_size=1)
 
         self._state = "IDLE"
         self._last_status_time = rospy.Time(0)
@@ -203,6 +234,10 @@ class TargetFollower:
         rospy.loginfo("action_wait_timeout = %.1f s", self.action_wait_timeout_s)
         rospy.loginfo("post_accept_cooldown = %.1f s", self.post_accept_cooldown_s)
         rospy.loginfo("retreat_distance = %.2f m", self.retreat_distance)
+        rospy.loginfo("retreat_turn_angle = %.1f deg", self.retreat_turn_angle_deg)
+        rospy.loginfo("enable_auto_explore = %s", self.enable_auto_explore)
+        rospy.loginfo("explore_revisit_window = %.1f s", self.explore_revisit_window_s)
+        rospy.loginfo("explore_revisit_radius = %.2f m", self.explore_revisit_radius)
         rospy.loginfo("Result topic: %s/result (std_msgs/Bool)", rospy.get_name())
         rospy.loginfo("Status topic: %s/status (std_msgs/String)", rospy.get_name())
 
@@ -250,6 +285,7 @@ class TargetFollower:
                 self.client.cancel_goal()
                 rospy.loginfo("Cancelled active move_base goal")
             self._goal_active = False
+            self._active_goal_kind = None
 
     def _get_robot_pose_in_global(self):
         """Return (x, y, tf_stamped) of robot in global_frame, or None."""
@@ -328,6 +364,209 @@ class TargetFollower:
         self.min_update_dist   = float(rospy.get_param("~min_update_dist",    self.min_update_dist))
         self.retreat_distance  = float(rospy.get_param("~retreat_distance",   self.retreat_distance))
 
+    def _append_path_point_if_needed(self):
+        """Record robot path sparsely for revisit suppression and debugging."""
+        robot_info = self._get_robot_pose_in_global()
+        if robot_info is None:
+            return
+        rx, ry, _ = robot_info
+        now = rospy.Time.now()
+
+        if not self._path_history:
+            self._path_history.append((now, rx, ry))
+            return
+
+        _, lx, ly = self._path_history[-1]
+        if math.hypot(rx - lx, ry - ly) >= self.path_sample_min_dist:
+            self._path_history.append((now, rx, ry))
+
+    def _publish_memory_paths(self):
+        """Publish path history and dialogue points as nav_msgs/Path topics."""
+        now = rospy.Time.now()
+        if (now - self._last_path_pub_time).to_sec() < 0.5:
+            return
+        self._last_path_pub_time = now
+
+        hist_msg = Path()
+        hist_msg.header.stamp = now
+        hist_msg.header.frame_id = self.global_frame
+        for stamp, x, y in self._path_history:
+            ps = PoseStamped()
+            ps.header.stamp = stamp
+            ps.header.frame_id = self.global_frame
+            ps.pose.position.x = x
+            ps.pose.position.y = y
+            ps.pose.position.z = 0.0
+            ps.pose.orientation.w = 1.0
+            hist_msg.poses.append(ps)
+        self.path_history_pub.publish(hist_msg)
+
+        dlg_msg = Path()
+        dlg_msg.header.stamp = now
+        dlg_msg.header.frame_id = self.global_frame
+        for stamp, x, y, _ in self._dialogue_points:
+            ps = PoseStamped()
+            ps.header.stamp = stamp
+            ps.header.frame_id = self.global_frame
+            ps.pose.position.x = x
+            ps.pose.position.y = y
+            ps.pose.position.z = 0.0
+            ps.pose.orientation.w = 1.0
+            dlg_msg.poses.append(ps)
+        self.dialogue_points_pub.publish(dlg_msg)
+
+    def _mark_dialogue_location(self, reason):
+        """Save where dialogue happened, used to avoid repeatedly asking the same person."""
+        robot_info = self._get_robot_pose_in_global()
+        if robot_info is None:
+            return
+        rx, ry, _ = robot_info
+        self._dialogue_points.append((rospy.Time.now(), rx, ry, reason))
+        rospy.loginfo("[TargetFollower] Dialogue point recorded at (%.2f, %.2f), reason=%s", rx, ry, reason)
+
+    def _is_recent_path_area(self, wx, wy, window_s=None, radius_m=None):
+        """Check if (wx, wy) falls in recently visited area based on path history."""
+        now = rospy.Time.now()
+        if window_s is None:
+            window_s = self.explore_revisit_window_s
+        if radius_m is None:
+            radius_m = self.explore_revisit_radius
+        cutoff = now - rospy.Duration(window_s)
+
+        for stamp, px, py in reversed(self._path_history):
+            if stamp < cutoff:
+                break
+            if math.hypot(wx - px, wy - py) <= radius_m:
+                return True
+        return False
+
+    def _is_recent_dialogue_area(self, wx, wy, window_s=None, radius_m=None):
+        """Check if (wx, wy) is near a recent dialogue location."""
+        now = rospy.Time.now()
+        if window_s is None:
+            window_s = self.target_reacquire_block_s
+        if radius_m is None:
+            radius_m = self.target_reacquire_radius
+        cutoff = now - rospy.Duration(window_s)
+
+        for stamp, px, py, _ in reversed(self._dialogue_points):
+            if stamp < cutoff:
+                break
+            if math.hypot(wx - px, wy - py) <= radius_m:
+                return True
+        return False
+
+    def _target_fresh(self):
+        if self.last_target is None:
+            return False
+        if self.last_target.header.stamp == rospy.Time(0):
+            return True
+        age = (rospy.Time.now() - self.last_target.header.stamp).to_sec()
+        return age <= self.target_timeout_s
+
+    def _pick_explore_goal(self):
+        """Generate an exploration goal in odom/map, while avoiding recently visited areas."""
+        robot_info = self._get_robot_pose_in_global()
+        if robot_info is None:
+            return None
+        rx, ry, tf_robot = robot_info
+        yaw = self._extract_yaw(tf_robot)
+
+        # Deterministic heading set + slight random jitter for robustness.
+        offsets = [0.0, 0.8, -0.8, 1.5, -1.5, 2.3, -2.3, math.pi]
+        random.shuffle(offsets)
+        best = None
+        best_score = -1e9
+
+        for off in offsets:
+            dist = self.explore_goal_distance * (0.85 + 0.3 * random.random())
+            heading = yaw + off
+            gx = rx + dist * math.cos(heading)
+            gy = ry + dist * math.sin(heading)
+            move_dist = math.hypot(gx - rx, gy - ry)
+            if move_dist < self.explore_goal_min_dist:
+                continue
+
+            if self._is_recent_path_area(gx, gy):
+                continue
+            if self._is_recent_dialogue_area(gx, gy):
+                continue
+
+            # Prefer farther goals and heading changes that diversify search.
+            score = move_dist + 0.15 * abs(off)
+            if score > best_score:
+                best_score = score
+                best = (gx, gy, heading)
+
+        # Fallback if all candidates are recently visited: still move, but farthest heading.
+        if best is None:
+            off = math.pi if random.random() < 0.5 else (math.pi * 0.75)
+            heading = yaw + off
+            gx = rx + self.explore_goal_distance * math.cos(heading)
+            gy = ry + self.explore_goal_distance * math.sin(heading)
+            best = (gx, gy, heading)
+
+        return best
+
+    def _start_explore_goal(self):
+        if not self.enable_auto_explore:
+            return
+        if self._goal_active:
+            return
+
+        picked = self._pick_explore_goal()
+        if picked is None:
+            return
+        gx, gy, heading = picked
+
+        goal = MoveBaseGoal()
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.header.frame_id = self.global_frame
+        goal.target_pose.pose.position.x = gx
+        goal.target_pose.pose.position.y = gy
+        goal.target_pose.pose.position.z = 0.0
+        goal.target_pose.pose.orientation = self._yaw_to_quaternion(heading)
+
+        self.client.send_goal(goal, done_cb=self._goal_done_cb)
+        self._goal_active = True
+        self._active_goal_kind = "EXPLORING"
+        self._explore_goal_start = rospy.Time.now()
+        self._last_explore_goal_xy = (gx, gy)
+        self._set_state("EXPLORING")
+        rospy.loginfo("[TargetFollower] Exploring toward (%.2f, %.2f)", gx, gy)
+
+    def _tick_exploring(self):
+        """Keep robot moving when no valid target is available."""
+        if not self.enable_auto_explore:
+            return
+        if self._state in ("WAITING_ACTION", "RETREATING", "CLOSE_APPROACH", "POST_ACCEPT_COOLDOWN"):
+            return
+
+        # Target appears: stop exploration and let tracking take over.
+        if self._target_fresh():
+            if self._active_goal_kind == "EXPLORING" and self._goal_active:
+                self._cancel_goal_if_active()
+            if self._state == "EXPLORING":
+                self._set_state("IDLE")
+            return
+
+        now = rospy.Time.now()
+        if now < self._next_explore_time:
+            return
+
+        if self._active_goal_kind == "EXPLORING" and self._goal_active and self._explore_goal_start is not None:
+            elapsed = (now - self._explore_goal_start).to_sec()
+            if elapsed > self.explore_goal_timeout_s:
+                rospy.logwarn("[TargetFollower] Explore goal timeout %.1fs, cancel and replan", elapsed)
+                self._cancel_goal_if_active()
+                self._active_goal_kind = None
+                self._set_state("IDLE")
+                self._next_explore_time = now + rospy.Duration(1.0)
+            return
+
+        self._start_explore_goal()
+        self._next_explore_time = now + rospy.Duration(0.8)
+
     # ──────────────────────────────────────────────────────────────────────────
     # move_base callbacks
     # ──────────────────────────────────────────────────────────────────────────
@@ -346,6 +585,18 @@ class TargetFollower:
         if self._state == "RETREATING":
             rospy.loginfo("[TargetFollower] Retreat navigation finished (status=%d)", status)
             self._finish_retreat()
+            return
+
+        # EXPLORING: continue exploration loop unless interrupted by target tracking.
+        if self._state == "EXPLORING" or self._active_goal_kind == "EXPLORING":
+            self._active_goal_kind = None
+            self._explore_goal_start = None
+            if status == GoalStatus.SUCCEEDED:
+                rospy.loginfo("[TargetFollower] Explore goal reached")
+            else:
+                rospy.logwarn("[TargetFollower] Explore goal ended with status=%d", status)
+            self._set_state("IDLE")
+            self._next_explore_time = rospy.Time.now() + rospy.Duration(0.5)
             return
 
         # WAITING_ACTION / REACHED: don't let stale goal callbacks change state
@@ -373,6 +624,7 @@ class TargetFollower:
         self._cancel_goal_if_active()
         self._set_state("REACHED")
         self._publish_result(True)
+        self._mark_dialogue_location("reached")
         # Record current target position for retreat direction
         if self.last_target is not None:
             try:
@@ -407,11 +659,11 @@ class TargetFollower:
             self._pending_trash_action = None
 
             if action:
-                rospy.loginfo("[TargetFollower] Trash action ACCEPTED — entering POST_ACCEPT_COOLDOWN")
-                self._start_post_accept_cooldown()
+                rospy.loginfo("[TargetFollower] Trash action ACCEPTED — applying unified retreat strategy")
+                self._start_retreat(reason="accepted")
             else:
-                rospy.loginfo("[TargetFollower] Trash action REFUSED — starting retreat")
-                self._start_retreat()
+                rospy.loginfo("[TargetFollower] Trash action REFUSED — applying unified retreat strategy")
+                self._start_retreat(reason="refused")
             return
 
         # Check timeout
@@ -491,8 +743,8 @@ class TargetFollower:
         """Publish zero velocity to stop the robot."""
         self.cmd_vel_pub.publish(Twist())
 
-    def _start_retreat(self):
-        """Start retreat: phase 1 = turn 180° in place, phase 2 = drive forward."""
+    def _start_retreat(self, reason="unknown"):
+        """Start retreat: phase 1 = large in-place turn, phase 2 = drive forward."""
         # Safety: ensure move_base is not still sending cmd_vel
         self._cancel_goal_if_active()
 
@@ -504,14 +756,25 @@ class TargetFollower:
 
         rx, ry, tf_robot = robot_info
         current_yaw = self._extract_yaw(tf_robot)
+        if self._dialogue_points:
+            _, lx, ly, _ = self._dialogue_points[-1]
+            if math.hypot(rx - lx, ry - ly) > 0.2:
+                self._mark_dialogue_location(reason)
+        else:
+            self._mark_dialogue_location(reason)
 
-        self._retreat_target_yaw = self._normalize_angle(current_yaw + math.pi)
+        turn_rad = math.radians(self.retreat_turn_angle_deg)
+        self._retreat_target_yaw = self._normalize_angle(current_yaw + turn_rad)
         self._set_state("RETREATING")
         self._retreat_start = rospy.Time.now()
         self._retreat_phase = "TURNING"
+        self._retreat_reason = reason
+        self._active_goal_kind = "RETREATING"
 
         rospy.loginfo(
-            "[TargetFollower] Retreat phase 1: turning 180° (%.1f° → %.1f°) at %.2f rad/s",
+            "[TargetFollower] Retreat phase 1 (%s): turning %.1f° (%.1f° → %.1f°) at %.2f rad/s",
+            reason,
+            self.retreat_turn_angle_deg,
             math.degrees(current_yaw),
             math.degrees(self._retreat_target_yaw),
             self.retreat_turn_speed,
@@ -546,7 +809,7 @@ class TargetFollower:
         current_yaw = self._extract_yaw(tf_robot)
         yaw_error = self._normalize_angle(self._retreat_target_yaw - current_yaw)
 
-        if abs(yaw_error) < 0.15:  # ~8.6° tolerance
+        if abs(yaw_error) < math.radians(self.retreat_turn_tolerance_deg):
             rospy.loginfo(
                 "[TargetFollower] Turn complete (error=%.1f°) — starting forward drive",
                 math.degrees(yaw_error),
@@ -585,6 +848,7 @@ class TargetFollower:
         self._retreat_phase = "DRIVING"
         self.client.send_goal(goal, done_cb=self._goal_done_cb)
         self._goal_active = True
+        self._active_goal_kind = "RETREATING"
         rospy.loginfo(
             "[TargetFollower] Retreat phase 2: driving to (%.2f, %.2f) yaw=%.1f° dist=%.2f m",
             goal_x, goal_y, math.degrees(current_yaw), self.retreat_distance,
@@ -592,7 +856,9 @@ class TargetFollower:
 
     def _finish_retreat(self):
         """Called after retreat goal completes or times out."""
-        rospy.loginfo("[TargetFollower] Retreat complete — returning to IDLE")
+        rospy.loginfo("[TargetFollower] Retreat complete (%s) — returning to IDLE and resuming explore", self._retreat_reason)
+        self._active_goal_kind = None
+        self._next_explore_time = rospy.Time.now() + rospy.Duration(0.3)
         self._reset_to_idle()
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -613,6 +879,7 @@ class TargetFollower:
         self._publish_result(False)
         # Keep self.last_target — so next maybe_send_goal() tick can re-track
         self.last_sent_goal    = None
+        self._active_goal_kind = None
         self._pending_trash_action = None
         self._waiting_action_start = None
         self._post_accept_start    = None
@@ -775,6 +1042,10 @@ class TargetFollower:
                     self._publish_result(False)
                 return
 
+        if self._active_goal_kind == "EXPLORING" and self._goal_active:
+            self._cancel_goal_if_active()
+            self._set_state("IDLE")
+
         try:
             if self.last_target.header.frame_id != self.global_frame:
                 tfm = self.tfbuf.lookup_transform(
@@ -790,6 +1061,19 @@ class TargetFollower:
             rospy.logwarn_throttle(1.0, "TF not ready for target transform: %s", str(e))
             return
 
+        tx = target_g.pose.position.x
+        ty = target_g.pose.position.y
+
+        # If this target is near a recent dialogue point, skip it for a while
+        # to avoid repeatedly asking the same person/object.
+        if self._is_recent_dialogue_area(tx, ty):
+            rospy.loginfo_throttle(
+                2.0,
+                "[TargetFollower] Ignoring target near recent dialogue area (%.2f, %.2f)",
+                tx, ty,
+            )
+            return
+
         # Rate limiter — but allow immediate re-send after FAILED/LOST/IDLE
         if self._state == "TRACKING":
             if (now - self.last_send_time).to_sec() < (1.0 / max(self.send_rate_hz, 0.1)):
@@ -801,8 +1085,6 @@ class TargetFollower:
                 return
 
         # ── Standoff computation ──────────────────────────────────────────
-        tx = target_g.pose.position.x
-        ty = target_g.pose.position.y
         goal_x, goal_y = tx, ty
 
         if self.standoff_distance > 0 or self.face_target:
@@ -909,6 +1191,7 @@ class TargetFollower:
 
         self.client.send_goal(goal, done_cb=self._goal_done_cb)
         self._goal_active  = True
+        self._active_goal_kind = "TRACKING"
         self.last_sent_goal = target_g
         self.last_send_time = now
         if self._state in ("FAILED", "LOST", "IDLE"):
@@ -925,8 +1208,13 @@ class TargetFollower:
     def spin(self):
         r = rospy.Rate(20)
         while not rospy.is_shutdown():
+            self._append_path_point_if_needed()
+
             # Primary following (skipped in WAITING_ACTION / RETREATING)
             self.maybe_send_goal()
+
+            # Auto exploration when no valid target is being tracked
+            self._tick_exploring()
 
             # Dialogue waiting state tick
             if self._state == "WAITING_ACTION":
@@ -943,6 +1231,8 @@ class TargetFollower:
             # Retreat timeout tick
             if self._state == "RETREATING":
                 self._tick_retreating()
+
+            self._publish_memory_paths()
 
             # Publish status at ~2 Hz
             now = rospy.Time.now()
