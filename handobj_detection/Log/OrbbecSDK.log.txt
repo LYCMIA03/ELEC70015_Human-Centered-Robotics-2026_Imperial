@@ -10240,3 +10240,74 @@
 [02/26 23:38:09.833104][info][155255][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
 [02/26 23:38:09.882297][info][155253][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
 [02/26 23:38:10.234157][warning][155360][Pipeline.cpp:295] [CL8CA5300G0] Output frameset queue is full, drop oldest frameset!
+[03/14 18:29:44.125790][info][15213][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[03/14 18:29:44.126178][info][15213][DeviceManager.cpp:25] Current found device(s): (1)
+[03/14 18:29:44.126206][info][15213][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB3.1
+[03/14 18:29:44.126226][info][15213][DeviceManager.cpp:339] Enable net device enumeration: true
+[03/14 18:29:46.135026][info][15213][DeviceManager.cpp:25] Current device(s) list: (1)
+[03/14 18:29:46.135109][info][15213][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB3.1
+[03/14 18:29:46.189423][info][15213][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[03/14 18:29:46.189617][info][15213][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAB02A248B0
+[03/14 18:29:46.202371][info][15213][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[03/14 18:29:46.550719][info][15359][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[03/14 18:29:47.005444][info][15213][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[03/14 18:29:47.005589][info][15213][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[03/14 18:29:47.005647][info][15213][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 1920, height: 1080, fps: 30}
+[03/14 18:29:47.005682][info][15213][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[03/14 18:29:47.005717][info][15213][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 1920, height: 1080, fps: 30}
+[03/14 18:29:47.010394][info][15213][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[03/14 18:29:47.010459][info][15213][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[03/14 18:29:47.010479][info][15213][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[03/14 18:29:47.574836][info][15213][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[03/14 18:29:47.574918][info][15213][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[03/14 18:29:47.881094][info][15369][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[03/14 18:29:47.990513][info][15370][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[03/14 18:29:48.305438][warning][15896][Pipeline.cpp:295] [CL8CA5300G0] Output frameset queue is full, drop oldest frameset!
+[03/14 18:29:51.337796][warning][15908][Pipeline.cpp:295] [CL8CA5300G0] Output frameset queue is full, drop oldest frameset! [**89 logs in 3031ms, last: 18:29:51.301043**]
+[03/14 18:29:51.912434][info][15213][Pipeline.cpp:336] [CL8CA5300G0] Try to stop pipeline!
+[03/14 18:29:51.912527][info][15213][Pipeline.cpp:312] [CL8CA5300G0] Try to stop streams!
+[03/14 18:29:51.912575][info][15213][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPING@Depth
+[03/14 18:29:52.512558][info][15213][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPED@Depth
+[03/14 18:29:52.512739][info][15213][Pipeline.cpp:326] [CL8CA5300G0] Sensor stream stopped, sensorType=Depth
+[03/14 18:29:52.512779][info][15213][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPING@Color
+[03/14 18:29:54.518051][info][15213][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STOPPED@Color
+[03/14 18:29:54.518358][info][15213][Pipeline.cpp:326] [CL8CA5300G0] Sensor stream stopped, sensorType=Color
+[03/14 18:29:54.518397][info][15213][Pipeline.cpp:332] [CL8CA5300G0] Stop streams done!
+[03/14 18:29:54.518460][info][15213][Pipeline.cpp:356] [CL8CA5300G0] Stop pipeline done!
+[03/14 18:29:54.769801][info][15213][Pipeline.cpp:53] [CL8CA5300G0] Pipeline destroyed! @0xAAAB02A248B0
+[03/14 18:29:54.781796][info][15213][SensorBase.cpp:47] [CL8CA5300G0] SensorBase is destroyed
+[03/14 18:29:54.791030][info][15213][ObLibuvcDevicePort.cpp:87] uvc_close done.
+[03/14 18:29:54.791084][info][15213][ObLibuvcDevicePort.cpp:88] ~ObLibuvcDevicePort done
+[03/14 18:29:54.791145][info][15213][SensorBase.cpp:47] [CL8CA5300G0] SensorBase is destroyed
+[03/14 18:29:54.825255][info][15213][ObLibuvcDevicePort.cpp:87] uvc_close done.
+[03/14 18:29:54.825308][info][15213][ObLibuvcDevicePort.cpp:88] ~ObLibuvcDevicePort done
+[03/14 18:29:55.203809][warning][16242][Pipeline.cpp:295] [CL8CA5300G0] Output frameset queue is full, drop oldest frameset! [**19 logs in 3866ms, last: 18:29:51.944770**]
+[03/14 18:33:22.763805][info][18466][LinuxUsbPal.cpp:335] Create PollingDeviceWatcher!
+[03/14 18:33:22.763957][info][18466][DeviceManager.cpp:25] Current found device(s): (1)
+[03/14 18:33:22.763981][info][18466][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB3.1
+[03/14 18:33:22.764002][info][18466][DeviceManager.cpp:339] Enable net device enumeration: true
+[03/14 18:33:24.771930][info][18466][DeviceManager.cpp:25] Current device(s) list: (1)
+[03/14 18:33:24.772023][info][18466][DeviceManager.cpp:34] 	- Name: FemtoBolt, PID: 0x066b, SN/ID: CL8CA5300G0, Connection: USB3.1
+[03/14 18:33:24.813847][info][18466][DeviceManager.cpp:194] Device created successfully! Name: Femto Bolt, PID: 0x066b, SN/ID: CL8CA5300G0 FW: 1.0.9
+[03/14 18:33:24.814007][info][18466][Pipeline.cpp:42] [CL8CA5300G0] Pipeline created with device: {name: Femto Bolt, sn: CL8CA5300G0}, @0xAAAB18E47DB0
+[03/14 18:33:24.827225][info][18466][RawPhaseStreamer.cpp:482] Succeed to load depth engine plugin
+[03/14 18:33:25.174270][info][18680][RawPhaseStreamer.cpp:512] initNvramData: metadataHeader.size: 483080, metadataHeader.width: 0, metadataHeader.height: 0
+[03/14 18:33:25.628667][info][18466][Pipeline.cpp:216] [CL8CA5300G0] Check and set config done!
+[03/14 18:33:25.628805][info][18466][Pipeline.cpp:254] [CL8CA5300G0] Try to start streams!
+[03/14 18:33:25.628847][info][18466][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Color, format: RGB, width: 1920, height: 1080, fps: 30}
+[03/14 18:33:25.628879][info][18466][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Color
+[03/14 18:33:25.628950][info][18466][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Color, format: MJPG, width: 1920, height: 1080, fps: 30}
+[03/14 18:33:25.633779][info][18466][VideoSensor.cpp:58] [CL8CA5300G0] Try to start stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[03/14 18:33:25.633837][info][18466][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STARTING@Depth
+[03/14 18:33:25.633859][info][18466][VideoSensor.cpp:127] [CL8CA5300G0] Start backend stream: {type: Depth, format: Y16, width: 640, height: 576, fps: 30}
+[03/14 18:33:26.178956][info][18466][Pipeline.cpp:270] [CL8CA5300G0] Start streams done!
+[03/14 18:33:26.179076][info][18466][Pipeline.cpp:238] [CL8CA5300G0] Pipeline start done!
+[03/14 18:33:26.458600][info][18689][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Depth
+[03/14 18:33:26.503285][info][18688][SensorBase.cpp:213] [CL8CA5300G0] Stream state changed to STREAMING@Color
+[03/14 18:33:26.857671][warning][18725][Pipeline.cpp:295] [CL8CA5300G0] Output frameset queue is full, drop oldest frameset!
+[03/14 18:33:29.862626][warning][18725][Pipeline.cpp:295] [CL8CA5300G0] Output frameset queue is full, drop oldest frameset! [**89 logs in 3004ms**]
+[03/14 18:33:31.470859][info][18689][VideoSensor.cpp:153] [CL8CA5300G0] Depth backend frame callback, frameRate=30.327213fps
+[03/14 18:33:31.471120][info][18712][SensorBase.cpp:370] [CL8CA5300G0] Depth Streaming... frameRate=30.327213fps
+[03/14 18:33:31.505738][info][18688][VideoSensor.cpp:153] [CL8CA5300G0] Color backend frame callback, frameRate=30.187925fps
+[03/14 18:33:31.559495][info][18725][SensorBase.cpp:370] [CL8CA5300G0] Color Streaming... frameRate=30.218687fps
+[03/14 18:33:35.893317][warning][19588][Pipeline.cpp:295] [CL8CA5300G0] Output frameset queue is full, drop oldest frameset! [**143 logs in 6030ms, last: 18:33:35.861324**]
