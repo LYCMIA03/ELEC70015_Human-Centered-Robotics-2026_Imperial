@@ -12,6 +12,7 @@ DOCKER_NAME="${DOCKER_NAME:-ros_noetic}"
 JETSON_IP="${JETSON_IP:-192.168.50.1}"
 DEVICE="${DEVICE:-24}"
 WAIT_SEC="${WAIT_SEC:-90}"
+RUNNER_READY_TIMEOUT_SEC="${RUNNER_READY_TIMEOUT_SEC:-45}"
 
 if [[ -f "${SCRIPT_DIR}/deploy.env" ]]; then
   # shellcheck disable=SC1091
@@ -49,9 +50,13 @@ docker exec --user "$(id -u):$(id -g)" "${DOCKER_NAME}" bash -lc \
   "pgrep -x rosmaster >/dev/null || (source /opt/ros/noetic/setup.bash && nohup roscore >/tmp/roscore.log 2>&1 &)"
 
 echo "[1/4] cleaning old runner/bridges..."
-ps -eo pid=,cmd= | awk '/python3 .*dialogue\/dialogue_udp_runner.py|start_dialogue_docker_bridges.sh|navigation_success_udp_bridge.py|udp_trash_action_bridge.py/ && !/awk/ {print $1}' | xargs -r kill
+ps -eo pid=,cmd= | awk -v self="$$" -v ppid="$PPID" '
+  /python3 .*dialogue\/dialogue_udp_runner.py|start_dialogue_docker_bridges.sh|navigation_success_udp_bridge.py|udp_trash_action_bridge.py/ && !/awk/ {
+    if ($1 != self && $1 != ppid) print $1
+  }
+' | xargs -r kill
 docker exec --user "$(id -u):$(id -g)" "${DOCKER_NAME}" bash -lc \
-  "pkill -f 'navigation_success_udp_bridge.py' 2>/dev/null || true; pkill -f 'udp_trash_action_bridge.py' 2>/dev/null || true"
+  "pkill -f '[n]avigation_success_udp_bridge.py' 2>/dev/null || true; pkill -f '[u]dp_trash_action_bridge.py' 2>/dev/null || true"
 sleep 1
 
 echo "[2/4] starting runner + bridges..."
@@ -80,9 +85,18 @@ nohup docker exec --user "$(id -u):$(id -g)" "${DOCKER_NAME}" bash -lc \
      _bind_port:=16032 _out_topic:=/trash_action" \
   > /tmp/dialogue_bridge_udp2ros.log 2>&1 &
 
-sleep 2
-kill -0 "${RUNNER_PID}" 2>/dev/null || { echo "[FAIL] runner failed"; tail -n 80 /tmp/dialogue_runner.log; exit 1; }
-ss -lunp | grep -q '0.0.0.0:16041' || { echo "[FAIL] runner not listening 16041"; exit 1; }
+start_ts="$(date +%s)"
+while true; do
+  kill -0 "${RUNNER_PID}" 2>/dev/null || { echo "[FAIL] runner failed"; tail -n 80 /tmp/dialogue_runner.log; exit 1; }
+  ss -lunp 2>/dev/null | grep -q ':16041' && break
+  now_ts="$(date +%s)"
+  if (( now_ts - start_ts >= RUNNER_READY_TIMEOUT_SEC )); then
+    echo "[FAIL] runner not listening 16041 within ${RUNNER_READY_TIMEOUT_SEC}s"
+    tail -n 80 /tmp/dialogue_runner.log || true
+    exit 1
+  fi
+  sleep 0.5
+done
 
 echo "[3/4] sending trigger false->true..."
 docker exec --user "$(id -u):$(id -g)" "${DOCKER_NAME}" bash -lc \
@@ -97,7 +111,7 @@ RESP="$(
   docker exec --user "$(id -u):$(id -g)" "${DOCKER_NAME}" bash -lc \
     "source /opt/ros/noetic/setup.bash && source ${REPO_ROOT}/catkin_ws/devel/setup.bash && \
      export ROS_MASTER_URI=http://${JETSON_IP}:11311 ROS_IP=${JETSON_IP}; \
-     ( timeout ${WAIT_SEC} rostopic echo -n 1 /trash_action 2>/dev/null | awk '/data:/{print \\$2}' ) || true"
+     ( timeout ${WAIT_SEC} rostopic echo -n 1 /trash_action 2>/dev/null | awk '/data:/{print \$2}' ) || true"
 )"
 
 echo "trash_action=${RESP:-<none>}"

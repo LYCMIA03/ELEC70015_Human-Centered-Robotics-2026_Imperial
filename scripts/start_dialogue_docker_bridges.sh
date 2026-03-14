@@ -58,8 +58,8 @@ fi
 # ---------- cleanup ----------
 cleanup() {
   "${DOCKER_BIN}" exec --user "${DOCKER_USER}" "${DOCKER_NAME}" bash -c \
-    "pkill -f 'navigation_success_udp_bridge' 2>/dev/null; \
-     pkill -f 'udp_trash_action_bridge' 2>/dev/null" 2>/dev/null || true
+    "pkill -f '[n]avigation_success_udp_bridge' 2>/dev/null; \
+     pkill -f '[u]dp_trash_action_bridge' 2>/dev/null" 2>/dev/null || true
   wait 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
@@ -68,8 +68,8 @@ echo "[dialogue-bridges] Starting inside Docker '${DOCKER_NAME}'..."
 
 # Ensure idempotent startup: clear any stale bridge instances first.
 "${DOCKER_BIN}" exec --user "${DOCKER_USER}" "${DOCKER_NAME}" bash -c \
-  "pkill -f 'navigation_success_udp_bridge' 2>/dev/null || true; \
-   pkill -f 'udp_trash_action_bridge' 2>/dev/null || true; \
+  "pkill -f '[n]avigation_success_udp_bridge' 2>/dev/null || true; \
+   pkill -f '[u]dp_trash_action_bridge' 2>/dev/null || true; \
    sleep 0.5" 2>/dev/null || true
 
 # --- Bridge 1: nav_success → UDP (background docker exec) ---

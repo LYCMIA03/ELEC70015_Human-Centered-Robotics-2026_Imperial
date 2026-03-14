@@ -20,4 +20,3 @@ catkin_ws/src/**/maps/*.txt
 # Uncomment below to ignore all maps:
 # catkin_ws/src/**/maps/*.pgm
 # catkin_ws/src/**/maps/*.yaml
-

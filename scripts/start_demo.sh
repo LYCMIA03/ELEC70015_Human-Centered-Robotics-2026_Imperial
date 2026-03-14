@@ -68,6 +68,7 @@ HANDOBJ_DIR="${REPO_ROOT}/handobj_detection"
 STANDOFF="0.8"
 RETREAT_DIST="1.5"
 ACTION_WAIT="45.0"
+RUNNER_READY_TIMEOUT="45"
 POST_ACCEPT_COOLDOWN="15.0"
 POST_ACCEPT_COOLDOWN_SET=false
 RETREAT_TURN_DEG="180.0"
@@ -147,6 +148,7 @@ DIALOGUE_DEVICE="${DIALOGUE_DEVICE:-${DEVICE:-24}}"
 if ! ${POST_ACCEPT_COOLDOWN_SET}; then
   POST_ACCEPT_COOLDOWN="${POST_ACCEPT_COOLDOWN_S:-${POST_ACCEPT_COOLDOWN}}"
 fi
+RUNNER_READY_TIMEOUT="${RUNNER_READY_TIMEOUT:-45}"
 UDP_PORT_WINDOW="${UDP_PORT_WINDOW:-500}"
 DOCKER_NAME="ros_noetic"
 ROS_MASTER="http://${JETSON_IP}:11311"
@@ -481,8 +483,8 @@ if ${LAUNCH_DIALOGUE}; then
 
     info "Waiting for dialogue runner to listen on UDP:${DIALOGUE_TRIGGER_UDP_PORT}..."
     RUNNER_READY=0
-    for i in $(seq 1 20); do
-      sleep 1
+    _runner_wait_start_ts="$(date +%s)"
+    while true; do
       if ! kill -0 "${DIALOGUE_PID}" 2>/dev/null; then
         break
       fi
@@ -490,9 +492,14 @@ if ${LAUNCH_DIALOGUE}; then
         RUNNER_READY=1
         break
       fi
+      _runner_now_ts="$(date +%s)"
+      if (( _runner_now_ts - _runner_wait_start_ts >= RUNNER_READY_TIMEOUT )); then
+        break
+      fi
+      sleep 0.5
     done
     if [[ "${RUNNER_READY}" -ne 1 ]]; then
-      die "Dialogue runner failed to become ready. Check: tail -60 /tmp/dialogue_runner.log"
+      die "Dialogue runner failed to become ready within ${RUNNER_READY_TIMEOUT}s. Check: tail -60 /tmp/dialogue_runner.log"
     fi
     ok "Dialogue runner started (pid ${DIALOGUE_PID}), log: /tmp/dialogue_runner.log"
 

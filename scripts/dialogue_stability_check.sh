@@ -11,6 +11,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 ROUNDS=3
 TIMEOUT_SEC=20
+RUNNER_READY_TIMEOUT_SEC=45
 DOCKER_NAME="ros_noetic"
 JETSON_IP="192.168.50.1"
 
@@ -71,18 +72,25 @@ RUNNER_PID=$!
 nohup "${SCRIPT_DIR}/start_dialogue_docker_bridges.sh" > /tmp/dialogue_bridge.log 2>&1 &
 BRIDGE_PID=$!
 
-sleep 2
-
-if ! kill -0 "${RUNNER_PID}" 2>/dev/null; then
-  echo "[FAIL] runner failed to start"
-  tail -n 80 /tmp/dialogue_runner.log || true
-  exit 1
-fi
-
-if ! ss -lunp 2>/dev/null | grep -q "0.0.0.0:16041"; then
-  echo "[FAIL] runner not listening on 16041"
-  exit 1
-fi
+# BERT/ONNX cold-start can take longer than 2s; wait until UDP listener appears.
+start_ts="$(date +%s)"
+while true; do
+  if ! kill -0 "${RUNNER_PID}" 2>/dev/null; then
+    echo "[FAIL] runner failed to start"
+    tail -n 80 /tmp/dialogue_runner.log || true
+    exit 1
+  fi
+  if ss -lunp 2>/dev/null | grep -q ":16041"; then
+    break
+  fi
+  now_ts="$(date +%s)"
+  if (( now_ts - start_ts >= RUNNER_READY_TIMEOUT_SEC )); then
+    echo "[FAIL] runner not listening on 16041 within ${RUNNER_READY_TIMEOUT_SEC}s"
+    tail -n 80 /tmp/dialogue_runner.log || true
+    exit 1
+  fi
+  sleep 0.5
+done
 
 echo "[INFO] runner pid=${RUNNER_PID}, bridge launcher pid=${BRIDGE_PID}"
 echo "[INFO] testing ${ROUNDS} rounds, timeout=${TIMEOUT_SEC}s"
@@ -105,7 +113,7 @@ for i in $(seq 1 "${ROUNDS}"); do
       source /opt/ros/noetic/setup.bash && \
       source ${REPO_ROOT}/catkin_ws/devel/setup.bash && \
       export ROS_MASTER_URI=http://${JETSON_IP}:11311 ROS_IP=${JETSON_IP} && \
-      ( timeout ${TIMEOUT_SEC} rostopic echo -n 1 /trash_action 2>/dev/null | awk '/data:/{print \\$2}' ) || true
+      ( timeout ${TIMEOUT_SEC} rostopic echo -n 1 /trash_action 2>/dev/null | awk '/data:/{print \$2}' ) || true
     "
   )"
 
@@ -125,4 +133,3 @@ tail -n 80 /tmp/dialogue_runner.log || true
 if [[ "${PASS}" -ne "${ROUNDS}" ]]; then
   exit 2
 fi
-
