@@ -163,6 +163,7 @@ python predict_15cls.py --weights path/to/epoch80.pt path/to/image.jpg
 需先下载 15 类模型到 `weights3/epoch80.pt`，并安装 `pyk4a`、配置 `K4A_DLL_DIR`。
 
 - 彩色流默认 1440p；可只显示「最近垃圾 + 最近人」两个框；支持按 **L** 锁定、**U** 解锁，并输出二者 XYZ（米）。
+- 若相机是上下倒装，可加 `--rotate-180`；脚本会把对齐后的 RGB 和 depth 一起旋转，保证框中心采到的深度仍然正确。
 
 ```bash
 # 仅 RGB-D 检测（无锁定）
@@ -176,6 +177,7 @@ python predict_15cls_rgbd.py --nearest-person --no-depth-window   # 不显示深
 python predict_15cls_rgbd.py --nearest-person --max-depth 3       # 只考虑 3 m 内
 python predict_15cls_rgbd.py --nearest-person --color-res 1080p  # 彩色 1080p（设备不支持 1440p 时）
 python predict_15cls_rgbd.py --nearest-person --person-weights yolov8m.pt  # 人检测模型（默认已是 yolov8m）
+python predict_15cls_rgbd.py --nearest-person --rotate-180       # 相机上下倒装时的软件旋转修正
 ```
 
 **按键说明（`--nearest-person` 时）：**
@@ -190,6 +192,7 @@ python predict_15cls_rgbd.py --nearest-person --person-weights yolov8m.pt  # 人
 ```bash
 python trash_detection/predict_15cls_rgbd.py \
   --nearest-person --print-xyz --headless \
+  --rotate-180 \
   --udp-enable --udp-host 127.0.0.1 --udp-port 16031 \
   --udp-frame-id camera_link --udp-kind waste
 ```

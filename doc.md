@@ -53,6 +53,11 @@ This script performs:
 ./scripts/start_demo.sh --no-dashboard
 ```
 
+For the current real robot, `start_demo.sh` also launches the host RGB-D
+detector with `--rotate-180`. The rotation is applied in software after
+capturing aligned RGB + depth frames so that YOLO sees an upright image and
+the sampled depth pixels still match the detection boxes.
+
 New options:
 - `--only master,nav,yolo,dialogue,dashboard`
 - `--no-nav`

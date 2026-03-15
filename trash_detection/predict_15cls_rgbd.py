@@ -24,6 +24,11 @@ import sys
 import time
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = ROOT.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 # Jetson 上可缓解 CUDA 分配器 NVML 断言失败（在 import torch 之前设置）
 if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "backend:native"
@@ -31,6 +36,7 @@ if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
 import numpy as np
 import cv2
 import torch
+from common_utils.rgbd_orientation import rotate_rgbd_180
 
 try:
     from pyorbbecsdk import (
@@ -76,7 +82,6 @@ from ultralytics.models.yolo.detect.predict import DetectionPredictor
 
 
 # 与 predict_15cls 一致
-ROOT = Path(__file__).resolve().parent
 MODEL_PATH = ROOT / "weights3" / "epoch80.pt"
 CONF_THRESHOLD = 0.2
 METAL_CLS_BIAS = 0.4
@@ -443,6 +448,7 @@ def main():
     p.add_argument("--udp-frame-id", default="camera_link", help="发送时使用的 frame_id，默认 camera_link")
     p.add_argument("--udp-kind", choices=["waste", "person", "auto"], default="person", help="发送对象：waste/person/auto(优先 waste)")
     p.add_argument("--udp-rate", type=float, default=10.0, help="UDP 最大发送频率(Hz)，默认 10")
+    p.add_argument("--rotate-180", action="store_true", help="将彩色图与深度图一起旋转 180 度，适用于相机上下倒装")
     args = p.parse_args()
 
     weights = Path(args.weights)
@@ -599,6 +605,10 @@ def main():
                 d = np.frombuffer(depth_frame.get_data(), dtype=np.uint16).reshape(
                     (depth_frame.get_height(), depth_frame.get_width()))
                 depth_copy = (d.astype(np.float32) * scale).astype(np.uint16)  # mm
+
+            color_img, depth_copy = rotate_rgbd_180(
+                color_img, depth_copy, enabled=getattr(args, "rotate_180", False)
+            )
 
             if color_img is None:
                 if not headless and (cv2.waitKey(1) & 0xFF) == ord("q"):

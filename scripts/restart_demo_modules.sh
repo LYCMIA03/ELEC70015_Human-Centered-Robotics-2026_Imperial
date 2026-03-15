@@ -128,6 +128,7 @@ restart_yolo() {
       --udp-port "${TRASH_UDP_PORT}" \
       --udp-frame-id "camera_link" \
       --udp-kind "${TARGET_KIND}" \
+      --rotate-180 \
       --headless \
       --print-xyz
   ) > /tmp/handobj.log 2>&1 &

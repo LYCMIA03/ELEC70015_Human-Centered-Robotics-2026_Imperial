@@ -165,6 +165,13 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 | Interface | USB 3.0 |
 | Driver | Orbbec SDK (native Ubuntu 22.04) |
 
+Real-robot RGB-D orientation correction is handled in software. When the
+camera is mounted upside down, the host-side RGB-D detectors rotate the
+aligned RGB and depth frames together via `common_utils/rgbd_orientation.py`
+before YOLO inference. This keeps the detection boxes aligned with the depth
+pixels later used for XYZ recovery. `./scripts/start_demo.sh` enables this
+correction by default for the current demo setup.
+
 ### Compute Platform
 
 | Node | Hardware | Role |
@@ -1006,6 +1013,11 @@ This starts the demo in this order:
 4. `target_follow_real.launch`
 
 The navigation stack is started last on purpose, so YOLO and dialogue are already healthy before the robot begins searching or triggering dialogue.
+
+For the current robot build, `start_demo.sh` launches
+`handobj_detection_rgbd.py` with `--rotate-180` because the Orbbec camera is
+mounted upside down. The same flag is also available in
+`trash_detection/predict_15cls_rgbd.py` for the trash-detection branch.
 
 #### Partial Startup / Repair
 

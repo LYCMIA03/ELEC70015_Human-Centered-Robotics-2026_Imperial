@@ -20,6 +20,11 @@ import sys
 import time
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = ROOT.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 # Jetson CUDA 分配器（在 import torch 之前）
 if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "backend:native"
@@ -31,6 +36,7 @@ if "--headless" in sys.argv and "QT_QPA_PLATFORM" not in os.environ:
 import numpy as np
 import cv2
 import torch
+from common_utils.rgbd_orientation import rotate_rgbd_180
 
 try:
     from pyorbbecsdk import (
@@ -55,7 +61,6 @@ except Exception:
 from ultralytics import YOLO
 
 # 路径与内参
-ROOT = Path(__file__).resolve().parent
 WEIGHT_DIR = ROOT / "weight"
 DEFAULT_WEIGHTS = WEIGHT_DIR / "best.pt"
 PERSON_MODEL_DEFAULT = "yolov8n.pt"  # COCO class 0 = person，与原来一致
@@ -290,6 +295,7 @@ def main():
     p.add_argument("--udp-frame-id", default="camera_link", help="发送时使用的 frame_id，默认 camera_link")
     p.add_argument("--udp-rate", type=float, default=10.0, help="UDP 最大发送频率 (Hz)，默认 10")
     p.add_argument("--udp-kind", default="holding", help="UDP 目标类型标签 (holding|person|waste)，默认 holding")
+    p.add_argument("--rotate-180", action="store_true", help="将彩色图与深度图一起旋转 180 度，适用于相机上下倒装")
     args = p.parse_args()
 
     weights = Path(args.weights)
@@ -386,6 +392,10 @@ def main():
                 d = np.frombuffer(depth_frame.get_data(), dtype=np.uint16).reshape(
                     (depth_frame.get_height(), depth_frame.get_width()))
                 depth_copy = (d.astype(np.float32) * scale).astype(np.uint16)
+
+            color_img, depth_copy = rotate_rgbd_180(
+                color_img, depth_copy, enabled=getattr(args, "rotate_180", False)
+            )
 
             if color_img is None or depth_copy is None or depth_copy.ndim != 2:
                 if headless:

@@ -2,6 +2,10 @@
 
 Orbbec RGB-D camera + dual-model detection for "person holding object". Outputs the nearest holder's 3D coordinates (XYZ), with UDP streaming, headless mode, and terminal FPS/XYZ printing.
 
+For upside-down camera mounts, the script supports software correction with
+`--rotate-180`. RGB and depth are rotated together so the depth sample taken at
+the detection box center still corresponds to the visible target.
+
 ## Requirements
 
 - Python 3.8+
@@ -52,6 +56,9 @@ python handobj_detection/handobj_detection_rgbd.py --headless --print-xyz
 
 # Enable UDP XYZ (same target as predict_15cls_rgbd: 127.0.0.1:16031)
 python handobj_detection/handobj_detection_rgbd.py --udp-enable
+
+# Correct an upside-down camera mount in software
+python handobj_detection/handobj_detection_rgbd.py --rotate-180
 ```
 
 ## Options
@@ -67,5 +74,6 @@ python handobj_detection/handobj_detection_rgbd.py --udp-enable
 | `--udp-host`  | 127.0.0.1     | UDP host |
 | `--udp-port`  | 16031         | UDP port |
 | `--udp-rate`  | 10            | Max send rate (Hz) |
+| `--rotate-180`| -             | Rotate aligned RGB + depth 180° before inference |
 
 Terminal output every second: `FPS: X.X (loop) | YOLO: X.X fps (inference) | XYZ: x, y, z m` (or `XYZ: —` when no holder is detected).
