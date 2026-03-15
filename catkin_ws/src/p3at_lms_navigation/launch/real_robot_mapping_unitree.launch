@@ -2,38 +2,36 @@
   <!--
     真机建图 — Unitree 4D Lidar L1 作为主力传感器
     功能：Unitree L1 激光雷达 + gmapping SLAM + move_base + target_follower
-    前提：
-      1. 树莓派已启动 p3at_base/base.launch（RosAria 底盘驱动，发布 /odom + /cmd_vel）
-      2. Unitree Lidar L1 已通过 USB 连接到 Jetson（默认 /dev/ttyUSB0）
-      3. 已安装 unitree_lidar_ros 包（从 unilidar_sdk 编译）
-    
-    注意：SICK LMS200 可以同时连接并运行（使用不同的 USB 端口）
-    
-    启动：
-      roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch
-    
-    建图完成后保存地图：
-      rosrun map_server map_saver -f $(rospack find p3at_lms_navigation)/maps/my_map_unitree
+
+    当前策略:
+      - enable_rplidar:=true  → 默认双雷达, RPLIDAR 仅补充本地避障
+      - enable_rplidar:=false → 回退为原单 Unitree 逻辑
   -->
 
-  <!-- ========== 参数 ========== -->
   <arg name="unitree_port"        default="/dev/ttyUSB0"/>
+  <arg name="enable_rplidar"      default="true"/>
+  <arg name="rplidar_port"        default="/dev/ttyUSB1"/>
+  <arg name="rplidar_baud"        default="256000"/>
+  <arg name="scan_startup_timeout" default="20.0"/>
   <arg name="use_rviz"            default="true"/>
   <arg name="use_target_follower" default="false"/>
   <arg name="use_rviz_goal_relay" default="false"/>
   <arg name="standoff_distance"   default="0.0"/>
   <arg name="face_target"         default="false"/>
-  <!-- 可选：同时启动 SICK LMS200 (需单独 USB 口) -->
   <arg name="enable_sick"         default="false"/>
   <arg name="sick_port"           default="/dev/ttyUSB1"/>
   <arg name="sick_baud"           default="38400"/>
 
-  <!-- ========== Unitree 4D Lidar L1 驱动 ========== -->
-  <!--
-    SDK 内部以绝对路径 /unitree_lidar_ros_node/* 读参数，需全局设置端口。
-    SDK 实际发布: /unilidar/cloud (PointCloud2) + /unilidar/imu
-    不直接发布 LaserScan，由下面的 pointcloud_to_laserscan 节点转换。
-  -->
+  <!-- Approximate RPLIDAR rear mount.
+       TODO: replace with measured transform / URDF once hardware is finalized. -->
+  <arg name="rplidar_tf_x" default="-0.272"/>
+  <arg name="rplidar_tf_y" default="0.0"/>
+  <arg name="rplidar_tf_z" default="0.072"/>
+  <arg name="rplidar_tf_qx" default="1.0"/>
+  <arg name="rplidar_tf_qy" default="0.0"/>
+  <arg name="rplidar_tf_qz" default="0.0"/>
+  <arg name="rplidar_tf_qw" default="0.0"/>
+
   <param name="/unitree_lidar_ros_node/port"        value="$(arg unitree_port)"/>
   <param name="/unitree_lidar_ros_node/cloud_frame" value="unitree_lidar"/>
   <param name="/unitree_lidar_ros_node/imu_frame"   value="unitree_lidar"/>
@@ -46,8 +44,6 @@
     <param name="range_end"       value="30.0"/>
   </node>
 
-  <!-- ========== PointCloud2 → LaserScan 转换 (full 360°) ========== -->
-  <!-- SDK 只发布 /unilidar/cloud，gmapping/costmap 需要 LaserScan /unitree/scan -->
   <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node"
         name="pointcloud_to_laserscan" output="screen">
     <remap from="cloud_in" to="/unilidar/cloud"/>
@@ -65,14 +61,45 @@
     </rosparam>
   </node>
 
-  <!-- Self-detection filter: remove scan points inside robot body -->
   <node pkg="target_follower" type="scan_body_filter.py"
         name="scan_body_filter" output="screen">
     <remap from="~scan_raw" to="/unitree/scan_raw"/>
     <remap from="~scan_out" to="/unitree/scan"/>
   </node>
 
-  <!-- ========== 可选：SICK LMS200 保留 ========== -->
+  <group if="$(arg enable_rplidar)">
+    <node pkg="tf2_ros" type="static_transform_publisher" name="rplidar_laser_tf"
+          args="$(arg rplidar_tf_x) $(arg rplidar_tf_y) $(arg rplidar_tf_z) $(arg rplidar_tf_qx) $(arg rplidar_tf_qy) $(arg rplidar_tf_qz) $(arg rplidar_tf_qw) base_link laser"/>
+
+    <node pkg="target_follower" type="rplidar_health_monitor.py" name="rplidar_health_monitor"
+          output="screen" required="true">
+      <param name="device" value="$(arg rplidar_port)"/>
+      <param name="scan_topic" value="/scan"/>
+      <param name="startup_timeout" value="$(arg scan_startup_timeout)"/>
+      <param name="stale_timeout" value="3.0"/>
+    </node>
+
+    <node name="rplidarNode" pkg="rplidar_ros" type="rplidarNode" output="screen">
+      <param name="serial_port"      type="string" value="$(arg rplidar_port)"/>
+      <param name="serial_baudrate"  type="int"    value="$(arg rplidar_baud)"/>
+      <param name="frame_id"         type="string" value="laser"/>
+      <param name="inverted"         type="bool"   value="false"/>
+      <param name="angle_compensate" type="bool"   value="true"/>
+    </node>
+
+    <node pkg="target_follower" type="scan_body_filter.py"
+          name="rplidar_scan_body_filter" output="screen">
+      <param name="lidar_x" value="-0.202"/>
+      <param name="lidar_y" value="0.0"/>
+      <param name="body_x_min" value="-0.27"/>
+      <param name="body_x_max" value="0.27"/>
+      <param name="body_y_min" value="-0.22"/>
+      <param name="body_y_max" value="0.22"/>
+      <remap from="~scan_raw" to="/scan"/>
+      <remap from="~scan_out" to="/rplidar/scan_filtered"/>
+    </node>
+  </group>
+
   <group if="$(arg enable_sick)">
     <node pkg="sicktoolbox_wrapper" type="sicklms" name="sicklms"
           output="screen" respawn="true">
@@ -84,36 +111,30 @@
     </node>
   </group>
 
-  <!-- ========== 机器人模型 & TF ========== -->
   <param name="robot_description"
          command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
   <node pkg="robot_state_publisher" type="robot_state_publisher"
         name="robot_state_publisher" output="screen"/>
 
-  <!-- ========== gmapping SLAM 建图 — 使用 Unitree scan ========== -->
   <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/gmapping.yaml" command="load"/>
     <remap from="scan" to="/unitree/scan"/>
   </node>
 
-  <!-- ========== move_base 导航 — costmaps 使用 Unitree scan ========== -->
   <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="false">
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="global_costmap"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="local_costmap"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap.yaml" command="load"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml"  command="load"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml"      command="load"/>
-    <!-- 建图模式：gmapping 发布 /map，static_layer 通过 subscribe_to_updates 持续订阅 -->
-    <!-- global costmap 保持 static_map=true 以跟随 /map 大小自动扩展 -->
+    <rosparam if="$(arg enable_rplidar)" param="local_costmap/obstacle_layer/observation_sources">unitree_scan_sensor rplidar_scan_sensor</rosparam>
   </node>
 
-  <!-- ========== Static TF: base_link → camera_link (仅在目标追踪模式需要) ========== -->
   <group if="$(arg use_target_follower)">
     <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_tf"
           args="0.208 0 1.0 -0.5 0.5 -0.5 0.5 base_link camera_link"/>
   </group>
 
-  <!-- ========== 目标追踪（可选） ========== -->
   <group if="$(arg use_target_follower)">
     <node pkg="target_follower" type="target_follower.py" name="target_follower" output="screen">
       <param name="target_topic" value="/target_pose"/>
@@ -128,13 +149,11 @@
     </node>
   </group>
 
-  <!-- RViz 2D Nav Goal 中继（可选） -->
   <group if="$(arg use_rviz_goal_relay)">
     <node pkg="target_follower" type="goal_to_target_relay.py"
           name="goal_to_target_relay" output="screen"/>
   </group>
 
-  <!-- ========== RViz 可视化 ========== -->
   <node if="$(arg use_rviz)"
         pkg="rviz" type="rviz" name="rviz"
         args="-d $(find p3at_lms_navigation)/rviz/nav_unitree.rviz"/>

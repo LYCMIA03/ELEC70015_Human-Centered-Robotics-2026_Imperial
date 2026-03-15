@@ -50,6 +50,55 @@ ROS_SETUP="source /opt/ros/noetic/setup.bash && source ${CATKIN_WS}/devel/setup.
 ROS_ENV="export ROS_MASTER_URI=${ROS_MASTER} && export ROS_IP=${JETSON_IP}"
 DOCKER_EXEC="docker exec --user $(id -u):$(id -g) ${DOCKER_NAME} bash -c"
 
+_ros_node_exists() {
+  local node="$1"
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rosnode list 2>/dev/null | grep -q \"^/${node}$\"" \
+    >/dev/null 2>&1
+}
+
+_topic_has_publisher() {
+  local topic="$1"
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic info ${topic} 2>/dev/null | awk '/Publishers:/{flag=1;next}/Subscribers:/{flag=0}flag' | grep -q '\\*'" \
+    >/dev/null 2>&1
+}
+
+_topic_has_message() {
+  local topic="$1"
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic echo -n 1 ${topic} 2>/dev/null >/dev/null" \
+    >/dev/null 2>&1
+}
+
+_nav_restart_blockers() {
+  local blockers=()
+
+  if ! _ros_node_exists "move_base"; then
+    blockers+=("/move_base node missing")
+  fi
+
+  if ! _ros_node_exists "target_follower"; then
+    blockers+=("/target_follower node missing")
+  else
+    if ! _topic_has_publisher "/target_follower/status"; then
+      blockers+=("/target_follower/status has no publisher")
+    elif ! _topic_has_message "/target_follower/status"; then
+      blockers+=("/target_follower/status has not published a message yet")
+    fi
+  fi
+
+  if [[ ${#blockers[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  printf '%s\n' "${blockers[@]}"
+  return 1
+}
+
+_ros_node_pid() {
+  local node="$1"
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rosnode info /${node} 2>/dev/null | awk '/Pid:/{print \$2; exit}'" \
+    2>/dev/null || true
+}
+
 ensure_master() {
   if ! docker ps --format '{{.Names}}' | grep -q "^${DOCKER_NAME}$"; then
     info "Starting docker container '${DOCKER_NAME}'..."
@@ -131,11 +180,35 @@ restart_dialogue() {
 }
 
 restart_nav() {
-  ${DOCKER_EXEC} "pkill -f 'roslaunch.*real_robot' 2>/dev/null || true; pkill -f 'roslaunch.*target_follow' 2>/dev/null || true; pkill -f 'move_base' 2>/dev/null || true; sleep 1"
+  local old_move_base_pid old_target_follower_pid new_move_base_pid new_target_follower_pid
+  local blockers
+  old_move_base_pid="$(_ros_node_pid "move_base")"
+  old_target_follower_pid="$(_ros_node_pid "target_follower")"
+
+  info "Stopping existing navigation nodes..."
+  ${DOCKER_EXEC} "pkill -f 'roslaunch.*real_robot' 2>/dev/null || true; \
+                   pkill -f 'roslaunch.*target_follow' 2>/dev/null || true; \
+                   pkill -f '[m]ove_base' 2>/dev/null || true; \
+                   pkill -f '[t]arget_follower.py' 2>/dev/null || true; \
+                   pkill -f '[u]dp_target_bridge.py' 2>/dev/null || true; \
+                   pkill -f '[p]oint_to_target_pose.py' 2>/dev/null || true; \
+                   sleep 1"
+
+  for _ in $(seq 1 15); do
+    if ! _ros_node_exists "move_base" && ! _ros_node_exists "target_follower"; then
+      break
+    fi
+    sleep 1
+  done
+
   info "Restarting navigation..."
   ${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
     exec roslaunch target_follower target_follow_real.launch \
       launch_move_base:=true \
+      lidar_mode:=${LIDAR_MODE:-dual} \
+      unitree_port:=${UNITREE_PORT:-/dev/ttyUSB0} \
+      rplidar_port:=${RPLIDAR_PORT:-/dev/ttyUSB1} \
+      rplidar_baud:=${RPLIDAR_BAUD:-256000} \
       standoff_distance:=${STANDOFF} \
       face_target:=true \
       target_timeout:=5.0 \
@@ -150,14 +223,36 @@ restart_nav() {
       post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
     > /tmp/target_follow.log 2>&1 ) &"
 
-  for _ in $(seq 1 30); do
+  for _ in $(seq 1 45); do
     sleep 1
-    if ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rosnode list 2>/dev/null | grep -q '/target_follower'" >/dev/null 2>&1; then
+    new_move_base_pid="$(_ros_node_pid "move_base")"
+    new_target_follower_pid="$(_ros_node_pid "target_follower")"
+
+    if _ros_node_exists "move_base" \
+      && _ros_node_exists "target_follower" \
+      && _topic_has_publisher "/target_follower/status" \
+      && _topic_has_message "/target_follower/status" \
+      && [[ -n "${new_move_base_pid}" ]] \
+      && [[ -n "${new_target_follower_pid}" ]] \
+      && [[ "${new_move_base_pid}" != "${old_move_base_pid}" || -z "${old_move_base_pid}" ]] \
+      && [[ "${new_target_follower_pid}" != "${old_target_follower_pid}" || -z "${old_target_follower_pid}" ]]; then
       ok "Navigation restarted"
       return 0
     fi
   done
-  die "Navigation failed to restart"
+
+  warn "Navigation restart verification failed."
+  blockers="$(_nav_restart_blockers 2>/dev/null || true)"
+  if [[ -n "${blockers}" ]]; then
+    while IFS= read -r blocker; do
+      [[ -n "${blocker}" ]] && warn "  blocker: ${blocker}"
+    done <<< "${blockers}"
+  fi
+  warn "  old move_base pid: ${old_move_base_pid:-none}"
+  warn "  old target_follower pid: ${old_target_follower_pid:-none}"
+  warn "  new move_base pid: ${new_move_base_pid:-none}"
+  warn "  new target_follower pid: ${new_target_follower_pid:-none}"
+  die "Navigation failed to restart cleanly"
 }
 
 IFS=',' read -r -a MODULES <<< "${ONLY_MODULES}"

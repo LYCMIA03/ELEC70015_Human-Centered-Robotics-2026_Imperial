@@ -1,0 +1,91 @@
+<launch>
+  <!--
+    真机导航 — RPLIDAR A2M12
+    功能：RPLIDAR A2M12 + map_server + amcl + move_base
+  -->
+
+  <arg name="rplidar_port"        default="/dev/ttyUSB0"/>
+  <arg name="rplidar_baud"        default="256000"/>
+  <arg name="scan_startup_timeout" default="20.0"/>
+  <arg name="map_file"            default="$(find p3at_lms_navigation)/maps/demo_map.yaml"/>
+  <arg name="use_rviz"            default="true"/>
+  <arg name="use_target_follower" default="false"/>
+  <arg name="use_rviz_goal_relay" default="false"/>
+  <arg name="standoff_distance"   default="0.0"/>
+  <arg name="face_target"         default="false"/>
+
+  <!-- Startup health checks: device/permission/scan liveness -->
+  <node pkg="target_follower" type="rplidar_health_monitor.py" name="rplidar_health_monitor"
+        output="screen" required="true">
+    <param name="device" value="$(arg rplidar_port)"/>
+    <param name="scan_topic" value="/scan"/>
+    <param name="startup_timeout" value="$(arg scan_startup_timeout)"/>
+    <param name="stale_timeout" value="3.0"/>
+  </node>
+
+  <!-- RPLIDAR A2M12 driver (configurable serial settings) -->
+  <node name="rplidarNode" pkg="rplidar_ros" type="rplidarNode" output="screen">
+    <param name="serial_port"      type="string" value="$(arg rplidar_port)"/>
+    <param name="serial_baudrate"  type="int"    value="$(arg rplidar_baud)"/>
+    <param name="frame_id"         type="string" value="laser"/>
+    <param name="inverted"         type="bool"   value="false"/>
+    <param name="angle_compensate" type="bool"   value="true"/>
+  </node>
+
+  <!-- Self-detection filter -->
+  <node pkg="target_follower" type="scan_body_filter.py" name="scan_body_filter" output="screen">
+    <!-- Use RPLIDAR mount pose from URDF (rear-underbody) -->
+    <param name="lidar_x" value="-0.202"/>
+    <param name="lidar_y" value="0.0"/>
+    <param name="body_x_min" value="-0.27"/>
+    <param name="body_x_max" value="0.27"/>
+    <param name="body_y_min" value="-0.22"/>
+    <param name="body_y_max" value="0.22"/>
+    <remap from="~scan_raw" to="/scan"/>
+    <remap from="~scan_out" to="/scan_filtered"/>
+  </node>
+
+  <!-- Robot model & TF -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_lms.urdf.xacro"/>
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen"/>
+
+  <!-- Map service -->
+  <node pkg="map_server" type="map_server" name="map_server" args="$(arg map_file)" output="screen"/>
+
+  <!-- AMCL -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <rosparam file="$(find p3at_lms_navigation)/param/rplidar/amcl.yaml" command="load"/>
+    <remap from="scan" to="/scan_filtered"/>
+  </node>
+
+  <!-- move_base -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="false">
+    <rosparam file="$(find p3at_lms_navigation)/param/rplidar/costmap_common.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/rplidar/costmap_common.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/rplidar/global_costmap.yaml" command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/rplidar/local_costmap.yaml"  command="load"/>
+    <rosparam file="$(find p3at_lms_navigation)/param/rplidar/move_base.yaml"      command="load"/>
+  </node>
+
+  <group if="$(arg use_target_follower)">
+    <node pkg="target_follower" type="target_follower.py" name="target_follower" output="screen">
+      <param name="target_topic" value="/target_pose"/>
+      <param name="global_frame" value="map"/>
+      <param name="robot_frame" value="base_link"/>
+      <param name="send_rate_hz" value="2.0"/>
+      <param name="min_update_dist" value="0.25"/>
+      <param name="use_target_orientation" value="false"/>
+      <param name="target_timeout_s" value="2.0"/>
+      <param name="standoff_distance" value="$(arg standoff_distance)"/>
+      <param name="face_target" value="$(arg face_target)"/>
+    </node>
+  </group>
+
+  <group if="$(arg use_rviz_goal_relay)">
+    <node pkg="target_follower" type="goal_to_target_relay.py" name="goal_to_target_relay" output="screen"/>
+  </group>
+
+  <node if="$(arg use_rviz)" pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find p3at_lms_navigation)/rviz/nav.rviz"/>
+</launch>

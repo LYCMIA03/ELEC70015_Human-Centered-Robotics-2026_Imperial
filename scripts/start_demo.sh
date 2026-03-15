@@ -18,7 +18,9 @@ single_instance::activate "$(basename "$0")"
 #
 # 对话流程：
 #   REACHED → result=True → UDP:16041 → dialogue_udp_runner → UDP:16032 → /trash_action
-#   /trash_action=True/False → 统一撤离策略：原地大角度转向 + 前进撤离 → auto explore 继续寻找下一个目标
+#   /trash_action=True  → cooldown to ensure trash drop is complete → retreat
+#   /trash_action=False → immediate retreat
+#   retreat             → large in-place turn + forward move → auto explore resumes
 #
 # 前提（需手动完成）：
 #   - Raspberry Pi 已启动: ./scripts/start_base.sh  (on Pi)
@@ -31,11 +33,15 @@ single_instance::activate "$(basename "$0")"
 #   ./scripts/start_demo.sh --standoff 0.8 --retreat 1.5 --target waste
 #
 # 参数：
-#   --standoff M      停在目标前多远 (m), 默认 0.6
+#   --lidar MODE     雷达模式 dual|unitree|rplidar, 默认 dual
+#   --unitree-port DEV Unitree 串口设备, 默认 /dev/ttyUSB0
+#   --rplidar-port DEV RPLIDAR 串口设备, 默认 /dev/ttyUSB1
+#   --rplidar-baud N RPLIDAR 串口波特率, 默认 256000
+#   --standoff M      停在目标前多远 (m), 默认 0.8
 #   --retreat M       对话后前进撤离距离 (m), 默认 1.5
-#   --retreat-turn-deg DEG 对话后原地转向角度(度), 默认 180
+#   --retreat-turn-deg DEG 对话后原地转向角度(度), 默认 100
 #   --action-timeout S 等待对话结果超时 (s), 默认 45
-#   --explore-step M  auto explore 单步距离 (m), 默认 2.0
+#   --explore-step M  auto explore 单步距离 (m), 默认 2.4
 #   --explore-no-repeat-sec S 2分钟区域去重窗口(秒), 默认 120
 #   --no-explore      关闭 auto explore（仅调试用）
 #   --target TYPE     检测目标类型 holding|person|waste, 默认 holding
@@ -67,14 +73,22 @@ RUNTIME_STATE_FILE="${XDG_RUNTIME_DIR:-/tmp}/hcr_demo_runtime.env"
 
 # ---------- 默认参数 ----------
 STANDOFF="0.8"
+LIDAR_MODE="dual"
+UNITREE_PORT="/dev/ttyUSB0"
+RPLIDAR_PORT="/dev/ttyUSB1"
+RPLIDAR_BAUD="256000"
 RETREAT_DIST="1.5"
 ACTION_WAIT="45.0"
 RUNNER_READY_TIMEOUT="45"
 POST_ACCEPT_COOLDOWN="15.0"
 POST_ACCEPT_COOLDOWN_SET=false
-RETREAT_TURN_DEG="180.0"
+# A moderate retreat turn helps the robot leave the interaction area without
+# rotating so aggressively that it traps itself near nearby obstacles.
+RETREAT_TURN_DEG="100.0"
 ENABLE_AUTO_EXPLORE=true
-EXPLORE_STEP="2.0"
+# Keep exploration active, but slightly reduce step size so the robot probes
+# nearby free space more cautiously when the environment is cluttered.
+EXPLORE_STEP="2.4"
 EXPLORE_NO_REPEAT_SEC="120.0"
 TARGET_KIND="holding"
 DIALOGUE_DEVICE="24"
@@ -86,10 +100,17 @@ DASHBOARD_INTERVAL="2"
 AUTO_START_DOCKER=true
 ONLY_MODULES=""
 NEED_MASTER=true
+# TODO: The RPLIDAR rear-mount transform is still an approximate carry-over
+# from temp/rplidar-a2-dev-20260314. Re-measure on the robot and move it into
+# the URDF once the dual-lidar layout is finalized.
 
 # ---------- 解析参数 ----------
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --lidar)           LIDAR_MODE="$2"; shift 2 ;;
+    --unitree-port)    UNITREE_PORT="$2"; shift 2 ;;
+    --rplidar-port)    RPLIDAR_PORT="$2"; shift 2 ;;
+    --rplidar-baud)    RPLIDAR_BAUD="$2"; shift 2 ;;
     --standoff)        STANDOFF="$2";       shift 2 ;;
     --retreat)         RETREAT_DIST="$2";   shift 2 ;;
     --retreat-turn-deg) RETREAT_TURN_DEG="$2"; shift 2 ;;
@@ -113,6 +134,10 @@ while [[ $# -gt 0 ]]; do
     *) die "Unknown argument: $1" ;;
   esac
 done
+
+if [[ "${LIDAR_MODE}" != "dual" && "${LIDAR_MODE}" != "unitree" && "${LIDAR_MODE}" != "rplidar" ]]; then
+  die "Invalid --lidar: ${LIDAR_MODE}. Expected dual|unitree|rplidar"
+fi
 
 if [[ -n "${ONLY_MODULES}" ]]; then
   LAUNCH_NAV=false
@@ -212,6 +237,10 @@ ROS_MASTER='${ROS_MASTER}'
 TRASH_UDP_PORT='${TRASH_UDP_PORT}'
 DIALOGUE_TRIGGER_UDP_PORT='${DIALOGUE_TRIGGER_UDP_PORT}'
 DIALOGUE_ACTION_UDP_PORT='${DIALOGUE_ACTION_UDP_PORT}'
+LIDAR_MODE='${LIDAR_MODE}'
+UNITREE_PORT='${UNITREE_PORT}'
+RPLIDAR_PORT='${RPLIDAR_PORT}'
+RPLIDAR_BAUD='${RPLIDAR_BAUD}'
 STANDOFF='${STANDOFF}'
 RETREAT_DIST='${RETREAT_DIST}'
 RETREAT_TURN_DEG='${RETREAT_TURN_DEG}'
@@ -236,14 +265,157 @@ _write_runtime_state
 # ---------- Bridge 健康检查 ----------
 _ros_node_exists() {
   local node="$1"
-  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rosnode list 2>/dev/null | grep -q \"^/${node}$\"" \
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rosnode list 2>/dev/null | grep -q \"^/${node}$\"" \
     2>/dev/null
 }
 
 _topic_has_publisher() {
   local topic="$1"
-  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rostopic info ${topic} 2>/dev/null | awk '/Publishers:/{flag=1;next}/Subscribers:/{flag=0}flag' | grep -q '\\*'" \
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic info ${topic} 2>/dev/null | awk '/Publishers:/{flag=1;next}/Subscribers:/{flag=0}flag' | grep -q '\\*'" \
     2>/dev/null
+}
+
+_topic_has_message() {
+  local topic="$1"
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic echo -n 1 ${topic} 2>/dev/null >/dev/null" \
+    2>/dev/null
+}
+
+_ros_package_exists() {
+  local pkg="$1"
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rospack find ${pkg} >/dev/null 2>&1" \
+    2>/dev/null
+}
+
+_ros_odom_fresh() {
+  local max_age_s="${1:-3.0}"
+  ${DOCKER_EXEC} "export MAX_AGE_S='${max_age_s}' && ${ROS_ENV} && ${ROS_SETUP} && python3 - <<'PY'
+import os
+import sys
+import time
+
+import rospy
+from nav_msgs.msg import Odometry
+
+rospy.init_node('odom_fresh_check', anonymous=True, disable_signals=True)
+max_age_s = float(os.environ['MAX_AGE_S'])
+
+try:
+    msg = rospy.wait_for_message('/odom', Odometry, timeout=4.0)
+except Exception:
+    sys.exit(1)
+
+stamp = msg.header.stamp.to_sec()
+age = float('inf') if stamp <= 0.0 else abs(time.time() - stamp)
+sys.exit(0 if age <= max_age_s else 2)
+PY" 2>/dev/null
+}
+
+_ros_odom_alive() {
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic echo -n 1 /odom 2>/dev/null >/dev/null" \
+    2>/dev/null
+}
+
+_ros_odom_stale_but_alive() {
+  _ros_odom_alive && ! _ros_odom_fresh 3.0
+}
+
+_ros_tf_fresh() {
+  local parent_frame="$1"
+  local child_frame="$2"
+  local max_age_s="${3:-3.0}"
+  ${DOCKER_EXEC} "export TF_PARENT='${parent_frame}' TF_CHILD='${child_frame}' MAX_AGE_S='${max_age_s}' && ${ROS_ENV} && ${ROS_SETUP} && python3 - <<'PY'
+import os
+import sys
+import time
+
+import rospy
+import tf2_ros
+
+parent = os.environ['TF_PARENT']
+child = os.environ['TF_CHILD']
+max_age_s = float(os.environ['MAX_AGE_S'])
+
+rospy.init_node('tf_fresh_check', anonymous=True, disable_signals=True)
+buf = tf2_ros.Buffer(cache_time=rospy.Duration(5.0))
+listener = tf2_ros.TransformListener(buf)
+deadline = time.time() + 4.0
+
+while time.time() < deadline and not rospy.is_shutdown():
+    try:
+        if buf.can_transform(parent, child, rospy.Time(0), rospy.Duration(0.3)):
+            tfm = buf.lookup_transform(parent, child, rospy.Time(0), rospy.Duration(0.3))
+            stamp = tfm.header.stamp.to_sec()
+            # Some base drivers expose a valid latest transform with stamp=0.
+            # Treat that as usable once the transform is available, and rely on
+            # the separate /odom freshness check to guard against stale motion data.
+            if stamp <= 0.0:
+                sys.exit(0)
+            age = abs(time.time() - stamp)
+            sys.exit(0 if age <= max_age_s else 2)
+    except Exception:
+        pass
+    time.sleep(0.1)
+
+sys.exit(1)
+PY" 2>/dev/null
+}
+
+_target_follower_ready() {
+  _ros_node_exists "target_follower" \
+    && _topic_has_publisher "/target_follower/status" \
+    && _topic_has_message "/target_follower/status"
+}
+
+_nav_stack_ready() {
+  _ros_node_exists "move_base" \
+    && _target_follower_ready \
+    && _ros_odom_alive
+}
+
+_nav_stack_blockers() {
+  local blockers=()
+
+  if ! _ros_node_exists "move_base"; then
+    blockers+=("/move_base node missing")
+  fi
+
+  if ! _ros_node_exists "target_follower"; then
+    blockers+=("/target_follower node missing")
+  else
+    if ! _topic_has_publisher "/target_follower/status"; then
+      blockers+=("/target_follower/status has no publisher")
+    elif ! _topic_has_message "/target_follower/status"; then
+      blockers+=("/target_follower/status has not published a message yet")
+    fi
+  fi
+
+  if ! _ros_odom_alive; then
+    blockers+=("/odom has no messages")
+  fi
+
+  if [[ ${#blockers[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  printf '%s\n' "${blockers[@]}"
+  return 1
+}
+
+_dump_nav_readiness_debug() {
+  warn "Navigation readiness failed. Capturing quick diagnostics..."
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rosnode list 2>/dev/null" \
+    2>/dev/null | sed 's/^/  node: /' || true
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic info /move_base/status 2>/dev/null" \
+    2>/dev/null | sed 's/^/  move_base_status: /' || true
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic info /target_follower/status 2>/dev/null" \
+    2>/dev/null | sed 's/^/  follower_status: /' || true
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic echo -n 1 /target_follower/status 2>/dev/null" \
+    2>/dev/null | sed 's/^/  follower_status_msg: /' || true
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic echo -n 1 /odom/header 2>/dev/null" \
+    2>/dev/null | sed 's/^/  odom_header: /' || true
+  ${DOCKER_EXEC} "tail -n 60 /tmp/target_follow.log 2>/dev/null" \
+    2>/dev/null | sed 's/^/  nav_log: /' || true
 }
 
 # ---------- 后台进程 PID ----------
@@ -476,13 +648,23 @@ if ${LAUNCH_DIALOGUE}; then
       kill -0 "${BRIDGE_PID}" 2>/dev/null
     }
 
-    _dialogue_mesh_healthy() {
+    _dialogue_processes_healthy() {
       local max_wait="$1"
       for i in $(seq 1 "${max_wait}"); do
         if kill -0 "${DIALOGUE_PID}" 2>/dev/null \
            && _ros_node_exists "navigation_success_udp_bridge" \
-           && _ros_node_exists "udp_trash_action_bridge" \
-           && _topic_has_publisher "/trash_action"; then
+           && _ros_node_exists "udp_trash_action_bridge"; then
+          return 0
+        fi
+        sleep 1
+      done
+      return 1
+    }
+
+    _dialogue_mesh_healthy() {
+      local max_wait="$1"
+      for i in $(seq 1 "${max_wait}"); do
+        if _dialogue_processes_healthy 1 && _topic_has_publisher "/trash_action"; then
           return 0
         fi
         sleep 1
@@ -496,15 +678,15 @@ if ${LAUNCH_DIALOGUE}; then
     ok "  nav_success → UDP:${DIALOGUE_TRIGGER_UDP_PORT} → dialogue"
     ok "  dialogue   → UDP:${DIALOGUE_ACTION_UDP_PORT}  → /trash_action"
 
-    info "Validating dialogue bridge mesh (runner + ROS bridge nodes + /trash_action publisher)..."
-    if ! _dialogue_mesh_healthy 15; then
-      warn "Dialogue bridge mesh check failed; retrying bridge startup once..."
+    info "Validating dialogue startup (runner + ROS bridge nodes)..."
+    if ! _dialogue_processes_healthy 15; then
+      warn "Dialogue startup check failed; retrying bridge startup once..."
       _launch_dialogue_bridges || die "Dialogue bridge retry failed. Check: tail -40 /tmp/dialogue_bridge.log"
-      if ! _dialogue_mesh_healthy 10; then
-        die "Dialogue bridge mesh still unhealthy after retry. Check: tail -80 /tmp/dialogue_bridge.log and /tmp/dialogue_runner.log"
+      if ! _dialogue_processes_healthy 10; then
+        die "Dialogue startup still unhealthy after retry. Check: tail -80 /tmp/dialogue_bridge.log and /tmp/dialogue_runner.log"
       fi
     fi
-    ok "Dialogue bridge mesh is healthy"
+    ok "Dialogue runner and bridge nodes are healthy"
   fi
 else
   warn "Dialogue bridge disabled (--no-dialogue). /trash_action will not be published."
@@ -524,9 +706,17 @@ ${DOCKER_EXEC} "pkill -f 'roslaunch.*real_robot' 2>/dev/null; \
 sleep 1
 
 info "Launching target_follow_real.launch (standalone mode — no global map)..."
+if [[ "${LIDAR_MODE}" != "unitree" ]]; then
+  _ros_package_exists "rplidar_ros" || die "rplidar_ros not found in ROS environment. Install it first with ./setup_rplidar_a2.sh or apt."
+  warn "Dual/RPLIDAR mode uses an approximate rear-mount RPLIDAR transform; verify obstacle behavior on hardware."
+fi
 ${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
   exec roslaunch target_follower target_follow_real.launch \
     launch_move_base:=true \
+    lidar_mode:=${LIDAR_MODE} \
+    unitree_port:=${UNITREE_PORT} \
+    rplidar_port:=${RPLIDAR_PORT} \
+    rplidar_baud:=${RPLIDAR_BAUD} \
     standoff_distance:=${STANDOFF} \
     face_target:=true \
     target_timeout:=5.0 \
@@ -541,29 +731,62 @@ ${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
     post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
   > /tmp/target_follow.log 2>&1 ) &" 2>/dev/null
 
-info "Waiting for move_base + target_follower to come up (up to 30 s)..."
-for i in $(seq 1 30); do
+info "Waiting for navigation stack readiness (move_base node + live target_follower status + live odom)..."
+NAV_READY=0
+LAST_NAV_BLOCKERS=""
+ODOM_STALE_WARNED=0
+for i in $(seq 1 45); do
   sleep 1
-  NODES=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rosnode list 2>/dev/null" 2>/dev/null || true)
-  HAS_MB=$(echo "${NODES}" | grep -c move_base || true)
-  HAS_TF=$(echo "${NODES}" | grep -c target_follower || true)
-  if [[ "${HAS_MB}" -ge 1 && "${HAS_TF}" -ge 1 ]]; then
-    ok "move_base + target_follower are up (${i}s)"
+  if _nav_stack_ready; then
+    NAV_READY=1
+    if [[ "${ODOM_STALE_WARNED}" -ne 1 ]] && _ros_odom_stale_but_alive; then
+      warn "STEP 4 proceeding with active /odom stream even though odom timestamps are stale"
+      ODOM_STALE_WARNED=1
+    fi
+    ok "Navigation stack is ready (${i}s)"
     break
   fi
-  if [[ $i -eq 30 ]]; then
-    die "Nodes not ready after 30 s.\n  Check: docker exec ${DOCKER_NAME} tail -30 /tmp/target_follow.log"
+  NAV_BLOCKERS="$(_nav_stack_blockers 2>/dev/null || true)"
+  if [[ -n "${NAV_BLOCKERS}" ]]; then
+    NAV_BLOCKERS_INLINE="$(printf '%s' "${NAV_BLOCKERS}" | tr '\n' ';' | sed 's/;$/ /; s/;/; /g')"
+    if [[ "${NAV_BLOCKERS_INLINE}" != "${LAST_NAV_BLOCKERS}" || $((i % 5)) -eq 0 ]]; then
+      warn "STEP 4 still waiting on: ${NAV_BLOCKERS_INLINE}"
+      LAST_NAV_BLOCKERS="${NAV_BLOCKERS_INLINE}"
+    fi
+  fi
+  if [[ $i -eq 45 ]]; then
+    _dump_nav_readiness_debug
+    die "Navigation stack not ready after 45 s. move_base/TF/odom may still be unhealthy."
   fi
 done
 
 # Check LiDAR data
 info "Checking LiDAR data..."
-SCAN_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
-  timeout 6 rostopic hz /unitree/scan 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
-if [[ -n "${SCAN_RATE}" ]]; then
-  ok "/unitree/scan: ${SCAN_RATE} Hz"
-else
-  warn "/unitree/scan: no data — LiDAR may not be fully up yet (OK to proceed)"
+if [[ "${LIDAR_MODE}" == "dual" || "${LIDAR_MODE}" == "unitree" ]]; then
+  SCAN_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
+    timeout 6 rostopic hz /unitree/scan 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
+  if [[ -n "${SCAN_RATE}" ]]; then
+    ok "/unitree/scan: ${SCAN_RATE} Hz"
+  else
+    warn "/unitree/scan: no data — Unitree may not be fully up yet (OK to proceed)"
+  fi
+fi
+if [[ "${LIDAR_MODE}" == "dual" ]]; then
+  RPLIDAR_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
+    timeout 6 rostopic hz /rplidar/scan_filtered 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
+  if [[ -n "${RPLIDAR_RATE}" ]]; then
+    ok "/rplidar/scan_filtered: ${RPLIDAR_RATE} Hz"
+  else
+    warn "/rplidar/scan_filtered: no data — continuing with Unitree-only obstacle sensing if needed"
+  fi
+elif [[ "${LIDAR_MODE}" == "rplidar" ]]; then
+  RPLIDAR_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
+    timeout 6 rostopic hz /scan_filtered 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
+  if [[ -n "${RPLIDAR_RATE}" ]]; then
+    ok "/scan_filtered: ${RPLIDAR_RATE} Hz"
+  else
+    warn "/scan_filtered: no data — RPLIDAR may not be fully up yet (OK to proceed)"
+  fi
 fi
 
 # Check core in-Docker bridge chain
@@ -580,6 +803,14 @@ if [[ "${CORE_BRIDGE_OK}" -ne 1 ]]; then
   die "Core bridge nodes not ready. Check: docker exec ${DOCKER_NAME} tail -60 /tmp/target_follow.log"
 fi
 ok "Core bridge chain is up (udp_target_bridge + point_to_target_pose)"
+
+if ${LAUNCH_DIALOGUE}; then
+  info "Validating full dialogue mesh after navigation startup..."
+  if ! _dialogue_mesh_healthy 15; then
+    die "Dialogue mesh did not become healthy after navigation startup. Check: tail -80 /tmp/dialogue_bridge.log and /tmp/dialogue_runner.log"
+  fi
+  ok "Dialogue mesh is healthy"
+fi
 fi
 
 # =============================================================================

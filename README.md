@@ -7,6 +7,11 @@ ROS1 Noetic · Ubuntu 20.04 · Gazebo 11 (Simulation) / Docker (Real Robot).
 > Unitree 4D Lidar L1 is the **primary sensor**; SICK LMS200 is the backup.  
 > Real-robot deployment runs in Docker; simulation uses Gazebo.  
 > Operational runbook: [`doc.md`](doc.md)
+>
+> Current real-robot target-follow runtime defaults to **dual-lidar**:
+> Unitree L1 remains the main ranging sensor, and RPLIDAR A2 is added as a
+> short-range local-obstacle supplement. You can still fall back to
+> `--lidar unitree` or `--lidar rplidar` when debugging hardware.
 
 ---
 
@@ -63,6 +68,7 @@ This workspace implements a complete autonomous mobile robot system for the Pion
 - **Target following** with standoff distance and face-target orientation
 - **Trash detection** via YOLO + depth camera (real robot)
 - **Dialogue interaction** with speech-to-text and NLU intent recognition (real robot)
+- **Switchable radar runtime**: default dual-lidar (`Unitree + RPLIDAR`), with single-lidar fallback modes
 
 ### Sensor Stack Comparison
 
@@ -806,6 +812,15 @@ TRASH_UDP_PORT=16031
    (or one-command: ./scripts/start_demo.sh)
 ```
 
+`./scripts/start_demo.sh` now defaults to `--lidar dual`, which keeps Unitree as
+the primary scan source and adds RPLIDAR A2 local obstacle sensing. For quick
+fallbacks:
+
+```bash
+./scripts/start_demo.sh --lidar unitree
+./scripts/start_demo.sh --lidar rplidar --rplidar-port /dev/ttyUSB0
+```
+
 **Option B — Mapping:**
 ```
 1. Jetson Docker:  roscore
@@ -957,15 +972,24 @@ rosrun p3at_lms_navigation autonomous_explorer.py \
 #### Workflow Update (2026-03-14)
 
 - Startup behavior changed from passive waiting to **active search**: the robot now starts in auto-explore when no fresh target is available.
-- Post-dialogue behavior is now unified: **both** `/trash_action=True` and `/trash_action=False` trigger the same retreat policy.
-- Unified retreat policy:
+- Post-dialogue behavior now distinguishes acceptance vs refusal:
+  - `/trash_action=True` → `POST_ACCEPT_COOLDOWN` → retreat
+  - `/trash_action=False` → immediate retreat
+- Retreat policy:
   1. Record current dialogue location and traveled path.
-  2. Rotate in place by a large angle (`retreat_turn_angle_deg`, default 180°).
+  2. Rotate in place by a moderate angle (`retreat_turn_angle_deg`, default 100°).
   3. Drive away forward (`retreat_distance`, default 1.5 m).
   4. Resume auto-explore to find the next person/object.
 - Anti-repeat policy:
   - Exploration avoids recently visited areas for `explore_revisit_window_s` (default 120 s).
   - Targets near recent dialogue locations are temporarily ignored (`target_reacquire_block_s`, default 120 s).
+- Exploration safeguards:
+  - Exploration is now slightly more conservative by default (`explore_goal_distance = 2.4 m`) and uses a forward-biased heading set instead of a full rearward sweep.
+  - A target must remain stable for a short period before it can interrupt exploration, which reduces cancellations caused by flickering detections.
+  - Exploration now replans early if odometry progress stays too small, or if `move_base` keeps publishing near-zero `cmd_vel` in front of an obstacle.
+- Demo launcher readiness checks:
+  - `start_demo.sh` now waits for a live `/target_follower/status` stream and fresh `/odom`, not just process names.
+  - If startup blocks in Step 4, the script prints the exact blocker, such as missing `/move_base`, no `/target_follower/status`, or stale `/odom`.
 
 #### Quick Start — One Command
 
@@ -1030,11 +1054,16 @@ Static TF `base_link → camera_link`: xyz=`(0.208, 0, 1.0)`, quat=`(-0.5, 0.5, 
 | `target_timeout` | `5.0` s | Cancel goal if no detection for this long |
 | `udp_port` | `16031` | Must match detection `--udp-port` |
 | `retreat_distance` | `1.5` m | Forward retreat distance after dialogue |
-| `retreat_turn_angle_deg` | `180.0` deg | In-place turn angle before retreat (large angle to avoid re-detection) |
+| `retreat_turn_angle_deg` | `100.0` deg | In-place turn angle before retreat (moderate turn to leave the area without over-rotating into obstacles) |
 | `action_wait_timeout` | `45.0` s | Timeout waiting for `/trash_action` |
 | `enable_auto_explore` | `true` | Enable active exploration when no target is tracked |
-| `explore_goal_distance` | `2.0` m | Step distance for each explore navigation goal |
+| `explore_goal_distance` | `2.4` m | Step distance for each explore navigation goal |
 | `explore_goal_timeout` | `30.0` s | Timeout for one explore goal |
+| `explore_target_confirm` | `0.8` s | Stable-target debounce before exploration can be interrupted |
+| `explore_target_max_gap` | `1.0` s | Maximum gap allowed between target updates during the debounce |
+| `explore_stuck_timeout` | `8.0` s | Replan explore if odometry progress remains too small for this long |
+| `explore_min_progress` | `0.2` m | Minimum progress expected before an explore goal is considered stuck |
+| `explore_zero_cmd_vel_timeout` | `2.0` s | Early replan if `move_base` keeps publishing near-zero `cmd_vel` in front of obstacles |
 | `explore_revisit_window` | `120.0` s | Time window for no-repeat exploration |
 | `explore_revisit_radius` | `1.5` m | Spatial radius for no-repeat exploration |
 | `target_reacquire_block_s` | `120.0` s | Block re-querying targets near recent dialogue points |
@@ -1044,15 +1073,30 @@ Static TF `base_link → camera_link`: xyz=`(0.208, 0, 1.0)`, quat=`(-0.5, 0.5, 
 
 ```bash
 ./scripts/start_demo.sh \
-  --retreat-turn-deg 180 \
-  --explore-step 2.0 \
+  --lidar dual \
+  --unitree-port /dev/ttyUSB0 \
+  --rplidar-port /dev/ttyUSB1 \
+  --retreat-turn-deg 100 \
+  --explore-step 2.4 \
   --explore-no-repeat-sec 120
 ```
 
-- `--retreat-turn-deg`: large in-place turn before leaving.
+- `--lidar`: `dual` (default), `unitree`, or `rplidar`.
+- `--unitree-port`: Unitree serial device.
+- `--rplidar-port`: RPLIDAR serial device.
+- `--rplidar-baud`: RPLIDAR baud rate, default `256000`.
+- `--retreat-turn-deg`: moderate in-place turn before leaving.
 - `--explore-step`: exploration step distance.
 - `--explore-no-repeat-sec`: region no-repeat time window.
 - `--no-explore`: disable active exploration (debug only).
+
+If you want the standalone RPLIDAR-only stack outside the demo launcher:
+
+```bash
+./setup_rplidar_a2.sh
+./scripts/start_real_mapping_rplidar.sh rplidar_port:=/dev/ttyUSB0
+./scripts/start_real_nav_rplidar.sh map_file:=/path/to/map.yaml rplidar_port:=/dev/ttyUSB0
+```
 
 #### Stop Demo Cleanly
 
@@ -1204,11 +1248,18 @@ global_costmap:
                          └──────────────┬───────────────────────────┬────────────────┘
                           True (accept) │                           │ False (decline)
                                         ▼                           ▼
+                         ┌──────────────────────────────┐   ┌───────────────────────┐
+                         │   POST_ACCEPT_COOLDOWN       │   │      RETREATING       │
+                         │ Wait briefly so the user can │   │ Immediate retreat for  │
+                         │ finish dropping trash        │   │ the refusal case       │
+                         └──────────────┬───────────────┘   └───────────┬───────────┘
+                                        │                               │
+                                        └───────────────┬───────────────┘
+                                                        ▼
                          ┌───────────────────────────────────────────────────────────┐
                          │                    RETREATING                             │
-                         │  Unified policy for both outcomes:                        │
                          │  1) record dialogue point/path                            │
-                         │  2) in-place large-angle turn                             │
+                         │  2) moderate in-place retreat turn                        │
                          │  3) drive forward retreat_distance                         │
                          │  4) return to IDLE then resume EXPLORING                  │
                          └───────────────────────────────────────────────────────────┘
@@ -1224,7 +1275,7 @@ global_costmap:
 | `/cmd_vel` | `geometry_msgs/Twist` | → | Direct drive (CLOSE_APPROACH) |
 | `/target_follower/status` | `std_msgs/String` | → | Current state: `IDLE|EXPLORING|TRACKING|...` |
 | `/target_follower/result` | `std_msgs/Bool` | → | `True` = reached target, `False` = reset/failed/lost |
-| `/trash_action` | `std_msgs/Bool` | ← | Human response (`true/false`, both trigger unified retreat) |
+| `/trash_action` | `std_msgs/Bool` | ← | Human response (`true` = cooldown then retreat, `false` = immediate retreat) |
 | `/target_follower/path_history` | `nav_msgs/Path` | → | Recorded recent robot path (for no-repeat exploration) |
 | `/target_follower/dialogue_points` | `nav_msgs/Path` | → | Recorded dialogue positions (for anti-repeat filtering) |
 
@@ -1238,8 +1289,14 @@ face_target: true            # Rotate to face target at REACHED
 target_timeout: 5.0          # Cancel goal if no detection (seconds)
 action_wait_timeout: 45.0    # Max wait for dialogue result
 retreat_distance: 1.5        # Forward retreat distance after dialogue
-retreat_turn_angle_deg: 180  # In-place turn angle before retreat
+retreat_turn_angle_deg: 100  # In-place turn angle before retreat
 enable_auto_explore: true    # Explore while no fresh target
+explore_goal_distance: 2.4
+explore_target_confirm_s: 0.8
+explore_target_max_gap_s: 1.0
+explore_stuck_timeout_s: 8.0
+explore_min_progress_dist: 0.2
+explore_zero_cmd_vel_timeout_s: 2.0
 explore_revisit_window_s: 120
 explore_revisit_radius: 1.5
 target_reacquire_block_s: 120
@@ -1951,20 +2008,22 @@ source devel/setup.bash   # or setup.zsh
 
 ### Real Robot — Target Following Demo
 - [ ] Quick start: `./scripts/start_demo.sh`
+- [ ] Default mode is dual lidar; verify `/unitree/scan` and `/rplidar/scan_filtered` if both sensors are connected
+- [ ] Fallbacks available: `./scripts/start_demo.sh --lidar unitree` or `./scripts/start_demo.sh --lidar rplidar --rplidar-port /dev/ttyUSB0`
 - [ ] Or manual:
   - [ ] roscore + `target_follow_real.launch launch_move_base:=true`
   - [ ] `handobj_detection_rgbd.py --udp-enable`
 - [ ] Hold object in front of camera → robot follows
 - [ ] Robot stops at standoff distance
 - [ ] `/target_follower/result` publishes `True`
-- [ ] After dialogue, robot performs large-angle turn + forward retreat
+- [ ] After dialogue, robot performs a moderate retreat turn + forward retreat
 - [ ] Robot resumes auto-explore instead of waiting in place
 
 ### Real Robot — Dialogue Integration
 - [ ] Dialogue system: `python3 dialogue/dialogue_udp_runner.py`
 - [ ] Robot says prompt after reaching target
-- [ ] Voice "yes" → `/trash_action` publishes True → unified retreat policy triggered
-- [ ] Voice "no" → `/trash_action` publishes False → same unified retreat policy triggered
+- [ ] Voice "yes" → `/trash_action` publishes True → cooldown then retreat
+- [ ] Voice "no" → `/trash_action` publishes False → immediate retreat
 
 ### Real Robot — SICK (Backup) — Only If Unitree Unavailable
 - [ ] LMS200 detected: `ls /dev/ttyUSB0`
