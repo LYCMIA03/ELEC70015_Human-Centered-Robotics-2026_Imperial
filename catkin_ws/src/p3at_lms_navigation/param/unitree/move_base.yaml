@@ -19,23 +19,29 @@ NavfnROS:
   visualize_potential: false
 
 DWAPlannerROS:
-  max_vel_x: 0.22
-  min_vel_x: -0.05
+  # Allow a bit more reverse motion because this platform often needs a
+  # meaningful backward adjustment before it can steer away from obstacles.
+  # DWA has no explicit "reverse distance" knob, so we increase the reverse
+  # velocity bound and slightly extend the simulation horizon instead.
+  max_vel_x: 0.26
+  min_vel_x: -0.10
   max_vel_y: 0.0
   min_vel_y: 0.0
-  max_vel_trans: 0.22
+  max_vel_trans: 0.26
   min_vel_trans: 0.02
-  max_vel_theta: 0.35
+  # Raise linear/angular limits slightly so exploration covers space faster
+  # while staying well below aggressive indoor speeds.
+  max_vel_theta: 0.45
   min_vel_theta: 0.0
 
-  acc_lim_x: 0.3
+  acc_lim_x: 0.35
   acc_lim_y: 0.0
-  acc_lim_theta: 0.6
+  acc_lim_theta: 0.75
 
   vx_samples: 20
   vy_samples: 1
   vtheta_samples: 40
-  sim_time: 2.5
+  sim_time: 3.0
   sim_granularity: 0.025
 
   path_distance_bias: 32.0
