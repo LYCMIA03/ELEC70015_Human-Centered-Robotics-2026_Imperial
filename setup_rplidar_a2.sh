@@ -15,6 +15,7 @@ RED='\033[0;31m'; GREEN='\033[0;32m'; CYAN='\033[0;36m'; NC='\033[0m'
 log() { echo -e "${CYAN}[INFO]${NC} $*"; }
 ok()  { echo -e "${GREEN}[OK]${NC}   $*"; }
 err() { echo -e "${RED}[ERR]${NC}  $*"; }
+warn() { echo -e "${RED}[WARN]${NC} $*"; }
 
 USE_SOURCE=false
 for arg in "$@"; do
@@ -22,6 +23,23 @@ for arg in "$@"; do
     --source) USE_SOURCE=true ;;
   esac
 done
+
+_extract_serial_token() {
+  local byid_name="$1"
+  sed -E 's/.*_([^_]+)-if[0-9]+-port[0-9]+$/\1/' <<<"${byid_name}"
+}
+
+_detect_rplidar_serial() {
+  local candidates=()
+  if [[ -d /dev/serial/by-id ]]; then
+    mapfile -t candidates < <(ls -1 /dev/serial/by-id 2>/dev/null | grep -E 'CP2102_USB_to_UART_Bridge' || true)
+  fi
+  if [[ "${#candidates[@]}" -eq 1 ]]; then
+    _extract_serial_token "${candidates[0]}"
+    return 0
+  fi
+  return 1
+}
 
 log "Installing base dependencies..."
 sudo apt-get update
@@ -48,14 +66,31 @@ if ! groups | grep -q dialout; then
   log "Please re-login (or run: newgrp dialout) before using the lidar"
 fi
 
+RPLIDAR_RULE="/etc/udev/rules.d/99-rplidar-lidar.rules"
+if [[ ! -f "${RPLIDAR_RULE}" ]]; then
+  if RPLIDAR_SERIAL="$(_detect_rplidar_serial)"; then
+    log "Creating serial-pinned udev rule for RPLIDAR (serial=${RPLIDAR_SERIAL})..."
+    echo "SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"10c4\", ATTRS{idProduct}==\"ea60\", ATTRS{serial}==\"${RPLIDAR_SERIAL}\", MODE:=\"0666\", ENV{ID_MM_DEVICE_IGNORE}=\"1\", SYMLINK+=\"rplidar_lidar\"" | sudo tee "${RPLIDAR_RULE}" > /dev/null
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger
+  else
+    warn "Cannot uniquely detect RPLIDAR CP2102 serial from /dev/serial/by-id."
+    warn "Skipped writing ${RPLIDAR_RULE} to avoid ambiguous VID/PID-only mapping."
+    warn "Please reconnect only RPLIDAR and rerun this script, or use rplidar_port:=/dev/serial/by-id/..."
+  fi
+else
+  log "Udev rule already exists: ${RPLIDAR_RULE}"
+fi
+
 log "Serial device hints:"
 ls -la /dev/serial/by-id 2>/dev/null || true
 ls -la /dev/ttyUSB* 2>/dev/null || true
+ls -la /dev/rplidar_lidar 2>/dev/null || true
 
 ok "Setup complete"
 echo ""
 echo "Quick test:"
-echo "  roslaunch p3at_lms_navigation real_robot_mapping_rplidar.launch rplidar_port:=/dev/ttyUSB0"
+echo "  roslaunch p3at_lms_navigation real_robot_mapping_rplidar.launch rplidar_port:=/dev/rplidar_lidar"
 echo ""
 echo "Recommended stable port via by-id (example):"
 echo "  rplidar_port:=/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_*"

@@ -28,9 +28,13 @@
        doc="true=独立模式(自带LiDAR+move_base); false=叠加已有move_base"/>
   <arg name="lidar_mode"             default="dual"
        doc="独立模式雷达策略: dual|unitree|rplidar"/>
-  <arg name="unitree_port"           default="/dev/ttyUSB0"/>
-  <arg name="rplidar_port"           default="/dev/ttyUSB1"/>
+  <arg name="unitree_port"           default="/dev/unitree_lidar"/>
+  <arg name="rplidar_port"           default="/dev/rplidar_lidar"/>
   <arg name="rplidar_baud"           default="256000"/>
+  <!-- RPLIDAR-only workaround: opt in here so the driver overlay stays easy to revert. -->
+  <arg name="rplidar_pre_start_motor" default="true"/>
+  <arg name="rplidar_pre_start_motor_pwm" default="600"/>
+  <arg name="rplidar_pre_start_motor_warmup_s" default="2.0"/>
   <arg name="scan_startup_timeout"   default="20.0"/>
   <arg name="udp_port"               default="16031"
        doc="UDP 端口, 与检测脚本 --udp-port 一致"/>
@@ -149,6 +153,9 @@
         <node name="rplidarNode" pkg="rplidar_ros" type="rplidarNode" output="screen">
           <param name="serial_port"      type="string" value="$(arg rplidar_port)"/>
           <param name="serial_baudrate"  type="int"    value="$(arg rplidar_baud)"/>
+          <param name="pre_start_motor" type="bool" value="$(arg rplidar_pre_start_motor)"/>
+          <param name="pre_start_motor_pwm" type="int" value="$(arg rplidar_pre_start_motor_pwm)"/>
+          <param name="pre_start_motor_warmup_s" type="double" value="$(arg rplidar_pre_start_motor_warmup_s)"/>
           <param name="frame_id"         type="string" value="laser"/>
           <param name="inverted"         type="bool"   value="false"/>
           <param name="angle_compensate" type="bool"   value="true"/>
@@ -173,8 +180,10 @@
         <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap_local_only.yaml" command="load"/>
         <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml"  command="load"/>
         <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml"      command="load"/>
+        <!-- Dual-lidar policy:
+             - local_costmap: Unitree + RPLIDAR (near-field supplement)
+             - global_costmap: Unitree only -->
         <rosparam if="$(eval arg('lidar_mode') == 'dual')" param="local_costmap/obstacle_layer/observation_sources">unitree_scan_sensor rplidar_scan_sensor</rosparam>
-        <rosparam if="$(eval arg('lidar_mode') == 'dual')" param="global_costmap/obstacle_layer/observation_sources">unitree_scan_sensor rplidar_scan_sensor</rosparam>
       </node>
     </group>
 
@@ -190,6 +199,9 @@
       <node name="rplidarNode" pkg="rplidar_ros" type="rplidarNode" output="screen">
         <param name="serial_port"      type="string" value="$(arg rplidar_port)"/>
         <param name="serial_baudrate"  type="int"    value="$(arg rplidar_baud)"/>
+        <param name="pre_start_motor" type="bool" value="$(arg rplidar_pre_start_motor)"/>
+        <param name="pre_start_motor_pwm" type="int" value="$(arg rplidar_pre_start_motor_pwm)"/>
+        <param name="pre_start_motor_warmup_s" type="double" value="$(arg rplidar_pre_start_motor_warmup_s)"/>
         <param name="frame_id"         type="string" value="laser"/>
         <param name="inverted"         type="bool"   value="false"/>
         <param name="angle_compensate" type="bool"   value="true"/>

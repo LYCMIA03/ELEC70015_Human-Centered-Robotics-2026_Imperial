@@ -1,0 +1,143 @@
+<launch>
+  <!--
+    真机雷达唤醒/联调 — 仅启动 LiDAR 驱动与处理链，不启动导航或底盘相关节点。
+    适用场景：
+      - 两个雷达硬件都已接入，但不希望底盘乱跑
+      - 需要快速确认 Unitree / RPLIDAR 是否都真正出数据
+  -->
+
+  <arg name="lidar_mode"             default="dual"/>
+  <arg name="unitree_port"           default="/dev/unitree_lidar"/>
+  <arg name="rplidar_port"           default="/dev/rplidar_lidar"/>
+  <arg name="rplidar_baud"           default="256000"/>
+  <arg name="rplidar_pre_start_motor" default="true"/>
+  <arg name="rplidar_pre_start_motor_pwm" default="600"/>
+  <arg name="rplidar_pre_start_motor_warmup_s" default="2.0"/>
+  <arg name="scan_startup_timeout"   default="20.0"/>
+
+  <!-- Approximate RPLIDAR mount for dual-lidar mode.
+       TODO: replace with measured pose / URDF once hardware layout is final. -->
+  <arg name="rplidar_tf_x" default="-0.272"/>
+  <arg name="rplidar_tf_y" default="0.0"/>
+  <arg name="rplidar_tf_z" default="0.072"/>
+  <arg name="rplidar_tf_qx" default="1.0"/>
+  <arg name="rplidar_tf_qy" default="0.0"/>
+  <arg name="rplidar_tf_qz" default="0.0"/>
+  <arg name="rplidar_tf_qw" default="0.0"/>
+
+  <group unless="$(eval arg('lidar_mode') == 'rplidar')">
+    <param name="/unitree_lidar_ros_node/port"        value="$(arg unitree_port)"/>
+    <param name="/unitree_lidar_ros_node/cloud_frame" value="unitree_lidar"/>
+    <param name="/unitree_lidar_ros_node/imu_frame"   value="unitree_lidar"/>
+    <node pkg="unitree_lidar_ros" type="unitree_lidar_ros_node" name="unitree_lidar"
+          output="screen" respawn="true">
+      <param name="port"            value="$(arg unitree_port)"/>
+      <param name="frame_id"        value="unitree_lidar"/>
+      <param name="rotate_yaw_bias" value="0"/>
+      <param name="range_start"     value="0.05"/>
+      <param name="range_end"       value="30.0"/>
+    </node>
+
+    <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node"
+          name="pointcloud_to_laserscan" output="screen">
+      <remap from="cloud_in" to="/unilidar/cloud"/>
+      <remap from="scan"     to="/unitree/scan_raw"/>
+      <rosparam>
+        target_frame: ""
+        min_height: -0.5
+        max_height: 0.5
+        angle_min: -3.14159265
+        angle_max:  3.14159265
+        range_min: 0.35
+        range_max: 30.0
+        use_inf: true
+        inf_epsilon: 1.0
+      </rosparam>
+    </node>
+
+    <node pkg="target_follower" type="scan_body_filter.py"
+          name="scan_body_filter" output="screen">
+      <remap from="~scan_raw" to="/unitree/scan_raw"/>
+      <remap from="~scan_out" to="/unitree/scan"/>
+    </node>
+
+    <param name="robot_description"
+           command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
+    <node pkg="robot_state_publisher" type="robot_state_publisher"
+          name="robot_state_publisher" output="screen"/>
+  </group>
+
+  <group if="$(eval arg('lidar_mode') == 'dual')">
+    <node pkg="tf2_ros" type="static_transform_publisher" name="rplidar_laser_tf"
+          args="$(arg rplidar_tf_x) $(arg rplidar_tf_y) $(arg rplidar_tf_z) $(arg rplidar_tf_qx) $(arg rplidar_tf_qy) $(arg rplidar_tf_qz) $(arg rplidar_tf_qw) base_link laser"/>
+
+    <node pkg="target_follower" type="rplidar_health_monitor.py" name="rplidar_health_monitor"
+          output="screen" required="true">
+      <param name="device" value="$(arg rplidar_port)"/>
+      <param name="scan_topic" value="/scan"/>
+      <param name="startup_timeout" value="$(arg scan_startup_timeout)"/>
+      <param name="stale_timeout" value="3.0"/>
+    </node>
+
+    <node name="rplidarNode" pkg="rplidar_ros" type="rplidarNode" output="screen">
+      <param name="serial_port"      type="string" value="$(arg rplidar_port)"/>
+      <param name="serial_baudrate"  type="int"    value="$(arg rplidar_baud)"/>
+      <param name="pre_start_motor" type="bool" value="$(arg rplidar_pre_start_motor)"/>
+      <param name="pre_start_motor_pwm" type="int" value="$(arg rplidar_pre_start_motor_pwm)"/>
+      <param name="pre_start_motor_warmup_s" type="double" value="$(arg rplidar_pre_start_motor_warmup_s)"/>
+      <param name="frame_id"         type="string" value="laser"/>
+      <param name="inverted"         type="bool"   value="false"/>
+      <param name="angle_compensate" type="bool"   value="true"/>
+    </node>
+
+    <node pkg="target_follower" type="scan_body_filter.py"
+          name="rplidar_scan_body_filter" output="screen">
+      <param name="lidar_x" value="-0.202"/>
+      <param name="lidar_y" value="0.0"/>
+      <param name="body_x_min" value="-0.27"/>
+      <param name="body_x_max" value="0.27"/>
+      <param name="body_y_min" value="-0.22"/>
+      <param name="body_y_max" value="0.22"/>
+      <remap from="~scan_raw" to="/scan"/>
+      <remap from="~scan_out" to="/rplidar/scan_filtered"/>
+    </node>
+  </group>
+
+  <group if="$(eval arg('lidar_mode') == 'rplidar')">
+    <node pkg="target_follower" type="rplidar_health_monitor.py" name="rplidar_health_monitor"
+          output="screen" required="true">
+      <param name="device" value="$(arg rplidar_port)"/>
+      <param name="scan_topic" value="/scan"/>
+      <param name="startup_timeout" value="$(arg scan_startup_timeout)"/>
+      <param name="stale_timeout" value="3.0"/>
+    </node>
+
+    <node name="rplidarNode" pkg="rplidar_ros" type="rplidarNode" output="screen">
+      <param name="serial_port"      type="string" value="$(arg rplidar_port)"/>
+      <param name="serial_baudrate"  type="int"    value="$(arg rplidar_baud)"/>
+      <param name="pre_start_motor" type="bool" value="$(arg rplidar_pre_start_motor)"/>
+      <param name="pre_start_motor_pwm" type="int" value="$(arg rplidar_pre_start_motor_pwm)"/>
+      <param name="pre_start_motor_warmup_s" type="double" value="$(arg rplidar_pre_start_motor_warmup_s)"/>
+      <param name="frame_id"         type="string" value="laser"/>
+      <param name="inverted"         type="bool"   value="false"/>
+      <param name="angle_compensate" type="bool"   value="true"/>
+    </node>
+
+    <node pkg="target_follower" type="scan_body_filter.py"
+          name="scan_body_filter" output="screen">
+      <param name="lidar_x" value="-0.202"/>
+      <param name="lidar_y" value="0.0"/>
+      <param name="body_x_min" value="-0.27"/>
+      <param name="body_x_max" value="0.27"/>
+      <param name="body_y_min" value="-0.22"/>
+      <param name="body_y_max" value="0.22"/>
+      <remap from="~scan_raw" to="/scan"/>
+      <remap from="~scan_out" to="/scan_filtered"/>
+    </node>
+
+    <param name="robot_description"
+           command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_lms.urdf.xacro"/>
+    <node pkg="robot_state_publisher" type="robot_state_publisher"
+          name="robot_state_publisher" output="screen"/>
+  </group>
+</launch>

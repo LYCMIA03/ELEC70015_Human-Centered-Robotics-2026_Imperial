@@ -1,0 +1,25 @@
+<launch>
+  <!--
+    Passive mapping used during target-search workflow.
+    The robot keeps searching for trash targets; SLAM runs in background.
+  -->
+
+  <arg name="scan_topic" default="/unitree/scan"/>
+  <arg name="map_topic" default="/work_map"/>
+  <arg name="map_updates_topic" default="/work_map_updates"/>
+  <arg name="map_metadata_topic" default="/work_map_metadata"/>
+  <arg name="map_frame" default="work_map"/>
+  <arg name="odom_frame" default="odom"/>
+  <arg name="base_frame" default="base_link"/>
+
+  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping_task" output="screen">
+    <rosparam file="$(find p3at_lms_navigation)/param/unitree/gmapping.yaml" command="load"/>
+    <param name="map_frame" value="$(arg map_frame)"/>
+    <param name="odom_frame" value="$(arg odom_frame)"/>
+    <param name="base_frame" value="$(arg base_frame)"/>
+    <remap from="scan" to="$(arg scan_topic)"/>
+    <remap from="map" to="$(arg map_topic)"/>
+    <remap from="map_updates" to="$(arg map_updates_topic)"/>
+    <remap from="map_metadata" to="$(arg map_metadata_topic)"/>
+  </node>
+</launch>

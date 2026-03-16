@@ -4,8 +4,12 @@
     功能：RPLIDAR A2M12 + map_server + amcl + move_base
   -->
 
-  <arg name="rplidar_port"        default="/dev/ttyUSB0"/>
+  <arg name="rplidar_port"        default="/dev/rplidar_lidar"/>
   <arg name="rplidar_baud"        default="256000"/>
+  <!-- Remove these three args (and the matching node params below) to restore the upstream driver init order. -->
+  <arg name="rplidar_pre_start_motor" default="true"/>
+  <arg name="rplidar_pre_start_motor_pwm" default="600"/>
+  <arg name="rplidar_pre_start_motor_warmup_s" default="2.0"/>
   <arg name="scan_startup_timeout" default="20.0"/>
   <arg name="map_file"            default="$(find p3at_lms_navigation)/maps/demo_map.yaml"/>
   <arg name="use_rviz"            default="true"/>
@@ -27,6 +31,9 @@
   <node name="rplidarNode" pkg="rplidar_ros" type="rplidarNode" output="screen">
     <param name="serial_port"      type="string" value="$(arg rplidar_port)"/>
     <param name="serial_baudrate"  type="int"    value="$(arg rplidar_baud)"/>
+    <param name="pre_start_motor" type="bool" value="$(arg rplidar_pre_start_motor)"/>
+    <param name="pre_start_motor_pwm" type="int" value="$(arg rplidar_pre_start_motor_pwm)"/>
+    <param name="pre_start_motor_warmup_s" type="double" value="$(arg rplidar_pre_start_motor_warmup_s)"/>
     <param name="frame_id"         type="string" value="laser"/>
     <param name="inverted"         type="bool"   value="false"/>
     <param name="angle_compensate" type="bool"   value="true"/>

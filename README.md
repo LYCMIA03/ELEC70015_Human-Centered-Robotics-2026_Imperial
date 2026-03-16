@@ -10,7 +10,8 @@ ROS1 Noetic · Ubuntu 20.04 · Gazebo 11 (Simulation) / Docker (Real Robot).
 >
 > Current real-robot target-follow runtime defaults to **dual-lidar**:
 > Unitree L1 remains the main ranging sensor, and RPLIDAR A2 is added as a
-> short-range local-obstacle supplement. You can still fall back to
+> short-range local-obstacle supplement. Mapping/AMCL/global-costmap stays
+> Unitree-only; dual fusion is only enabled on local costmap. You can still fall back to
 > `--lidar unitree` or `--lidar rplidar` when debugging hardware.
 
 ---
@@ -211,9 +212,12 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 │   │   │   ├── auto_mapping_unitree.launch       # Unitree: autonomous exploration (sim)
 │   │   │   ├── auto_amcl_verify.launch           # SICK: AMCL verifier (sim)
 │   │   │   ├── auto_amcl_verify_unitree.launch   # Unitree: AMCL verifier (sim)
+│   │   │   ├── real_robot_lidar_bringup.launch   # Real robot: lidar-only bringup/validation
 │   │   │   ├── real_robot_mapping.launch         # SICK: real-robot mapping
+│   │   │   ├── real_robot_mapping_rplidar.launch # RPLIDAR: real-robot mapping
 │   │   │   ├── real_robot_mapping_unitree.launch # Unitree: real-robot mapping
 │   │   │   ├── real_robot_nav.launch             # SICK: real-robot nav
+│   │   │   ├── real_robot_nav_rplidar.launch     # RPLIDAR: real-robot nav
 │   │   │   └── real_robot_nav_unitree.launch     # Unitree: real-robot nav
 │   │   ├── param/                        # SICK / default parameters
 │   │   │   ├── gmapping.yaml
@@ -253,6 +257,7 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 │   │       ├── scan_body_filter.py             # Filter robot body from LiDAR scan (real only)
 │   │       ├── mock_target_point_publisher.py  # Test target publisher
 │   │       └── test_standoff_face.py           # Unit tests (21 tests)
+│   ├── rplidar_ros/                        # Local RPLIDAR overlay with motor pre-start workaround
 │   ├── sicktoolbox/                      # SICK C++ library (source)
 │   └── sicktoolbox_wrapper/              # SICK ROS wrapper (source)
 ├── dialogue/                             # Dialogue system (real robot only)
@@ -277,6 +282,7 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 │   ├── start_base.sh                     # Start Pi base driver
 │   ├── start_master.sh                   # Start roscore
 │   ├── start_real_mapping_unitree.sh     # Start mapping stack
+│   ├── start_real_nav_unitree.sh         # Start AMCL nav stack
 │   ├── start_teleop.sh                   # Keyboard teleoperation
 │   ├── start_dialogue_host.sh            # Start dialogue on host
 │   ├── start_dialogue_docker_bridges.sh  # Start UDP bridges in Docker
@@ -324,7 +330,8 @@ sudo apt-get install -y \
 
 ### Jetson Docker (Real Robot)
 
-> **Pre-installed in `ros_noetic:nav_unitree` image.** No manual installation needed.
+> **Core Unitree stack is pre-installed in `ros_noetic:nav_unitree`.**
+> For dual-lidar runtime, also install/verify `rplidar_ros` (see below).
 
 The image is based on `ghcr.io/sloretz/ros:noetic-desktop-full` (arm64) and contains:
 - All navigation packages (gmapping, move_base, amcl, etc.)
@@ -368,8 +375,102 @@ Or use the helper script:
 
 File: `/etc/udev/rules.d/99-unitree-lidar.rules`
 ```
-SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE:="0666", SYMLINK+="unitree_lidar"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{serial}=="<UNITREE_CP2104_SERIAL>", MODE:="0666", ENV{ID_MM_DEVICE_IGNORE}="1", SYMLINK+="unitree_lidar"
 ```
+
+> Use **serial-pinned** rules (or `/dev/serial/by-id/...`) to avoid VID/PID ambiguity
+> when multiple CP210x devices are connected.
+
+### RPLIDAR A2 Driver Setup (Dual-Lidar Runtime)
+
+Required when using `--lidar dual` (default demo mode) or `enable_rplidar:=true`
+in `real_robot_mapping_unitree.launch` / `real_robot_nav_unitree.launch`.
+
+> `rplidar_ros` already bundles the Slamtec SDK backend, so no separate
+> `rplidar_sdk` install step is needed for this repository workflow.
+
+If startup logs show:
+`Error, operation time out. RESULT_OPERATION_TIMEOUT!`
+it usually means the serial endpoint opens but the lidar core does not reply.
+Per Slamtec `rplidar_ros`/`rplidar_sdk` and A2M12 datasheet, prioritize checks:
+1. stable 5V power/current margin,
+2. accessory-board PWM/MOTOCTL path (A2/A3 motor control),
+3. correct serial endpoint mapping.
+
+```bash
+# Jetson host helper (installs ros-noetic-rplidar-ros + dialout setup)
+./setup_rplidar_a2.sh
+
+# Quick verify inside ROS environment
+rospack find rplidar_ros
+```
+
+Prefer stable serial paths (recommended):
+
+```bash
+ls -la /dev/serial/by-id
+# then use:
+#   rplidar_port:=/dev/serial/by-id/usb-... 
+```
+
+#### Current Working RPLIDAR A2M12 Bringup Recipe
+
+The current robot build uses the official Slamtec accessory board and the
+validated working serial configuration is:
+
+- `rplidar_port:=/dev/rplidar_lidar`
+- `rplidar_baud:=256000`
+- `rplidar_pre_start_motor:=true`
+- `rplidar_pre_start_motor_pwm:=600`
+- `rplidar_pre_start_motor_warmup_s:=2.0`
+
+Why this is needed on the current hardware:
+
+- The A2M12 is stable only after the motor control path has been asserted first.
+- Simply opening the serial port and immediately requesting scan data was
+  observed to time out intermittently.
+- The repository now carries a local `rplidar_ros` overlay that can
+  optionally start the motor before the driver requests device info / scan.
+
+The overlay adds three private ROS params on `rplidarNode`:
+
+- `pre_start_motor`
+- `pre_start_motor_pwm`
+- `pre_start_motor_warmup_s`
+
+This workaround applies only to the second lidar (`RPLIDAR A2`). The Unitree
+L1 path remains unchanged and continues to use the stock `unitree_lidar_ros`
+driver flow.
+
+When `pre_start_motor:=true`, the repo-local overlay:
+
+1. connects to the device,
+2. starts the motor first,
+3. waits for the configured warmup interval,
+4. then continues with normal SDK bringup (`getDeviceInfo`, `startScan`, etc.).
+
+This behaviour is opt-in at the launch layer so it stays easy to revert later:
+remove the `pre_start_motor*` launch args and the driver falls back to the
+upstream initialization order.
+
+The params are already wired through:
+
+- `target_follow_real.launch`
+- `real_robot_mapping_rplidar.launch`
+- `real_robot_nav_rplidar.launch`
+- `start_demo.sh`
+- `real_robot_lidar_bringup.launch`
+
+Quick standalone validation:
+
+```bash
+./scripts/start_demo.sh --sensor-only --lidar dual
+```
+
+Expected current real-hardware rates after successful bringup:
+
+- `/unitree/scan`: about `9.7 Hz`
+- `/rplidar/scan_filtered`: about `11 Hz`
 
 ### SICK LMS200 Driver (Backup)
 
@@ -825,14 +926,21 @@ fallbacks:
 
 ```bash
 ./scripts/start_demo.sh --lidar unitree
-./scripts/start_demo.sh --lidar rplidar --rplidar-port /dev/ttyUSB0
+./scripts/start_demo.sh --lidar rplidar --rplidar-port /dev/rplidar_lidar
+```
+
+If you only want to wake the sensors and verify both scan streams without
+starting navigation / detection / dialogue, use:
+
+```bash
+./scripts/start_demo.sh --sensor-only --lidar dual
 ```
 
 **Option B — Mapping:**
 ```
 1. Jetson Docker:  roscore
 2. Pi Docker:      ./scripts/start_base.sh
-3. Jetson Docker:  roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch
+3. Jetson Docker:  ./scripts/start_real_mapping_unitree.sh use_rviz:=false
 4. Jetson Docker:  rosrun teleop_twist_keyboard teleop_twist_keyboard.py (or autonomous_explorer.py)
 ```
 
@@ -840,10 +948,12 @@ fallbacks:
 ```
 1. Jetson Docker:  roscore
 2. Pi Docker:      ./scripts/start_base.sh
-3. Jetson Docker:  roslaunch p3at_lms_navigation real_robot_nav_unitree.launch map_file:=...
+3. Jetson Docker:  ./scripts/start_real_nav_unitree.sh map_file:=...
 4. Jetson Docker:  roslaunch target_follower target_follow_real.launch launch_move_base:=false
 5. Jetson Host:    python3 handobj_detection/handobj_detection_rgbd.py --udp-enable
 ```
+
+For unitree-only fallback in mapping/nav: append `enable_rplidar:=false`.
 
 ---
 
@@ -859,6 +969,7 @@ fallbacks:
 | P3-AT powered on, serial cable connected to Pi (`/dev/ttyS0` or `/dev/ttyUSB0`) | ✓ |
 | Pi connected to Jetson via Ethernet (`192.168.50.0/24`) | ✓ |
 | Unitree L1 LiDAR connected to Jetson USB-C, **DO NOT power on yet** | ✓ |
+| RPLIDAR A2 connected to Jetson (if using default dual mode) | ✓ |
 | `docker ps` shows `ros_noetic` container running | ✓ |
 
 > **⚠️ Important:** Power on the Unitree LiDAR **only after** `roslaunch` has already started (Step 3).
@@ -887,6 +998,13 @@ exec roscore"
 
 ```bash
 ./scripts/start_real_mapping_unitree.sh use_rviz:=false
+```
+
+`start_real_mapping_unitree.sh` now performs RPLIDAR preflight by default
+(`enable_rplidar:=true`). If the second lidar is not connected, append:
+
+```bash
+./scripts/start_real_mapping_unitree.sh use_rviz:=false enable_rplidar:=false
 ```
 
 Or manually:
@@ -1086,8 +1204,12 @@ Static TF `base_link → camera_link`: xyz=`(0.208, 0, 1.0)`, quat=`(-0.5, 0.5, 
 ```bash
 ./scripts/start_demo.sh \
   --lidar dual \
-  --unitree-port /dev/ttyUSB0 \
-  --rplidar-port /dev/ttyUSB1 \
+  --unitree-port /dev/unitree_lidar \
+  --rplidar-port /dev/rplidar_lidar \
+  --rplidar-baud 256000 \
+  --rplidar-pre-start-motor \
+  --rplidar-pre-start-pwm 600 \
+  --rplidar-pre-start-warmup 2.0 \
   --retreat-turn-deg 100 \
   --explore-step 2.4 \
   --explore-no-repeat-sec 120
@@ -1096,18 +1218,26 @@ Static TF `base_link → camera_link`: xyz=`(0.208, 0, 1.0)`, quat=`(-0.5, 0.5, 
 - `--lidar`: `dual` (default), `unitree`, or `rplidar`.
 - `--unitree-port`: Unitree serial device.
 - `--rplidar-port`: RPLIDAR serial device.
-- `--rplidar-baud`: RPLIDAR baud rate, default `256000`.
+- `--rplidar-baud`: RPLIDAR baud rate, default `256000` on current robot (override per hardware).
+- `--rplidar-pre-start-motor`: pre-start the RPLIDAR motor before scan bringup.
+- `--rplidar-pre-start-pwm`: PWM used for the pre-start workaround.
+- `--rplidar-pre-start-warmup`: warmup time after motor start and before scan requests.
+- `--sensor-only`: bring up only the lidar chain for validation; do not start navigation, YOLO, or dialogue.
 - `--retreat-turn-deg`: moderate in-place turn before leaving.
 - `--explore-step`: exploration step distance.
 - `--explore-no-repeat-sec`: region no-repeat time window.
 - `--no-explore`: disable active exploration (debug only).
 
+Dual-lidar policy in current real-robot stack:
+- `gmapping`, `amcl`, and map-based `global_costmap` use **Unitree only**.
+- `local_costmap` fuses `unitree/scan` + `rplidar/scan_filtered` for local avoidance.
+
 If you want the standalone RPLIDAR-only stack outside the demo launcher:
 
 ```bash
 ./setup_rplidar_a2.sh
-./scripts/start_real_mapping_rplidar.sh rplidar_port:=/dev/ttyUSB0
-./scripts/start_real_nav_rplidar.sh map_file:=/path/to/map.yaml rplidar_port:=/dev/ttyUSB0
+./scripts/start_real_mapping_rplidar.sh rplidar_port:=/dev/rplidar_lidar
+./scripts/start_real_nav_rplidar.sh map_file:=/path/to/map.yaml rplidar_port:=/dev/rplidar_lidar
 ```
 
 #### Stop Demo Cleanly
@@ -1330,12 +1460,13 @@ The trash detection system runs on the Jetson **native host** (Ubuntu 22.04) and
 │  Orbbec SDK → RGB + Depth @ 15 fps                                  │
 │  YOLOv8 inference → Bounding boxes                                  │
 │  Depth lookup → 3D centroid (camera frame)                          │
-│  UDP JSON at 5 Hz → 127.0.0.1:16031                                 │
+│  UDP JSON at up to 10 Hz → 127.0.0.1:16031                          │
 └────────────────────────────┬─────────────────────────────────────────┘
-                             │  JSON: {"x":0.5, "y":0.2, "z":2.3,
+                             │  JSON: {"stamp":1708700000.123,
                              │         "frame_id":"camera_link",
-                             │         "stamp":1708700000.123,
-                             │         "class":"bottle"}
+                             │         "x":0.5, "y":0.2, "z":2.3,
+                             │         "source":"handobj_detection_rgbd",
+                             │         "kind":"holding"}
                              ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │  udp_target_bridge.py (Docker)                                       │
@@ -1347,8 +1478,8 @@ The trash detection system runs on the Jetson **native host** (Ubuntu 22.04) and
 ┌──────────────────────────────────────────────────────────────────────┐
 │  point_to_target_pose.py (Docker)                                    │
 │                                                                      │
-│  PointStamped → tf2 transform → PoseStamped in base_link frame       │
-│  pub /target_pose                                                    │
+│  PointStamped → PoseStamped (preserve frame_id, default camera_link) │
+│  pub /target_pose; TF into odom/map happens later in target_follower │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1357,12 +1488,20 @@ The trash detection system runs on the Jetson **native host** (Ubuntu 22.04) and
 ```bash
 # Native Jetson host (not Docker)
 cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
-source trash_detection/venv/bin/activate  # if using venv
 python3 handobj_detection/handobj_detection_rgbd.py \
-  --weights handobj_detection/weights/handobj.pt \
   --udp-enable \
-  --udp-ip 127.0.0.1 \
-  --udp-port 16031
+  --udp-host 127.0.0.1 \
+  --udp-port 16031 \
+  --udp-frame-id camera_link \
+  --udp-kind holding \
+  --rotate-180 \
+  --headless
+```
+
+Or use the wrapper script:
+
+```bash
+./scripts/start_trash_detection_rgbd.sh --detector handobj
 ```
 
 ---
@@ -1375,20 +1514,21 @@ The dialogue system provides voice-based human interaction when the robot reache
 
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
-│  [Docker] /target_follower/result = "REACHED"                         │
+│  [Docker] /target_follower/result = True                              │
 └───────────────────────────────┬───────────────────────────────────────┘
                                 │  UDP 16041
                                 ▼
 ┌───────────────────────────────────────────────────────────────────────┐
 │  [Host] dialogue_udp_runner.py                                        │
 │                                                                       │
-│  1. Trigger audio recording (microphone)                              │
-│  2. STT: Whisper-small                                                │
-│  3. NLU: intent classification (yes / no / unclear)                   │
-│  4. TTS: response audio                                               │
-│  5. Send result UDP 16032                                             │
+│  1. Receive UDP trigger: navigation_success=1                         │
+│  2. STT: Vosk offline speech recognition                              │
+│  3. NLU: DistilBERT ONNX or FastText intent classifier                │
+│  4. Play prerecorded robot prompts / responses                        │
+│  5. Send decision UDP 16032                                           │
 └───────────────────────────────┬───────────────────────────────────────┘
-                                │  JSON: {"action": true/false}
+                                │  JSON: {"trash_action":1|0,
+                                │         "decision":"proceed|decline"}
                                 ▼
 ┌───────────────────────────────────────────────────────────────────────┐
 │  [Docker] udp_trash_action_bridge.py                                  │
@@ -1403,22 +1543,48 @@ The dialogue system provides voice-based human interaction when the robot reache
 # Native Jetson host
 cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/dialogue
 python3 dialogue_udp_runner.py \
-  --trigger-port 16041 \
-  --result-port 16032 \
-  --stt-model whisper-small \
-  --language en
+  --listen-host 0.0.0.0 \
+  --listen-port 16041 \
+  --send-host 127.0.0.1 \
+  --send-port 16032 \
+  --device 24
 ```
+
+Simulation mode:
+
+```bash
+python3 dialogue_udp_runner.py --sim \
+  --first-user-wav voice_data/sim_user_answer_other_b.wav \
+  --second-user-wav voice_data/sim_user_answer_negative_a.wav
+```
+
+Implementation note: the current dialogue stack uses Vosk STT plus either the
+DistilBERT ONNX classifier in `dialogue/models/nlu_intent_bert/` or the
+FastText fallback model `dialogue/models/nlu_intent.bin`.
 
 ### UDP Protocol
 
 **Trigger (ROS→Host) — Port 16041:**
 ```json
-{"trigger": "reached", "timestamp": 1708700000.123}
+{
+  "stamp": 1708700000.123,
+  "navigation_success": 1,
+  "reason": "result_cb",
+  "source": "navigation_success_udp_bridge"
+}
 ```
+
+The bridge may also resend the trigger while `target_follower` remains in
+`WAITING_ACTION`, depending on `DIALOGUE_RETRIGGER_ENABLE`.
 
 **Result (Host→ROS) — Port 16032:**
 ```json
-{"action": true, "confidence": 0.92, "intent": "yes"}
+{
+  "stamp": 1708700002.456,
+  "trash_action": 1,
+  "decision": "proceed",
+  "source": "dialogue_udp_runner"
+}
 ```
 
 ---
@@ -1433,6 +1599,7 @@ All scripts are located in `scripts/`:
 | `stop_demo_all.sh` | Kill all demo processes |
 | `start_base.sh` | Start rosaria on Pi |
 | `start_real_mapping_unitree.sh` | Start mapping with Unitree LiDAR |
+| `start_real_nav_unitree.sh` | Start AMCL navigation with Unitree map + optional dual-lidar local avoidance |
 | `start_teleop.sh` | Keyboard teleoperation |
 | `test_dialogue_chain.sh` | Test full detection → dialogue → action pipeline |
 | `demo_dashboard.sh` | tmux dashboard with all logs |
@@ -1493,7 +1660,7 @@ All scripts are located in `scripts/`:
 | `/move_base/DWAPlannerROS/local_plan` | `nav_msgs/Path` | `/move_base` | `/rviz` |
 | `/move_base/global_costmap/costmap` | `nav_msgs/OccupancyGrid` | `/move_base` | `/rviz` |
 | `/move_base/local_costmap/costmap` | `nav_msgs/OccupancyGrid` | `/move_base` | `/rviz` |
-| `/target_pose` | `geometry_msgs/PoseStamped` | `/gazebo_target_publisher` (sim) / `camera_json_bridge` (real robot) / goal relay | `/target_follower` |
+| `/target_pose` | `geometry_msgs/PoseStamped` | `/gazebo_target_publisher` (sim) / `/point_to_target_pose` (real robot) / goal relay | `/target_follower` |
 | `/gazebo/model_states` | `gazebo_msgs/ModelStates` | `/gazebo` | — |
 | `/slam_gmapping/entropy` | `std_msgs/Float64` | `/slam_gmapping` | — |
 
@@ -1528,12 +1695,14 @@ map
 
 **SICK Model:** identical, with `unitree_lidar` replaced by `laser`.
 
-#### Real Robot — Unitree + Orbbec Camera
+#### Real Robot — Unitree + RPLIDAR + Orbbec Camera
 
 ```
 odom
 +-- base_link                     [rosaria  ~50 Hz]
     +-- unitree_lidar             [/robot_state_publisher  static]
+    +-- laser                     [static_transform_publisher  static, dual-lidar mode]
+    |   └── topic: /rplidar/scan_filtered
     +-- camera_link               [static_transform_publisher  static]
     |   ├── xyz: (0.208, 0, 1.0)
     |   └── rpy: [-90°, 0°, -90°]  (camera optical axis → robot forward)
@@ -1558,7 +1727,7 @@ map
 | `base_footprint -> base_link` | `/robot_state_publisher` | static | Identity from URDF (sim only) |
 | `base_link -> unitree_lidar` | `/robot_state_publisher` | static | Unitree mount offset |
 | `base_link -> camera_link` | `static_transform_publisher` | static | Orbbec camera mount (real robot) |
-| `base_link -> laser` | `/robot_state_publisher` | static | SICK mount offset |
+| `base_link -> laser` | `static_transform_publisher` | static | RPLIDAR rear mount in dual-lidar runtime (SICK stack also uses `laser`) |
 | Wheel frames ×4 | `/robot_state_publisher` | ~10 Hz | Driven by joint states |
 
 > During **AMCL navigation**, `/slam_gmapping` is replaced by `map_server` + `/amcl`.
@@ -1709,9 +1878,9 @@ Maze theoretical maximum ~18%. Accepted baseline performance: 12.6% in 300 s.
 
 ---
 
-## YOLO Target Detection (Native Ubuntu 22.04 → Docker Bridge)
+## YOLO Target Detection (Native Ubuntu 22.04 -> Docker UDP Bridge)
 
-> **Architecture**: The entire YOLO detection pipeline runs **outside Docker** on Jetson's native Ubuntu 22.04, where the Orbbec Femto Bolt kernel driver is available. The 3D navigation target coordinates are sent to the ROS Docker container via a **JSON bridge over localhost**.
+> **Architecture**: The entire RGB-D detection pipeline runs **outside Docker** on Jetson's native Ubuntu 22.04, where the Orbbec Femto Bolt SDK is available. The host sends target XYZ to the ROS Docker container via **UDP JSON on localhost**.
 
 ### System Flow
 
@@ -1719,91 +1888,108 @@ Maze theoretical maximum ~18%. Accepted baseline performance: 12.6% in 300 s.
 [Jetson — Native Ubuntu 22.04]
   Orbbec Femto Bolt SDK
       └─► RGB frame + aligned depth frame
-  YOLO inference (e.g. ultralytics YOLOv8)
-      └─► bounding box → pick centre pixel
-  Depth lookup: depth_image[cy, cx] → Z metres
-  Back-project to 3D (camera intrinsics K):
-      X = (cx - K.ppx) * Z / K.fx
-      Y = (cy - K.ppy) * Z / K.fy
-  Transform to map frame (camera extrinsics + /tf)
-  Publish JSON to localhost TCP socket (default port 9097):
-      {"x": 1.23, "y": -0.45, "z": 0.0,
-       "frame_id": "map",
-       "stamp": 1708700000.123}
+  YOLO inference (handobj_detection or trash_detection)
+      └─► bounding box -> centre pixel -> depth lookup
+  Back-project to 3D in camera_link:
+      X = (u - cx) * Z / fx
+      Y = (v - cy) * Z / fy
+      Z = depth
+  Publish UDP JSON to 127.0.0.1:16031:
+      {"stamp":1708700000.123,
+       "frame_id":"camera_link",
+       "x":0.12,"y":-0.08,"z":2.35,
+       "source":"handobj_detection_rgbd",
+       "kind":"holding"}
 
 [Jetson — ROS Noetic Docker  (--net=host)]
-  tools/camera_json_bridge.py
-      └─► reads JSON stream from TCP 127.0.0.1:9097
-      └─► publishes geometry_msgs/PoseStamped → /target_pose
+  udp_target_bridge.py
+      └─► UDP 16031 -> /trash_detection/target_point (PointStamped)
+  point_to_target_pose.py
+      └─► /trash_detection/target_point -> /target_pose (PoseStamped)
   target_follower
-      └─► sub /target_pose → send MoveBaseAction goal
+      └─► TF into odom/map -> MoveBaseAction goal
 ```
 
 ### Running the Bridge Inside Docker
 
 ```bash
-# Start the JSON bridge node (inside Jetson Docker)
-rosrun p3at_lms_navigation camera_json_bridge.py \
-  _port:=9097 \
-  _frame_id:=map
+# Start the UDP bridge pair (inside Jetson Docker)
+python3 catkin_ws/src/target_follower/scripts/udp_target_bridge.py \
+  _bind_port:=16031
+
+python3 catkin_ws/src/target_follower/scripts/point_to_target_pose.py
 ```
 
-Or launch it together with navigation:
+Or launch them together with navigation:
 
 ```bash
-roslaunch p3at_lms_navigation real_robot_nav_unitree.launch \
-  use_target_follower:=true \
-  use_json_bridge:=true
+roslaunch target_follower target_follow_real.launch launch_move_base:=true
 ```
 
-### Running YOLO Detection on Native Ubuntu 22.04
+### Running Detection on Native Ubuntu 22.04
 
 ```bash
-# Outside Docker, on Jetson native Ubuntu 22.04
-python3 tools/yolo_target_detector.py \
-  --model yolov8n.pt \
-  --target-class person \
-  --port 9097
+# Hand-object branch (current demo default)
+python3 handobj_detection/handobj_detection_rgbd.py \
+  --udp-enable --udp-host 127.0.0.1 --udp-port 16031 \
+  --udp-frame-id camera_link --udp-kind holding \
+  --rotate-180 --headless
+
+# 15-class trash branch
+python3 trash_detection/predict_15cls_rgbd.py \
+  --nearest-person --udp-enable --udp-host 127.0.0.1 --udp-port 16031 \
+  --udp-frame-id camera_link --udp-kind waste \
+  --rotate-180 --headless
 ```
 
-The script:
-1. Opens the Orbbec Femto Bolt colour + depth streams via the native SDK
-2. Runs YOLO inference on each RGB frame
-3. For detected targets, reads aligned depth at the bounding-box centre
-4. Back-projects to 3D in the camera frame, then transforms to `map` frame
-5. Serialises to JSON and sends over TCP to Docker on `127.0.0.1:9097`
+The host detector:
+1. Opens the Orbbec Femto Bolt colour and aligned depth streams.
+2. Runs YOLO inference on each RGB frame.
+3. Samples depth at the detection centre and back-projects XYZ in `camera_link`.
+4. Serialises the target as UDP JSON and sends it to Docker on `127.0.0.1:16031`.
 
 ### JSON Message Format
 
 ```json
 {
-  "x": 1.23,
-  "y": -0.45,
-  "z": 0.00,
-  "frame_id": "map",
   "stamp": 1708700000.123,
-  "confidence": 0.91,
-  "label": "person"
+  "frame_id": "camera_link",
+  "x": 0.12,
+  "y": -0.08,
+  "z": 2.35,
+  "source": "handobj_detection_rgbd",
+  "kind": "holding"
 }
 ```
 
+For the trash-detection branch, `source` becomes `trash_detection_rgbd` and
+`kind` is typically `waste` or `person`.
+
 ### Manual Testing Without YOLO
 
-Publish a fake target directly inside Docker to verify `target_follower` end-to-end:
+Send a fake UDP target from the host:
+
+```bash
+python3 trash_detection/examples/send_target_udp.py --port 16031 --rate 2 --count 5
+```
+
+Or publish a fake target directly inside Docker to verify `target_follower`
+end-to-end:
 
 ```bash
 rostopic pub -r 5 /target_pose geometry_msgs/PoseStamped \
-  "{header: {frame_id: 'map'}, pose: {position: {x: 2.0, y: 1.0, z: 0.0}, orientation: {w: 1.0}}}"
+  "{header: {frame_id: 'camera_link'}, pose: {position: {x: 0.0, y: 0.0, z: 2.0}, orientation: {w: 1.0}}}"
 ```
 
 ### Why Native Ubuntu 22.04 (not Docker)?
 
 | Reason | Detail |
 |--------|--------|
-| Kernel USB driver | Orbbec SDK requires custom kernel modules; not available inside Docker |
-| libusb access | USB 3.0 device-level access; `--privileged` + volume mounts are fragile |
-| CUDA / TensorRT | YOLO GPU inference benefits from native CUDA without container overhead |
-| Simplicity | JSON socket is a clean, version-agnostic interface between the two environments |
+| Kernel USB driver | Orbbec SDK and device access are maintained on the host, not in the ROS container |
+| libusb access | USB 3.0 device-level access is simpler and more stable on the host |
+| CUDA / TensorRT | YOLO GPU inference benefits from native CUDA without container friction |
+| Simplicity | UDP JSON is a clean, process-agnostic interface between host detection and Docker ROS |
+| Separation of concerns | Host owns camera/inference; Docker owns ROS navigation and behavior |
 
 ---
 
@@ -1933,6 +2119,8 @@ source devel/setup.bash   # or setup.zsh
 - [x] Multi-machine network setup documented and verified (cross-machine topic test)
 - [x] Docker image `ros_noetic:nav_unitree` — built and deployed
 - [x] Unitree L1 driver integration — verified (`/unitree/scan` publishing)
+- [x] Dual-lidar bringup (`Unitree + RPLIDAR`) — verified with `start_demo.sh --sensor-only --lidar dual`
+- [x] RPLIDAR A2 workaround — verified (`256000` + pre-start motor + `2.0 s` warmup)
 - [x] Keyboard teleoperation + mapping Runbook — verified (2026-02-24)
 - [x] Autonomous exploration SLAM — verified
 - [x] Target following with YOLO + depth camera — verified
@@ -2013,15 +2201,19 @@ source devel/setup.bash   # or setup.zsh
 - [ ] `rostopic hz /odom` — publishing
 - [ ] Jetson roscore running
 - [ ] Mapping launch: `./scripts/start_real_mapping_unitree.sh use_rviz:=false`
+- [ ] If RPLIDAR absent: relaunch with `enable_rplidar:=false`
 - [ ] Power on Unitree LiDAR (wait 10-15 s)
 - [ ] `rostopic hz /unitree/scan` — publishing
 - [ ] Teleop: `./scripts/start_teleop.sh jetson` — robot moves
 - [ ] Map saved: `rosrun map_server map_saver -f ~/maps/unitree_map`
 
 ### Real Robot — Target Following Demo
+- [ ] Sensor-only dual-lidar check: `./scripts/start_demo.sh --sensor-only --lidar dual`
+  - [ ] `/unitree/scan` — about `9-10 Hz`
+  - [ ] `/rplidar/scan_filtered` — about `10-11 Hz`
 - [ ] Quick start: `./scripts/start_demo.sh`
 - [ ] Default mode is dual lidar; verify `/unitree/scan` and `/rplidar/scan_filtered` if both sensors are connected
-- [ ] Fallbacks available: `./scripts/start_demo.sh --lidar unitree` or `./scripts/start_demo.sh --lidar rplidar --rplidar-port /dev/ttyUSB0`
+- [ ] Fallbacks available: `./scripts/start_demo.sh --lidar unitree` or `./scripts/start_demo.sh --lidar rplidar --rplidar-port /dev/rplidar_lidar`
 - [ ] Or manual:
   - [ ] roscore + `target_follow_real.launch launch_move_base:=true`
   - [ ] `handobj_detection_rgbd.py --udp-enable`

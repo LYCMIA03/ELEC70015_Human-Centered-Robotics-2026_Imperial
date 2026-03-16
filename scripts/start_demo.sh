@@ -5,16 +5,26 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/single_instance.sh"
 single_instance::activate "$(basename "$0")"
 # =============================================================================
-# start_demo.sh — 一键启动完整 Target-Following + Dialogue Demo (无需先验地图)
+# start_demo.sh — 一键启动完整 Target-Following + Dialogue Demo
 #
 # 运行机器：Jetson Orin Nano (host 终端, 非 Docker)
 # 启动内容：
 #   1. Jetson Docker — roscore (if not running)
-#   2. Jetson Docker — target_follow_real.launch (独立模式: LiDAR + move_base + 目标追踪)
+#   2. Jetson Docker — navigation + target_follow_real
 #   3. Jetson Host   — Hand-Object 检测 (handobj_detection_rgbd.py)
 #   4. Jetson Host   — Dialogue UDP bridges (nav_success → UDP:16041 → dialogue → /trash_action)
 #
-# 导航方式：纯局部规划 (rolling-window costmap in odom frame)，不依赖全局地图。
+# 任务主逻辑：
+#   auto explore 的目标是找垃圾拾取目标（target），不是专门探索地图。
+#   地图构建是任务执行过程中的副产物，可按需开启/关闭。
+#
+# 导航方式（可切换）：
+#   A) 默认：纯局部规划 (rolling-window costmap in odom frame)
+#   B) 导入已有地图：map_server + amcl + move_base（仍由 target_follower 负责找目标）
+#
+# 地图副产物（可切换）：
+#   --work-mapping 开启后，任务执行时后台运行被动 SLAM 并周期保存地图。
+#   若同时使用 --assist-map 导入旧地图，则会在执行过程中自动进行增量融合保存。
 #
 # 对话流程：
 #   REACHED → result=True → UDP:16041 → dialogue_udp_runner → UDP:16032 → /trash_action
@@ -34,9 +44,19 @@ single_instance::activate "$(basename "$0")"
 #
 # 参数：
 #   --lidar MODE     雷达模式 dual|unitree|rplidar, 默认 dual
-#   --unitree-port DEV Unitree 串口设备, 默认 /dev/ttyUSB0
-#   --rplidar-port DEV RPLIDAR 串口设备, 默认 /dev/ttyUSB1
+#   --unitree-port DEV Unitree 串口设备, 默认 /dev/unitree_lidar
+#   --rplidar-port DEV RPLIDAR 串口设备, 默认 /dev/rplidar_lidar
 #   --rplidar-baud N RPLIDAR 串口波特率, 默认 256000
+#   --rplidar-pre-start-motor     在初始化前先拉起第二个雷达电机（默认开启）
+#   --no-rplidar-pre-start-motor  关闭第二个雷达电机预启动
+#   --rplidar-pre-start-pwm N     第二个雷达预启动 PWM，默认 600
+#   --rplidar-pre-start-warmup S  第二个雷达预热时间(秒)，默认 2.0
+#   --sensor-only      只唤醒雷达链并验数，不启动导航/检测/对话/底盘相关逻辑
+#   --assist-map YAML 导入已有地图辅助任务（启用 map_server+amcl）
+#   --work-mapping     开启“工作中被动建图”（默认开启）
+#   --no-work-mapping  关闭“工作中被动建图”
+#   --map-save-prefix PFX 地图保存前缀（不含后缀 .yaml/.pgm）
+#   --map-save-interval S 地图保存周期（秒），默认 45
 #   --standoff M      停在目标前多远 (m), 默认 0.8
 #   --retreat M       对话后前进撤离距离 (m), 默认 1.5
 #   --retreat-turn-deg DEG 对话后原地转向角度(度), 默认 100
@@ -74,9 +94,12 @@ RUNTIME_STATE_FILE="${XDG_RUNTIME_DIR:-/tmp}/hcr_demo_runtime.env"
 # ---------- 默认参数 ----------
 STANDOFF="0.8"
 LIDAR_MODE="dual"
-UNITREE_PORT="/dev/ttyUSB0"
-RPLIDAR_PORT="/dev/ttyUSB1"
+UNITREE_PORT="/dev/unitree_lidar"
+RPLIDAR_PORT="/dev/rplidar_lidar"
 RPLIDAR_BAUD="256000"
+RPLIDAR_PRE_START_MOTOR=true
+RPLIDAR_PRE_START_PWM="600"
+RPLIDAR_PRE_START_WARMUP_S="2.0"
 RETREAT_DIST="1.5"
 ACTION_WAIT="45.0"
 RUNNER_READY_TIMEOUT="45"
@@ -90,16 +113,24 @@ ENABLE_AUTO_EXPLORE=true
 # nearby free space more cautiously when the environment is cluttered.
 EXPLORE_STEP="2.4"
 EXPLORE_NO_REPEAT_SEC="120.0"
+WORK_MAPPING=true
+ASSIST_MAP_FILE=""
+MAP_SAVE_INTERVAL="45.0"
 TARGET_KIND="holding"
 DIALOGUE_DEVICE="24"
 LAUNCH_YOLO=true
 LAUNCH_DIALOGUE=true
 LAUNCH_NAV=true
 LAUNCH_DASHBOARD=true
+SENSOR_ONLY=false
 DASHBOARD_INTERVAL="2"
 AUTO_START_DOCKER=true
 ONLY_MODULES=""
 NEED_MASTER=true
+SESSION_TAG="$(date +%Y%m%d_%H%M%S)"
+MAP_SAVE_PREFIX="${CATKIN_WS}/src/p3at_lms_navigation/maps/task_session_${SESSION_TAG}"
+NAV_PROFILE="standalone_local"
+ENABLE_RPLIDAR_IN_NAV="true"
 # TODO: The RPLIDAR rear-mount transform is still an approximate carry-over
 # from temp/rplidar-a2-dev-20260314. Re-measure on the robot and move it into
 # the URDF once the dual-lidar layout is finalized.
@@ -111,6 +142,16 @@ while [[ $# -gt 0 ]]; do
     --unitree-port)    UNITREE_PORT="$2"; shift 2 ;;
     --rplidar-port)    RPLIDAR_PORT="$2"; shift 2 ;;
     --rplidar-baud)    RPLIDAR_BAUD="$2"; shift 2 ;;
+    --rplidar-pre-start-motor) RPLIDAR_PRE_START_MOTOR=true; shift ;;
+    --no-rplidar-pre-start-motor) RPLIDAR_PRE_START_MOTOR=false; shift ;;
+    --rplidar-pre-start-pwm) RPLIDAR_PRE_START_PWM="$2"; shift 2 ;;
+    --rplidar-pre-start-warmup) RPLIDAR_PRE_START_WARMUP_S="$2"; shift 2 ;;
+    --sensor-only)     SENSOR_ONLY=true; shift ;;
+    --assist-map)      ASSIST_MAP_FILE="$2"; shift 2 ;;
+    --work-mapping)    WORK_MAPPING=true; shift ;;
+    --no-work-mapping) WORK_MAPPING=false; shift ;;
+    --map-save-prefix) MAP_SAVE_PREFIX="$2"; shift 2 ;;
+    --map-save-interval) MAP_SAVE_INTERVAL="$2"; shift 2 ;;
     --standoff)        STANDOFF="$2";       shift 2 ;;
     --retreat)         RETREAT_DIST="$2";   shift 2 ;;
     --retreat-turn-deg) RETREAT_TURN_DEG="$2"; shift 2 ;;
@@ -129,7 +170,7 @@ while [[ $# -gt 0 ]]; do
     --dashboard-interval) DASHBOARD_INTERVAL="$2"; shift 2 ;;
     --no-auto-start-docker) AUTO_START_DOCKER=false; shift ;;
     -h|--help)
-      grep '^#' "$0" | head -40 | sed 's/^# \{0,2\}//'
+      grep '^#' "$0" | head -64 | sed 's/^# \{0,2\}//' | sed '/^!/d;/^shellcheck /d'
       exit 0 ;;
     *) die "Unknown argument: $1" ;;
   esac
@@ -137,6 +178,23 @@ done
 
 if [[ "${LIDAR_MODE}" != "dual" && "${LIDAR_MODE}" != "unitree" && "${LIDAR_MODE}" != "rplidar" ]]; then
   die "Invalid --lidar: ${LIDAR_MODE}. Expected dual|unitree|rplidar"
+fi
+
+if [[ -n "${ASSIST_MAP_FILE}" ]]; then
+  if [[ ! -f "${ASSIST_MAP_FILE}" ]]; then
+    die "--assist-map not found: ${ASSIST_MAP_FILE}"
+  fi
+  ASSIST_MAP_FILE="$(realpath "${ASSIST_MAP_FILE}")"
+  NAV_PROFILE="map_assisted"
+  if [[ "${LIDAR_MODE}" == "rplidar" ]]; then
+    die "--assist-map currently supports lidar mode unitree|dual (rplidar-only map-assisted nav is not supported)"
+  fi
+fi
+
+if [[ "${LIDAR_MODE}" == "unitree" ]]; then
+  ENABLE_RPLIDAR_IN_NAV="false"
+elif [[ "${LIDAR_MODE}" == "dual" ]]; then
+  ENABLE_RPLIDAR_IN_NAV="true"
 fi
 
 if [[ -n "${ONLY_MODULES}" ]]; then
@@ -156,6 +214,20 @@ if [[ -n "${ONLY_MODULES}" ]]; then
       *) die "Unknown module in --only: ${m}" ;;
     esac
   done
+fi
+
+if ${SENSOR_ONLY}; then
+  LAUNCH_NAV=false
+  LAUNCH_YOLO=false
+  LAUNCH_DIALOGUE=false
+  LAUNCH_DASHBOARD=false
+  WORK_MAPPING=false
+  ENABLE_AUTO_EXPLORE=false
+  NEED_MASTER=true
+  NAV_PROFILE="lidar_only"
+  if [[ -n "${ASSIST_MAP_FILE}" ]]; then
+    die "--assist-map cannot be used with --sensor-only"
+  fi
 fi
 
 # ---------- 加载 deploy.env ----------
@@ -181,6 +253,36 @@ ROS_MASTER="http://${JETSON_IP}:11311"
 ROS_SETUP="source /opt/ros/noetic/setup.bash && source ${CATKIN_WS}/devel/setup.bash"
 ROS_ENV="export ROS_MASTER_URI=${ROS_MASTER} && export ROS_IP=${JETSON_IP}"
 DOCKER_EXEC="docker exec --user $(id -u):$(id -g) ${DOCKER_NAME} bash -c"
+
+_docker_exec_detached() {
+  local cmd="$1"
+  docker exec --user "$(id -u):$(id -g)" -d "${DOCKER_NAME}" bash -lc "${cmd}" >/dev/null
+}
+
+_stop_docker_nav_and_lidar_processes() {
+  ${DOCKER_EXEC} "pkill -f 'roslaunch.*target_follow' 2>/dev/null || true; \
+                  pkill -f 'roslaunch.*real_robot' 2>/dev/null || true; \
+                  pkill -f 'roslaunch.*passive_mapping_unitree' 2>/dev/null || true; \
+                  pkill -f '[m]ove_base' 2>/dev/null || true; \
+                  pkill -f '[a]mcl' 2>/dev/null || true; \
+                  pkill -f '[m]ap_server' 2>/dev/null || true; \
+                  pkill -f '[u]nitree_lidar_ros_node' 2>/dev/null || true; \
+                  pkill -f '[p]ointcloud_to_laserscan_node' 2>/dev/null || true; \
+                  pkill -f '[r]plidarNode' 2>/dev/null || true; \
+                  pkill -f '[r]plidar_health_monitor.py' 2>/dev/null || true; \
+                  pkill -f '[s]can_body_filter.py' 2>/dev/null || true; \
+                  pkill -f '[t]arget_follower.py' 2>/dev/null || true; \
+                  pkill -f '[u]dp_target_bridge.py' 2>/dev/null || true; \
+                  pkill -f '[p]oint_to_target_pose.py' 2>/dev/null || true; \
+                  pkill -f '[o]dom_republisher.py' 2>/dev/null || true; \
+                  pkill -f '[r]obot_state_publisher' 2>/dev/null || true; \
+                  pkill -f '[s]tatic_transform_publisher' 2>/dev/null || true; \
+                  pkill -f '[c]ontinuous_map_manager.py' 2>/dev/null || true; \
+                  if pgrep -x rosmaster >/dev/null 2>&1; then \
+                    ${ROS_ENV} && ${ROS_SETUP} && printf 'y\n' | rosnode cleanup >/dev/null 2>&1 || true; \
+                  fi; \
+                  sleep 1" 2>/dev/null || true
+}
 
 # ---------- UDP 端口工具 ----------
 _udp_port_in_use() {
@@ -241,6 +343,15 @@ LIDAR_MODE='${LIDAR_MODE}'
 UNITREE_PORT='${UNITREE_PORT}'
 RPLIDAR_PORT='${RPLIDAR_PORT}'
 RPLIDAR_BAUD='${RPLIDAR_BAUD}'
+RPLIDAR_PRE_START_MOTOR='${RPLIDAR_PRE_START_MOTOR}'
+RPLIDAR_PRE_START_PWM='${RPLIDAR_PRE_START_PWM}'
+RPLIDAR_PRE_START_WARMUP_S='${RPLIDAR_PRE_START_WARMUP_S}'
+SENSOR_ONLY='${SENSOR_ONLY}'
+NAV_PROFILE='${NAV_PROFILE}'
+WORK_MAPPING='${WORK_MAPPING}'
+ASSIST_MAP_FILE='${ASSIST_MAP_FILE}'
+MAP_SAVE_PREFIX='${MAP_SAVE_PREFIX}'
+MAP_SAVE_INTERVAL='${MAP_SAVE_INTERVAL}'
 STANDOFF='${STANDOFF}'
 RETREAT_DIST='${RETREAT_DIST}'
 RETREAT_TURN_DEG='${RETREAT_TURN_DEG}'
@@ -260,6 +371,9 @@ USED_UDP_PORTS=()
 TRASH_UDP_PORT="$(_select_udp_port "trash_detection->ROS" "${TRASH_UDP_PORT}")"
 DIALOGUE_TRIGGER_UDP_PORT="$(_select_udp_port "nav_success->dialogue" "${DIALOGUE_TRIGGER_UDP_PORT}")"
 DIALOGUE_ACTION_UDP_PORT="$(_select_udp_port "dialogue->trash_action" "${DIALOGUE_ACTION_UDP_PORT}")"
+if [[ "${MAP_SAVE_PREFIX}" != /* ]]; then
+  MAP_SAVE_PREFIX="${REPO_ROOT}/${MAP_SAVE_PREFIX}"
+fi
 _write_runtime_state
 
 # ---------- Bridge 健康检查 ----------
@@ -285,6 +399,19 @@ _ros_package_exists() {
   local pkg="$1"
   ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rospack find ${pkg} >/dev/null 2>&1" \
     2>/dev/null
+}
+
+_check_serial_device_rw() {
+  local label="$1"
+  local device="$2"
+
+  if [[ ! -e "${device}" ]]; then
+    die "${label} device not found: ${device}. Reconnect the sensor or pass the correct port."
+  fi
+  if [[ ! -r "${device}" || ! -w "${device}" ]]; then
+    ls -l "${device}" 2>/dev/null || true
+    die "${label} device is not readable/writable: ${device}. Check dialout group / udev rules."
+  fi
 }
 
 _ros_odom_fresh() {
@@ -369,8 +496,55 @@ _target_follower_ready() {
 
 _nav_stack_ready() {
   _ros_node_exists "move_base" \
-    && _target_follower_ready \
-    && _ros_odom_alive
+    && _target_follower_ready
+}
+
+_lidar_stack_ready() {
+  case "${LIDAR_MODE}" in
+    dual)
+      _ros_node_exists "unitree_lidar" \
+        && _topic_has_message "/unitree/scan" \
+        && _ros_node_exists "rplidarNode" \
+        && _topic_has_message "/rplidar/scan_filtered"
+      ;;
+    unitree)
+      _ros_node_exists "unitree_lidar" \
+        && _topic_has_message "/unitree/scan"
+      ;;
+    rplidar)
+      _ros_node_exists "rplidarNode" \
+        && _topic_has_message "/scan_filtered"
+      ;;
+  esac
+}
+
+_lidar_stack_blockers() {
+  local blockers=()
+
+  if [[ "${LIDAR_MODE}" != "rplidar" ]]; then
+    if ! _ros_node_exists "unitree_lidar"; then
+      blockers+=("/unitree_lidar node missing")
+    elif ! _topic_has_message "/unitree/scan"; then
+      blockers+=("/unitree/scan has no messages")
+    fi
+  fi
+
+  if [[ "${LIDAR_MODE}" != "unitree" ]]; then
+    if ! _ros_node_exists "rplidarNode"; then
+      blockers+=("/rplidarNode missing")
+    elif [[ "${LIDAR_MODE}" == "dual" ]]; then
+      _topic_has_message "/rplidar/scan_filtered" || blockers+=("/rplidar/scan_filtered has no messages")
+    else
+      _topic_has_message "/scan_filtered" || blockers+=("/scan_filtered has no messages")
+    fi
+  fi
+
+  if [[ ${#blockers[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  printf '%s\n' "${blockers[@]}"
+  return 1
 }
 
 _nav_stack_blockers() {
@@ -416,6 +590,24 @@ _dump_nav_readiness_debug() {
     2>/dev/null | sed 's/^/  odom_header: /' || true
   ${DOCKER_EXEC} "tail -n 60 /tmp/target_follow.log 2>/dev/null" \
     2>/dev/null | sed 's/^/  nav_log: /' || true
+  ${DOCKER_EXEC} "tail -n 60 /tmp/task_nav_backbone.log 2>/dev/null" \
+    2>/dev/null | sed 's/^/  nav_backbone_log: /' || true
+}
+
+_dump_lidar_bringup_debug() {
+  warn "LiDAR bringup failed. Capturing quick diagnostics..."
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rosnode list 2>/dev/null" \
+    2>/dev/null | sed 's/^/  node: /' || true
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic info /unilidar/cloud 2>/dev/null" \
+    2>/dev/null | sed 's/^/  unitree_cloud: /' || true
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic info /unitree/scan 2>/dev/null" \
+    2>/dev/null | sed 's/^/  unitree_scan: /' || true
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic info /rplidar/scan_filtered 2>/dev/null" \
+    2>/dev/null | sed 's/^/  rplidar_scan: /' || true
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rostopic info /scan_filtered 2>/dev/null" \
+    2>/dev/null | sed 's/^/  rplidar_scan_single: /' || true
+  ${DOCKER_EXEC} "tail -n 80 /tmp/lidar_bringup.log 2>/dev/null" \
+    2>/dev/null | sed 's/^/  lidar_log: /' || true
 }
 
 # ---------- 后台进程 PID ----------
@@ -463,10 +655,9 @@ cleanup() {
   rm -f "${RUNTIME_STATE_FILE}"
 
   # 停止 Docker 内所有 target follow 相关节点 (包括 move_base)
-  if ${LAUNCH_NAV}; then
-    info "Stopping target following + navigation nodes..."
-    ${DOCKER_EXEC} "pkill -f 'roslaunch.*target_follow' 2>/dev/null; sleep 1" \
-      2>/dev/null || true
+  if ${LAUNCH_NAV} || ${SENSOR_ONLY}; then
+    info "Stopping target-following + navigation + passive-mapping nodes..."
+    _stop_docker_nav_and_lidar_processes
   fi
 
   ok "Demo stopped. Pi base driver still running — stop it manually on the Pi."
@@ -477,9 +668,14 @@ trap cleanup INT TERM
 # =============================================================================
 echo ""
 echo -e "${BOLD}${CYN}╔══════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}${CYN}║  P3-AT Target Following Demo — Local Planning    ║${NC}"
+echo -e "${BOLD}${CYN}║  P3-AT Target Following Demo — Task-First Mode   ║${NC}"
 echo -e "${BOLD}${CYN}╚══════════════════════════════════════════════════╝${NC}"
-echo -e "  Mode:       standalone (no global map)"
+echo -e "  Nav mode:   ${NAV_PROFILE}"
+if [[ -n "${ASSIST_MAP_FILE}" ]]; then
+  echo -e "  Assist map: ${ASSIST_MAP_FILE}"
+fi
+echo -e "  Work map:   $(${WORK_MAPPING} && echo enabled || echo DISABLED)"
+echo -e "  Map save:   ${MAP_SAVE_PREFIX}.yaml/.pgm (interval ${MAP_SAVE_INTERVAL}s)"
 echo -e "  Standoff:   ${STANDOFF} m"
 echo -e "  Retreat:    ${RETREAT_DIST} m (after dialogue)"
 echo -e "  Turn angle: ${RETREAT_TURN_DEG} deg"
@@ -487,6 +683,7 @@ echo -e "  Act.timeout:${ACTION_WAIT} s"
 echo -e "  Auto explore: $(${ENABLE_AUTO_EXPLORE} && echo enabled || echo DISABLED)"
 echo -e "  Explore step: ${EXPLORE_STEP} m"
 echo -e "  Explore no-repeat: ${EXPLORE_NO_REPEAT_SEC} s"
+echo -e "  Sensor only:$(${SENSOR_ONLY} && echo enabled || echo disabled)"
 echo -e "  Target:     ${TARGET_KIND}"
 echo -e "  UDP detect: ${TRASH_UDP_PORT}  (trash_detection -> ROS)"
 echo -e "  UDP trig:   ${DIALOGUE_TRIGGER_UDP_PORT}  (nav_success -> dialogue)"
@@ -499,6 +696,14 @@ echo ""
 
 # =============================================================================
 step "STEP 0 — Preflight checks"
+
+if ! [[ "${MAP_SAVE_INTERVAL}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+  die "Invalid --map-save-interval: ${MAP_SAVE_INTERVAL}"
+fi
+
+if [[ "${MAP_SAVE_PREFIX}" != /* ]]; then
+  MAP_SAVE_PREFIX="${REPO_ROOT}/${MAP_SAVE_PREFIX}"
+fi
 
 # Docker running?
 if ${NEED_MASTER} && ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${DOCKER_NAME}$"; then
@@ -519,6 +724,14 @@ if [[ ! -f "${CATKIN_WS}/devel/setup.bash" ]]; then
   die "catkin_ws not built. Run: cd catkin_ws && catkin_make"
 fi
 ok "catkin_ws/devel/setup.bash exists"
+
+if [[ -n "${ASSIST_MAP_FILE}" ]]; then
+  [[ -f "${ASSIST_MAP_FILE}" ]] || die "Assist map missing: ${ASSIST_MAP_FILE}"
+  if ! ${LAUNCH_NAV}; then
+    die "--assist-map requires navigation to be enabled"
+  fi
+  ok "Assist map found"
+fi
 
 # Pi reachable?
 if ping -c1 -W2 "${RASPI_IP}" &>/dev/null; then
@@ -542,6 +755,26 @@ if ${LAUNCH_YOLO}; then
   fi
 fi
 
+if ${NEED_MASTER}; then
+  if ${LAUNCH_NAV} || ${SENSOR_ONLY}; then
+    _ros_package_exists "target_follower" || die "target_follower package missing in ROS environment"
+    if [[ "${LIDAR_MODE}" != "rplidar" ]]; then
+      _ros_package_exists "unitree_lidar_ros" || die "unitree_lidar_ros not found in ROS environment. Install/build Unitree driver first."
+      _ros_package_exists "pointcloud_to_laserscan" || die "pointcloud_to_laserscan package missing in ROS environment."
+    fi
+    if [[ "${LIDAR_MODE}" != "unitree" ]]; then
+      _ros_package_exists "rplidar_ros" || die "rplidar_ros not found in ROS environment. Install it first with ./setup_rplidar_a2.sh or apt."
+    fi
+  fi
+  if ${LAUNCH_NAV} && ${WORK_MAPPING} && ! _ros_package_exists "gmapping"; then
+    die "gmapping package missing in ROS environment (required by --work-mapping)"
+  fi
+  if ${LAUNCH_NAV} && [[ -n "${ASSIST_MAP_FILE}" ]]; then
+    _ros_package_exists "map_server" || die "map_server package missing in ROS environment"
+    _ros_package_exists "amcl" || die "amcl package missing in ROS environment"
+  fi
+fi
+
 # =============================================================================
 step "STEP 1 — Ensure roscore is running"
 
@@ -550,8 +783,7 @@ if ${NEED_MASTER}; then
     ok "roscore already running"
   else
     info "Starting roscore..."
-    ${DOCKER_EXEC} "( ${ROS_ENV} && source /opt/ros/noetic/setup.bash && exec roscore ) \
-      > /tmp/roscore.log 2>&1 &" 2>/dev/null || true
+    _docker_exec_detached "${ROS_ENV} && source /opt/ros/noetic/setup.bash && exec roscore > /tmp/roscore.log 2>&1" || true
     sleep 4
     if ${DOCKER_EXEC} "pgrep -x rosmaster" &>/dev/null; then
       ok "roscore started"
@@ -695,123 +927,282 @@ else
 fi
 
 # =============================================================================
-step "STEP 4 — Start target following (standalone: LiDAR + move_base + follower)"
+step "STEP 4 — Start runtime stack"
 
-if ! ${LAUNCH_NAV}; then
+if ! ${LAUNCH_NAV} && ! ${SENSOR_ONLY}; then
   warn "Navigation disabled (--no-nav or --only without nav); skipping STEP 4"
 else
-
-# Kill any existing mapping/nav/target-follow launch
-${DOCKER_EXEC} "pkill -f 'roslaunch.*real_robot' 2>/dev/null; \
-                 pkill -f 'roslaunch.*target_follow' 2>/dev/null; sleep 1" 2>/dev/null || true
-sleep 1
-
-info "Launching target_follow_real.launch (standalone mode — no global map)..."
-if [[ "${LIDAR_MODE}" != "unitree" ]]; then
-  _ros_package_exists "rplidar_ros" || die "rplidar_ros not found in ROS environment. Install it first with ./setup_rplidar_a2.sh or apt."
-  warn "Dual/RPLIDAR mode uses an approximate rear-mount RPLIDAR transform; verify obstacle behavior on hardware."
-fi
-${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
-  exec roslaunch target_follower target_follow_real.launch \
-    launch_move_base:=true \
-    lidar_mode:=${LIDAR_MODE} \
-    unitree_port:=${UNITREE_PORT} \
-    rplidar_port:=${RPLIDAR_PORT} \
-    rplidar_baud:=${RPLIDAR_BAUD} \
-    standoff_distance:=${STANDOFF} \
-    face_target:=true \
-    target_timeout:=5.0 \
-    udp_port:=${TRASH_UDP_PORT} \
-    retreat_distance:=${RETREAT_DIST} \
-    retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \
-    action_wait_timeout:=${ACTION_WAIT} \
-    enable_auto_explore:=${ENABLE_AUTO_EXPLORE} \
-    explore_goal_distance:=${EXPLORE_STEP} \
-    explore_revisit_window:=${EXPLORE_NO_REPEAT_SEC} \
-    target_reacquire_block_s:=${EXPLORE_NO_REPEAT_SEC} \
-    post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
-  > /tmp/target_follow.log 2>&1 ) &" 2>/dev/null
-
-info "Waiting for navigation stack readiness (move_base node + live target_follower status + live odom)..."
-NAV_READY=0
-LAST_NAV_BLOCKERS=""
-ODOM_STALE_WARNED=0
-for i in $(seq 1 45); do
+  # Clear stale manual test nodes so both lidar serial devices stay single-owner.
+  _stop_docker_nav_and_lidar_processes
   sleep 1
-  if _nav_stack_ready; then
-    NAV_READY=1
-    if [[ "${ODOM_STALE_WARNED}" -ne 1 ]] && _ros_odom_stale_but_alive; then
-      warn "STEP 4 proceeding with active /odom stream even though odom timestamps are stale"
-      ODOM_STALE_WARNED=1
+
+  if ${SENSOR_ONLY}; then
+    info "Launching lidar-only bringup (no move_base, no target_follower motion logic)..."
+  elif [[ "${NAV_PROFILE}" == "map_assisted" ]]; then
+    info "Launching map-assisted task flow (map_server + amcl + move_base + target overlay)..."
+  else
+    info "Launching standalone task flow (local-only move_base + target_follower)..."
+  fi
+
+  if [[ "${LIDAR_MODE}" == "dual" && "${UNITREE_PORT}" == "${RPLIDAR_PORT}" ]]; then
+    die "Dual-lidar mode requires two distinct serial ports. Current value: ${UNITREE_PORT}"
+  fi
+
+  if [[ "${LIDAR_MODE}" != "rplidar" ]]; then
+    _check_serial_device_rw "Unitree LiDAR" "${UNITREE_PORT}"
+  fi
+
+  if [[ "${LIDAR_MODE}" != "unitree" ]]; then
+    _check_serial_device_rw "RPLIDAR" "${RPLIDAR_PORT}"
+    warn "Dual/RPLIDAR mode uses an approximate rear-mount RPLIDAR transform; verify obstacle behavior on hardware."
+  fi
+
+  if ${SENSOR_ONLY}; then
+    _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
+      exec roslaunch p3at_lms_navigation real_robot_lidar_bringup.launch \
+        lidar_mode:=${LIDAR_MODE} \
+        unitree_port:=${UNITREE_PORT} \
+        rplidar_port:=${RPLIDAR_PORT} \
+        rplidar_baud:=${RPLIDAR_BAUD} \
+        rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
+        rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
+        rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \
+      > /tmp/lidar_bringup.log 2>&1"
+  elif [[ "${NAV_PROFILE}" == "map_assisted" ]]; then
+    _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
+      exec roslaunch p3at_lms_navigation real_robot_nav_unitree.launch \
+        use_rviz:=false \
+        use_target_follower:=false \
+        map_file:=${ASSIST_MAP_FILE} \
+        unitree_port:=${UNITREE_PORT} \
+        enable_rplidar:=${ENABLE_RPLIDAR_IN_NAV} \
+        rplidar_port:=${RPLIDAR_PORT} \
+        rplidar_baud:=${RPLIDAR_BAUD} \
+        rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
+        rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
+        rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \
+      > /tmp/task_nav_backbone.log 2>&1"
+    sleep 2
+
+    _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
+      exec roslaunch target_follower target_follow_real.launch \
+        launch_move_base:=false \
+        lidar_mode:=${LIDAR_MODE} \
+        unitree_port:=${UNITREE_PORT} \
+        rplidar_port:=${RPLIDAR_PORT} \
+        rplidar_baud:=${RPLIDAR_BAUD} \
+        rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
+        rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
+        rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \
+        standoff_distance:=${STANDOFF} \
+        face_target:=true \
+        target_timeout:=5.0 \
+        udp_port:=${TRASH_UDP_PORT} \
+        retreat_distance:=${RETREAT_DIST} \
+        retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \
+        action_wait_timeout:=${ACTION_WAIT} \
+        enable_auto_explore:=${ENABLE_AUTO_EXPLORE} \
+        explore_goal_distance:=${EXPLORE_STEP} \
+        explore_revisit_window:=${EXPLORE_NO_REPEAT_SEC} \
+        target_reacquire_block_s:=${EXPLORE_NO_REPEAT_SEC} \
+        post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
+      > /tmp/target_follow.log 2>&1"
+  else
+    _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
+      exec roslaunch target_follower target_follow_real.launch \
+        launch_move_base:=true \
+        lidar_mode:=${LIDAR_MODE} \
+        unitree_port:=${UNITREE_PORT} \
+        rplidar_port:=${RPLIDAR_PORT} \
+        rplidar_baud:=${RPLIDAR_BAUD} \
+        rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
+        rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
+        rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \
+        standoff_distance:=${STANDOFF} \
+        face_target:=true \
+        target_timeout:=5.0 \
+        udp_port:=${TRASH_UDP_PORT} \
+        retreat_distance:=${RETREAT_DIST} \
+        retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \
+        action_wait_timeout:=${ACTION_WAIT} \
+        enable_auto_explore:=${ENABLE_AUTO_EXPLORE} \
+        explore_goal_distance:=${EXPLORE_STEP} \
+        explore_revisit_window:=${EXPLORE_NO_REPEAT_SEC} \
+        target_reacquire_block_s:=${EXPLORE_NO_REPEAT_SEC} \
+        post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
+      > /tmp/target_follow.log 2>&1"
+  fi
+
+  if ${SENSOR_ONLY}; then
+    info "Waiting for lidar-only readiness (scan topics must publish live data)..."
+    LIDAR_READY=0
+    LAST_LIDAR_BLOCKERS=""
+    for i in $(seq 1 35); do
+      sleep 1
+      if _lidar_stack_ready; then
+        LIDAR_READY=1
+        ok "LiDAR stack is ready (${i}s)"
+        break
+      fi
+      LIDAR_BLOCKERS="$(_lidar_stack_blockers 2>/dev/null || true)"
+      if [[ -n "${LIDAR_BLOCKERS}" ]]; then
+        LIDAR_BLOCKERS_INLINE="$(printf '%s' "${LIDAR_BLOCKERS}" | tr '\n' ';' | sed 's/;$/ /; s/;/; /g')"
+        if [[ "${LIDAR_BLOCKERS_INLINE}" != "${LAST_LIDAR_BLOCKERS}" || $((i % 5)) -eq 0 ]]; then
+          warn "STEP 4 still waiting on: ${LIDAR_BLOCKERS_INLINE}"
+          LAST_LIDAR_BLOCKERS="${LIDAR_BLOCKERS_INLINE}"
+        fi
+      fi
+    done
+    if [[ "${LIDAR_READY}" -ne 1 ]]; then
+      _dump_lidar_bringup_debug
+      die "LiDAR-only bringup failed. Check: docker exec ${DOCKER_NAME} tail -80 /tmp/lidar_bringup.log"
     fi
-    ok "Navigation stack is ready (${i}s)"
-    break
+  else
+    info "Waiting for navigation stack readiness (move_base node + live target_follower status; /odom is soft-check)..."
+    NAV_READY=0
+    LAST_NAV_BLOCKERS=""
+    ODOM_STALE_WARNED=0
+    for i in $(seq 1 45); do
+      sleep 1
+      if _nav_stack_ready; then
+        NAV_READY=1
+        if [[ "${ODOM_STALE_WARNED}" -ne 1 ]] && _ros_odom_stale_but_alive; then
+          warn "STEP 4 proceeding with active /odom stream even though odom timestamps are stale"
+          ODOM_STALE_WARNED=1
+        fi
+        if ! _ros_odom_alive; then
+          warn "STEP 4 proceeding without /odom stream (base not started or unreachable)"
+        fi
+        ok "Navigation stack is ready (${i}s)"
+        break
+      fi
+      NAV_BLOCKERS="$(_nav_stack_blockers 2>/dev/null || true)"
+      if [[ -n "${NAV_BLOCKERS}" ]]; then
+        NAV_BLOCKERS_INLINE="$(printf '%s' "${NAV_BLOCKERS}" | tr '\n' ';' | sed 's/;$/ /; s/;/; /g')"
+        if [[ "${NAV_BLOCKERS_INLINE}" != "${LAST_NAV_BLOCKERS}" || $((i % 5)) -eq 0 ]]; then
+          warn "STEP 4 still waiting on: ${NAV_BLOCKERS_INLINE}"
+          LAST_NAV_BLOCKERS="${NAV_BLOCKERS_INLINE}"
+        fi
+      fi
+      if [[ $i -eq 45 ]]; then
+        _dump_nav_readiness_debug
+        warn "Navigation stack readiness timed out after 45 s. Continuing anyway."
+      fi
+    done
   fi
-  NAV_BLOCKERS="$(_nav_stack_blockers 2>/dev/null || true)"
-  if [[ -n "${NAV_BLOCKERS}" ]]; then
-    NAV_BLOCKERS_INLINE="$(printf '%s' "${NAV_BLOCKERS}" | tr '\n' ';' | sed 's/;$/ /; s/;/; /g')"
-    if [[ "${NAV_BLOCKERS_INLINE}" != "${LAST_NAV_BLOCKERS}" || $((i % 5)) -eq 0 ]]; then
-      warn "STEP 4 still waiting on: ${NAV_BLOCKERS_INLINE}"
-      LAST_NAV_BLOCKERS="${NAV_BLOCKERS_INLINE}"
+
+  info "Checking LiDAR data..."
+  if [[ "${LIDAR_MODE}" == "dual" || "${LIDAR_MODE}" == "unitree" ]]; then
+    SCAN_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
+      timeout 6 rostopic hz /unitree/scan 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
+    if [[ -n "${SCAN_RATE}" ]]; then
+      ok "/unitree/scan: ${SCAN_RATE} Hz"
+    elif ${SENSOR_ONLY}; then
+      die "/unitree/scan: no data in lidar-only mode"
+    else
+      warn "/unitree/scan: no data — Unitree may not be fully up yet (OK to proceed)"
     fi
   fi
-  if [[ $i -eq 45 ]]; then
-    _dump_nav_readiness_debug
-    die "Navigation stack not ready after 45 s. move_base/TF/odom may still be unhealthy."
+  if [[ "${LIDAR_MODE}" == "dual" ]]; then
+    RPLIDAR_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
+      timeout 6 rostopic hz /rplidar/scan_filtered 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
+    if [[ -n "${RPLIDAR_RATE}" ]]; then
+      ok "/rplidar/scan_filtered: ${RPLIDAR_RATE} Hz"
+    elif ${SENSOR_ONLY}; then
+      die "/rplidar/scan_filtered: no data in lidar-only mode"
+    else
+      warn "/rplidar/scan_filtered: no data — continuing with Unitree-only obstacle sensing if needed"
+    fi
+  elif [[ "${LIDAR_MODE}" == "rplidar" ]]; then
+    RPLIDAR_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
+      timeout 6 rostopic hz /scan_filtered 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
+    if [[ -n "${RPLIDAR_RATE}" ]]; then
+      ok "/scan_filtered: ${RPLIDAR_RATE} Hz"
+    elif ${SENSOR_ONLY}; then
+      die "/scan_filtered: no data in lidar-only mode"
+    else
+      warn "/scan_filtered: no data — RPLIDAR may not be fully up yet (OK to proceed)"
+    fi
   fi
-done
 
-# Check LiDAR data
-info "Checking LiDAR data..."
-if [[ "${LIDAR_MODE}" == "dual" || "${LIDAR_MODE}" == "unitree" ]]; then
-  SCAN_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
-    timeout 6 rostopic hz /unitree/scan 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
-  if [[ -n "${SCAN_RATE}" ]]; then
-    ok "/unitree/scan: ${SCAN_RATE} Hz"
-  else
-    warn "/unitree/scan: no data — Unitree may not be fully up yet (OK to proceed)"
-  fi
-fi
-if [[ "${LIDAR_MODE}" == "dual" ]]; then
-  RPLIDAR_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
-    timeout 6 rostopic hz /rplidar/scan_filtered 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
-  if [[ -n "${RPLIDAR_RATE}" ]]; then
-    ok "/rplidar/scan_filtered: ${RPLIDAR_RATE} Hz"
-  else
-    warn "/rplidar/scan_filtered: no data — continuing with Unitree-only obstacle sensing if needed"
-  fi
-elif [[ "${LIDAR_MODE}" == "rplidar" ]]; then
-  RPLIDAR_RATE=$(${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \
-    timeout 6 rostopic hz /scan_filtered 2>/dev/null | grep 'average rate' | tail -1 | awk '{print \$3}'" 2>/dev/null || true)
-  if [[ -n "${RPLIDAR_RATE}" ]]; then
-    ok "/scan_filtered: ${RPLIDAR_RATE} Hz"
-  else
-    warn "/scan_filtered: no data — RPLIDAR may not be fully up yet (OK to proceed)"
-  fi
-fi
+  if ! ${SENSOR_ONLY}; then
+    info "Validating in-Docker bridge nodes (/udp_target_bridge, /point_to_target_pose)..."
+    CORE_BRIDGE_OK=0
+    for i in $(seq 1 20); do
+      if _ros_node_exists "udp_target_bridge" && _ros_node_exists "point_to_target_pose"; then
+        CORE_BRIDGE_OK=1
+        break
+      fi
+      sleep 1
+    done
+    if [[ "${CORE_BRIDGE_OK}" -ne 1 ]]; then
+      die "Core bridge nodes not ready. Check: docker exec ${DOCKER_NAME} tail -60 /tmp/target_follow.log"
+    fi
+    ok "Core bridge chain is up (udp_target_bridge + point_to_target_pose)"
 
-# Check core in-Docker bridge chain
-info "Validating in-Docker bridge nodes (/udp_target_bridge, /point_to_target_pose)..."
-CORE_BRIDGE_OK=0
-for i in $(seq 1 20); do
-  if _ros_node_exists "udp_target_bridge" && _ros_node_exists "point_to_target_pose"; then
-    CORE_BRIDGE_OK=1
-    break
-  fi
-  sleep 1
-done
-if [[ "${CORE_BRIDGE_OK}" -ne 1 ]]; then
-  die "Core bridge nodes not ready. Check: docker exec ${DOCKER_NAME} tail -60 /tmp/target_follow.log"
-fi
-ok "Core bridge chain is up (udp_target_bridge + point_to_target_pose)"
+    if ${LAUNCH_DIALOGUE}; then
+      info "Validating full dialogue mesh after navigation startup..."
+      if ! _dialogue_mesh_healthy 15; then
+        die "Dialogue mesh did not become healthy after navigation startup. Check: tail -80 /tmp/dialogue_bridge.log and /tmp/dialogue_runner.log"
+      fi
+      ok "Dialogue mesh is healthy"
+    fi
 
-if ${LAUNCH_DIALOGUE}; then
-  info "Validating full dialogue mesh after navigation startup..."
-  if ! _dialogue_mesh_healthy 15; then
-    die "Dialogue mesh did not become healthy after navigation startup. Check: tail -80 /tmp/dialogue_bridge.log and /tmp/dialogue_runner.log"
+    if ${WORK_MAPPING}; then
+      step "STEP 4.5 — Start passive map learning (task by-product)"
+
+      MAP_LEARN_SCAN_TOPIC="/unitree/scan"
+      if [[ "${LIDAR_MODE}" == "rplidar" ]]; then
+        MAP_LEARN_SCAN_TOPIC="/scan_filtered"
+      fi
+
+      info "Starting passive SLAM on ${MAP_LEARN_SCAN_TOPIC}..."
+      ${DOCKER_EXEC} "pkill -f 'roslaunch.*passive_mapping_unitree' 2>/dev/null; \
+                      pkill -f '[c]ontinuous_map_manager.py' 2>/dev/null; sleep 1" 2>/dev/null || true
+
+      _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
+        exec roslaunch p3at_lms_navigation passive_mapping_unitree.launch \
+          scan_topic:=${MAP_LEARN_SCAN_TOPIC} \
+          map_topic:=/work_map \
+          map_updates_topic:=/work_map_updates \
+          map_metadata_topic:=/work_map_metadata \
+          map_frame:=work_map \
+          odom_frame:=odom \
+          base_frame:=base_link \
+        > /tmp/passive_mapping.log 2>&1"
+
+      MAP_MANAGER_BASE_ARG="_base_map_yaml:="
+      if [[ -n "${ASSIST_MAP_FILE}" ]]; then
+        MAP_MANAGER_BASE_ARG="_base_map_yaml:=${ASSIST_MAP_FILE}"
+      fi
+
+      info "Starting continuous map manager (save every ${MAP_SAVE_INTERVAL}s)..."
+      _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
+        exec rosrun p3at_lms_navigation continuous_map_manager.py \
+          _map_topic:=/work_map \
+          _save_interval_s:=${MAP_SAVE_INTERVAL} \
+          _output_map_prefix:=${MAP_SAVE_PREFIX} \
+          _base_frame:=map \
+          ${MAP_MANAGER_BASE_ARG} \
+        > /tmp/map_manager.log 2>&1"
+
+      MAP_LEARN_READY=0
+      for i in $(seq 1 20); do
+        if _ros_node_exists "slam_gmapping_task" && _ros_node_exists "continuous_map_manager"; then
+          MAP_LEARN_READY=1
+          break
+        fi
+        sleep 1
+      done
+      if [[ "${MAP_LEARN_READY}" -ne 1 ]]; then
+        die "Passive mapping stack failed to start. Check: tail -80 /tmp/passive_mapping.log and /tmp/map_manager.log"
+      fi
+      ok "Passive map learning is running"
+      ok "Map output: ${MAP_SAVE_PREFIX}.yaml/.pgm"
+    else
+      warn "Passive map learning disabled (--no-work-mapping)."
+    fi
   fi
-  ok "Dialogue mesh is healthy"
-fi
 fi
 
 # =============================================================================
@@ -833,15 +1224,42 @@ echo ""
 echo -e "  ${GRN}All components launched.${NC}  Press ${BOLD}Ctrl+C${NC} to shut everything down."
 echo ""
 echo -e "  Useful topics:"
-echo -e "    ${CYN}rostopic echo /target_follower/status${NC}   — IDLE|TRACKING|REACHED|WAITING_ACTION|RETREATING|LOST|FAILED"
-echo -e "    ${CYN}rostopic echo /target_follower/result${NC}   — True/False (dialogue trigger)"
-echo -e "    ${CYN}rostopic echo /trash_action${NC}             — True=接受 / False=拒绝 (对话结果)"
-echo -e "    ${CYN}rostopic echo /target_pose${NC}              — current target pose"
-echo -e "    ${CYN}tail -f /tmp/handobj.log${NC}                  — detection log"
-echo -e "    ${CYN}tail -f /tmp/dialogue_bridge.log${NC}           — dialogue bridge log"
-echo -e "    ${CYN}tail -f /tmp/dialogue_runner.log${NC}           — dialogue runner log"
-echo -e "    ${CYN}tail -f /tmp/demo_dashboard.log${NC}            — dashboard log"
+if ${SENSOR_ONLY}; then
+  if [[ "${LIDAR_MODE}" != "rplidar" ]]; then
+    echo -e "    ${CYN}rostopic hz /unitree/scan${NC}                  — Unitree filtered scan rate"
+    echo -e "    ${CYN}rostopic echo -n 1 /unilidar/cloud${NC}         — Unitree raw point cloud"
+  fi
+  if [[ "${LIDAR_MODE}" == "dual" ]]; then
+    echo -e "    ${CYN}rostopic hz /rplidar/scan_filtered${NC}         — RPLIDAR filtered scan rate"
+  elif [[ "${LIDAR_MODE}" == "rplidar" ]]; then
+    echo -e "    ${CYN}rostopic hz /scan_filtered${NC}                 — RPLIDAR filtered scan rate"
+  fi
+  echo -e "    ${CYN}docker exec ${DOCKER_NAME} tail -f /tmp/lidar_bringup.log${NC} — lidar bringup log"
+else
+  echo -e "    ${CYN}rostopic echo /target_follower/status${NC}   — IDLE|TRACKING|REACHED|WAITING_ACTION|RETREATING|LOST|FAILED"
+  echo -e "    ${CYN}rostopic echo /target_follower/result${NC}   — True/False (dialogue trigger)"
+  echo -e "    ${CYN}rostopic echo /trash_action${NC}             — True=接受 / False=拒绝 (对话结果)"
+  echo -e "    ${CYN}rostopic echo /target_pose${NC}              — current target pose"
+  if ${WORK_MAPPING}; then
+    echo -e "    ${CYN}rostopic hz /work_map${NC}                     — passive mapping publish rate"
+  fi
+  echo -e "    ${CYN}tail -f /tmp/handobj.log${NC}                  — detection log"
+  echo -e "    ${CYN}tail -f /tmp/dialogue_bridge.log${NC}           — dialogue bridge log"
+  echo -e "    ${CYN}tail -f /tmp/dialogue_runner.log${NC}           — dialogue runner log"
+  if ${WORK_MAPPING}; then
+    echo -e "    ${CYN}tail -f /tmp/passive_mapping.log${NC}           — passive gmapping log"
+    echo -e "    ${CYN}tail -f /tmp/map_manager.log${NC}               — map merge/save log"
+    echo -e "    ${CYN}ls ${MAP_SAVE_PREFIX}.yaml ${MAP_SAVE_PREFIX}.pgm${NC} — latest by-product map"
+  fi
+  echo -e "    ${CYN}tail -f /tmp/demo_dashboard.log${NC}            — dashboard log"
+fi
 echo ""
+
+if ${SENSOR_ONLY}; then
+  while true; do
+    sleep 5
+  done
+fi
 
 _ros_topic_val() {
   ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && \

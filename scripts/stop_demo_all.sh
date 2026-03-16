@@ -98,6 +98,9 @@ if [[ "${MODE}" == "all" || "${MODE}" == "master" || "${MODE}" == "dialogue" ]];
   pkill -f "move_base" 2>/dev/null || true
   pkill -f "unitree_lidar_ros_node" 2>/dev/null || true
   pkill -f "pointcloud_to_laserscan_node" 2>/dev/null || true
+  pkill -f "rplidarNode" 2>/dev/null || true
+  pkill -f "rplidar_health_monitor.py" 2>/dev/null || true
+  pkill -f "scan_body_filter.py" 2>/dev/null || true
   pkill -f "target_follower.py" 2>/dev/null || true
   pkill -f "udp_target_bridge.py" 2>/dev/null || true
   pkill -f "point_to_target_pose.py" 2>/dev/null || true
@@ -107,6 +110,12 @@ if [[ "${MODE}" == "all" || "${MODE}" == "master" || "${MODE}" == "dialogue" ]];
   pkill -f "RosAria" 2>/dev/null || true
   pkill -f "robot_state_publisher" 2>/dev/null || true
   pkill -f "static_transform_publisher" 2>/dev/null || true
+  if pgrep -x rosmaster >/dev/null 2>&1; then
+    export ROS_MASTER_URI=http://192.168.50.1:11311 ROS_IP=192.168.50.1
+    source /opt/ros/noetic/setup.bash >/dev/null 2>&1 || true
+    source /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash >/dev/null 2>&1 || true
+    printf 'y\n' | rosnode cleanup >/dev/null 2>&1 || true
+  fi
   pkill -f "rosout" 2>/dev/null || true
   pkill -f "roscore" 2>/dev/null || true
   pkill -f "rosmaster" 2>/dev/null || true
@@ -145,7 +154,7 @@ elif [[ "${MODE}" == "dialogue" ]]; then
     err "Dialogue bridge processes are still alive inside docker '${DOCKER_NAME}'"
   fi
 else
-  if _docker_pattern_alive "roslaunch|rosmaster|roscore|move_base|unitree_lidar_ros_node|target_follower.py|udp_target_bridge.py|point_to_target_pose.py|navigation_success_udp_bridge.py|udp_trash_action_bridge.py"; then
+  if _docker_pattern_alive "roslaunch|rosmaster|roscore|move_base|unitree_lidar_ros_node|rplidarNode|rplidar_health_monitor.py|scan_body_filter.py|target_follower.py|udp_target_bridge.py|point_to_target_pose.py|navigation_success_udp_bridge.py|udp_trash_action_bridge.py"; then
     err "ROS/demo processes are still alive inside docker '${DOCKER_NAME}'"
   fi
 fi

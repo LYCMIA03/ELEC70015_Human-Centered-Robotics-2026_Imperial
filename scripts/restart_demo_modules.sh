@@ -50,6 +50,11 @@ ROS_SETUP="source /opt/ros/noetic/setup.bash && source ${CATKIN_WS}/devel/setup.
 ROS_ENV="export ROS_MASTER_URI=${ROS_MASTER} && export ROS_IP=${JETSON_IP}"
 DOCKER_EXEC="docker exec --user $(id -u):$(id -g) ${DOCKER_NAME} bash -c"
 
+_docker_exec_detached() {
+  local cmd="$1"
+  docker exec --user "$(id -u):$(id -g)" -d "${DOCKER_NAME}" bash -lc "${cmd}" >/dev/null
+}
+
 _ros_node_exists() {
   local node="$1"
   ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && timeout 5 rosnode list 2>/dev/null | grep -q \"^/${node}$\"" \
@@ -110,7 +115,7 @@ ensure_master() {
     ok "roscore already running"
   else
     info "Starting roscore..."
-    ${DOCKER_EXEC} "( ${ROS_ENV} && source /opt/ros/noetic/setup.bash && exec roscore ) > /tmp/roscore.log 2>&1 &"
+    _docker_exec_detached "${ROS_ENV} && source /opt/ros/noetic/setup.bash && exec roscore > /tmp/roscore.log 2>&1"
     sleep 4
     ${DOCKER_EXEC} "pgrep -x rosmaster" >/dev/null 2>&1 || die "Failed to start roscore"
     ok "roscore started"
@@ -203,13 +208,16 @@ restart_nav() {
   done
 
   info "Restarting navigation..."
-  ${DOCKER_EXEC} "( ${ROS_ENV} && ${ROS_SETUP} && \
+  _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
     exec roslaunch target_follower target_follow_real.launch \
       launch_move_base:=true \
       lidar_mode:=${LIDAR_MODE:-dual} \
-      unitree_port:=${UNITREE_PORT:-/dev/ttyUSB0} \
-      rplidar_port:=${RPLIDAR_PORT:-/dev/ttyUSB1} \
+      unitree_port:=${UNITREE_PORT:-/dev/unitree_lidar} \
+      rplidar_port:=${RPLIDAR_PORT:-/dev/rplidar_lidar} \
       rplidar_baud:=${RPLIDAR_BAUD:-256000} \
+      rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR:-true} \
+      rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM:-600} \
+      rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S:-2.0} \
       standoff_distance:=${STANDOFF} \
       face_target:=true \
       target_timeout:=5.0 \
@@ -222,7 +230,7 @@ restart_nav() {
       explore_revisit_window:=${EXPLORE_NO_REPEAT_SEC} \
       target_reacquire_block_s:=${EXPLORE_NO_REPEAT_SEC} \
       post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
-    > /tmp/target_follow.log 2>&1 ) &"
+    > /tmp/target_follow.log 2>&1"
 
   for _ in $(seq 1 45); do
     sleep 1

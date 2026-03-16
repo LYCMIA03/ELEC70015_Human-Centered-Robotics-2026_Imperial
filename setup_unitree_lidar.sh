@@ -17,6 +17,7 @@ set -euo pipefail
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; CYAN='\033[0;36m'; NC='\033[0m'
 log() { echo -e "${CYAN}[INFO]${NC} $*"; }
+warn() { echo -e "${RED}[WARN]${NC} $*"; }
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WS_DIR="${SCRIPT_DIR}/catkin_ws"
@@ -27,6 +28,23 @@ for arg in "$@"; do
     --skip-clone) SKIP_CLONE=true ;;
   esac
 done
+
+_extract_serial_token() {
+  local byid_name="$1"
+  sed -E 's/.*_([^_]+)-if[0-9]+-port[0-9]+$/\1/' <<<"${byid_name}"
+}
+
+_detect_unitree_serial() {
+  local candidates=()
+  if [[ -d /dev/serial/by-id ]]; then
+    mapfile -t candidates < <(ls -1 /dev/serial/by-id 2>/dev/null | grep -E 'CP2104_USB_to_UART_Bridge' || true)
+  fi
+  if [[ "${#candidates[@]}" -eq 1 ]]; then
+    _extract_serial_token "${candidates[0]}"
+    return 0
+  fi
+  return 1
+}
 
 # ===== Step 1: Clone unilidar_sdk =====
 SDK_DIR="${WS_DIR}/src/unilidar_sdk"
@@ -76,11 +94,17 @@ fi
 # Create udev rule for Unitree Lidar L1
 UDEV_RULE="/etc/udev/rules.d/99-unitree-lidar.rules"
 if [[ ! -f "$UDEV_RULE" ]]; then
-  log "Creating udev rule for Unitree Lidar..."
-  echo 'SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE:="0666", SYMLINK+="unitree_lidar"' | sudo tee "$UDEV_RULE" > /dev/null
-  sudo udevadm control --reload-rules
-  sudo udevadm trigger
-  log "Udev rule created. Unitree Lidar will appear as /dev/unitree_lidar"
+  if UNITREE_SERIAL="$(_detect_unitree_serial)"; then
+    log "Creating serial-pinned udev rule for Unitree Lidar (serial=${UNITREE_SERIAL})..."
+    echo "SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"10c4\", ATTRS{idProduct}==\"ea60\", ATTRS{serial}==\"${UNITREE_SERIAL}\", MODE:=\"0666\", ENV{ID_MM_DEVICE_IGNORE}=\"1\", SYMLINK+=\"unitree_lidar\"" | sudo tee "$UDEV_RULE" > /dev/null
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger
+    log "Udev rule created. Unitree Lidar will appear as /dev/unitree_lidar"
+  else
+    warn "Cannot uniquely detect Unitree CP2104 serial from /dev/serial/by-id."
+    warn "Skipped writing ${UDEV_RULE} to avoid ambiguous VID/PID-only mapping."
+    warn "Please reconnect only Unitree and rerun this script, or set unitree_port:=/dev/serial/by-id/..."
+  fi
 else
   log "Udev rule already exists."
 fi
@@ -106,7 +130,7 @@ echo ""
 echo "1. Connect Unitree Lidar L1 via USB"
 echo "2. Check device: ls -la /dev/ttyUSB* /dev/unitree_lidar"
 echo "3. Test driver:"
-echo "   roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch unitree_port:=/dev/ttyUSB0"
+echo "   roslaunch p3at_lms_navigation real_robot_mapping_unitree.launch unitree_port:=/dev/unitree_lidar"
 echo ""
 echo "4. Sim test (no hardware needed):"
 echo "   roslaunch p3at_lms_navigation mapping_unitree.launch"
