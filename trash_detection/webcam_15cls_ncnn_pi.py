@@ -6,6 +6,7 @@ Inference in subprocess (shared memory); stream at camera rate; labels from CLAS
 """
 import argparse
 import json
+import math
 import multiprocessing
 import socket
 import sys
@@ -37,7 +38,17 @@ CONF_THRESHOLD = 0.25
 MQTT_BROKER = "broker.emqx.io"
 MQTT_PORT = 1883
 MQTT_TOPIC = "imperial/yh4222/esp32/test"
+MQTT_TOPIC_CALIB = "imperial/yh4222/esp32/calib"  # app -> ESP32: plate zero angle in degrees (float as text)
+MQTT_TOPIC_RES = "imperial/yh4222/esp32/res"  # app -> ESP32: motor preset 1–4 as text; 1->0, 2->-pi/2, 3->-pi, 4->+pi/2
 MQTT_CLIENT_ID_PUB = "pi_pub_trash_001"
+
+# Motor preset: category 1..4 -> angle (rad). Sent to res; record for last classification.
+CATEGORY_TO_ANGLE_RAD = {1: 0.0, 2: -math.pi / 2, 3: -math.pi, 4: math.pi / 2}
+
+try:
+    _aruco_module = cv2.aruco
+except AttributeError:
+    _aruco_module = None
 
 # Toppi 15cls: same order as predict_toppi_webcam (0=Metal .. 4=Plastic .. 14=Human)
 NUM_WASTE_CLASSES = 14  # 0..13 only; Human(14) not detected when using classes=trash_class_ids
@@ -74,6 +85,99 @@ def ensure_ncnn_model_dir():
     if (NCNN_DIR / "model.ncnn.param").exists() and (NCNN_DIR / "model.ncnn.bin").exists():
         return str(NCNN_DIR)
     return None
+
+
+def _aruco_get_dict(dict_name):
+    if _aruco_module is None:
+        return None
+    name_upper = dict_name.upper().replace(" ", "")
+    mapping = {
+        "4X4_50": _aruco_module.DICT_4X4_50,
+        "4X4_100": _aruco_module.DICT_4X4_100,
+        "5X5_50": _aruco_module.DICT_5X5_50,
+        "6X6_250": _aruco_module.DICT_6X6_250,
+        "6X6_1000": _aruco_module.DICT_6X6_1000,
+        "7X7_50": _aruco_module.DICT_7X7_50,
+    }
+    dict_id = mapping.get(name_upper, _aruco_module.DICT_4X4_50)
+    return _aruco_module.getPredefinedDictionary(dict_id)
+
+
+def _aruco_detect_center(gray, dictionary, target_id=None):
+    """Return (cx, cy, corners, marker_id) or (None, None, None, None)."""
+    if _aruco_module is None or dictionary is None:
+        return None, None, None, None
+    try:
+        params = _aruco_module.DetectorParameters()
+        detector = _aruco_module.ArucoDetector(dictionary, params)
+        corners_list, ids, _ = detector.detectMarkers(gray)
+    except (AttributeError, TypeError):
+        corners_list, ids, _ = _aruco_module.detectMarkers(gray, dictionary)
+    if ids is None or len(ids) == 0:
+        return None, None, None, None
+    ids_flat = ids.flatten()
+    idx = 0
+    if target_id is not None:
+        found = np.where(ids_flat == target_id)[0]
+        if len(found) == 0:
+            return None, None, None, None
+        idx = int(found[0])
+    corners = corners_list[idx]
+    c = np.asarray(corners)
+    if c.ndim == 3:
+        c = c.reshape(4, 2)
+    cx = float(c[:, 0].mean())
+    cy = float(c[:, 1].mean())
+    return cx, cy, corners, int(ids_flat[idx])
+
+
+def _aruco_angle_zero_up_deg(corners, cx, cy):
+    """0° = up (top-right corner points up). Returns deg: 0=up, 90=right, 180=down, -90=left."""
+    c = np.asarray(corners).reshape(4, 2)
+    tr = c[1]
+    dx = tr[0] - cx
+    dy = tr[1] - cy
+    return math.degrees(math.atan2(dx, -dy))
+
+
+def run_calibration_phase(picam2, mqtt_client, aruco_dict_name, aruco_target_id, skip_calib, no_mqtt, calib_sec=5.0):
+    """
+    Capture from picam2, detect ArUco (0°=up), publish angle to MQTT_TOPIC_CALIB as float text (degrees).
+    Runs for calib_sec seconds or until stable; then sends plate zero angle to ESP32.
+    """
+    if skip_calib:
+        return
+    if _aruco_module is None:
+        print("Calibration skipped: cv2.aruco not found (install opencv-contrib-python)", flush=True)
+        return
+    if no_mqtt or mqtt_client is None:
+        print("Calibration skipped: MQTT disabled", flush=True)
+        return
+    dictionary = _aruco_get_dict(aruco_dict_name)
+    if dictionary is None:
+        print("Calibration skipped: ArUco dict not available", flush=True)
+        return
+    print("Calibration: show ArUco marker to camera for {:.0f}s...".format(calib_sec), flush=True)
+    angles = []
+    t_end = time.perf_counter() + calib_sec
+    while time.perf_counter() < t_end:
+        try:
+            rgb = picam2.capture_array()
+            gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+            cx, cy, corners, _ = _aruco_detect_center(gray, dictionary, aruco_target_id)
+            if cx is not None and corners is not None:
+                angle_deg = _aruco_angle_zero_up_deg(corners, cx, cy)
+                angles.append(angle_deg)
+        except Exception as e:
+            print("Calibration frame error:", e, flush=True)
+        time.sleep(0.05)
+    if not angles:
+        print("Calibration: no ArUco detected; not sending angle.", flush=True)
+        return
+    angle_send = angles[-1] if len(angles) == 1 else float(np.median(angles))
+    payload = "{:.2f}".format(angle_send)
+    mqtt_client.publish(MQTT_TOPIC_CALIB, payload, qos=0)
+    print("Calibration done: angle {} deg sent to {} (plate zero)".format(payload, MQTT_TOPIC_CALIB), flush=True)
 
 
 def _infer_worker(frame_queue, result_queue, model_dir, conf, imgsz, shm0_name, shm1_name, width, height):
@@ -148,11 +252,12 @@ def detections_arrays_to_category_list(xyxy, conf_np, cls_np, names_list, conf_t
     return out
 
 
-def mqtt_update_and_maybe_publish(xyxy, conf_np, cls_np, names_list, conf_threshold, mqtt_client, mqtt_state, delay_s):
+def mqtt_update_and_maybe_publish(xyxy, conf_np, cls_np, names_list, conf_threshold, mqtt_client, mqtt_state, delay_s, last_res=None):
     """
     Append current frame categories to mqtt_state buffer. If object has been present for delay_s,
     publish the most frequent category in that window and reset.
     mqtt_state: dict with "buffer" [(timestamp, category_id), ...] and "window_start" (float or None).
+    last_res: optional dict to record last sent category and angle_rad (CATEGORY_TO_ANGLE_RAD).
     """
     cats = detections_arrays_to_category_list(xyxy, conf_np, cls_np, names_list, conf_threshold)
     now = time.perf_counter()
@@ -184,6 +289,12 @@ def mqtt_update_and_maybe_publish(xyxy, conf_np, cls_np, names_list, conf_thresh
     }
     if mqtt_client:
         mqtt_client.publish(MQTT_TOPIC, json.dumps(payload), qos=0)
+        # Motor preset: send "1"/"2"/"3"/"4" to res topic (moves motor to preset position)
+        if 1 <= mode_cat_id <= 4:
+            mqtt_client.publish(MQTT_TOPIC_RES, str(mode_cat_id), qos=0)
+    if last_res is not None:
+        last_res["category"] = mode_cat_id
+        last_res["angle_rad"] = CATEGORY_TO_ANGLE_RAD.get(mode_cat_id)
     mqtt_state["buffer"] = []
     mqtt_state["window_start"] = None
     return mode_cat_id
@@ -270,6 +381,10 @@ def main():
     p.add_argument("--no-mqtt", action="store_true", help="Disable MQTT")
     p.add_argument("--no-stream", action="store_true", help="No HTTP stream; capture+infer+MQTT only")
     p.add_argument("--mqtt-delay", type=float, default=MQTT_DELAY_S, help="Publish MQTT after object present for N seconds; result = most frequent category in window (default 2)")
+    p.add_argument("--skip-calib", action="store_true", help="Skip ArUco calibration at startup")
+    p.add_argument("--aruco-dict", type=str, default="4X4_50", help="ArUco dictionary for calibration")
+    p.add_argument("--aruco-target-id", type=int, default=None, help="ArUco marker ID to use (default: any)")
+    p.add_argument("--calib-sec", type=float, default=5.0, help="Calibration capture duration in seconds")
     args = p.parse_args()
 
     model_dir = ensure_ncnn_model_dir()
@@ -299,6 +414,10 @@ def main():
     )
     picam2.configure(config)
     picam2.start()
+    run_calibration_phase(
+        picam2, mqtt_client, args.aruco_dict, args.aruco_target_id,
+        args.skip_calib, args.no_mqtt, args.calib_sec,
+    )
     if args.no_stream:
         print("Stream disabled; capture + infer + MQTT only.", flush=True)
     else:
@@ -367,6 +486,7 @@ def main():
 
     det_count = [0]
     mqtt_state = {"buffer": [], "window_start": None}
+    last_res = {"category": None, "angle_rad": None}  # last classification sent to res + motor angle (rad)
 
     def result_reader():
         nonlocal last_detections
@@ -381,10 +501,14 @@ def main():
                 print("[det {}] NCNN: {:.1f} ms  ({:.1f} FPS)".format(det_count[0], infer_ms, fps), flush=True)
                 cat = mqtt_update_and_maybe_publish(
                     xyxy, conf_np, cls_np, CLASS_NAMES_15, args.conf,
-                    mqtt_client, mqtt_state, args.mqtt_delay,
+                    mqtt_client, mqtt_state, args.mqtt_delay, last_res,
                 )
                 if cat > 0:
-                    print("  -> MQTT category (mode in {:.1f}s): {}".format(args.mqtt_delay, cat), flush=True)
+                    ang = last_res.get("angle_rad")
+                    s = "res topic '{}' | last category {} -> angle {:.2f} rad ({:.1f} deg)".format(
+                        MQTT_TOPIC_RES, cat, ang, math.degrees(ang)
+                    ) if ang is not None else "res topic '{}' | last category {}".format(MQTT_TOPIC_RES, cat)
+                    print("  -> MQTT category (mode in {:.1f}s): {} | {}".format(args.mqtt_delay, cat, s), flush=True)
             except Exception:
                 break
 
