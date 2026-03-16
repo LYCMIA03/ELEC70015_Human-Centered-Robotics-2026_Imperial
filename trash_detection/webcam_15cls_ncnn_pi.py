@@ -7,10 +7,10 @@ Inference in subprocess (shared memory); stream at camera rate; labels from CLAS
 import argparse
 import json
 import multiprocessing
-import shutil
 import socket
 import sys
 import time
+from collections import Counter
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 from threading import Condition, Thread
@@ -30,9 +30,7 @@ from flask import Flask, Response, render_template_string
 from picamera2 import Picamera2
 
 ROOT = Path(__file__).resolve().parent
-PARAM_FILE = ROOT / "15cls_640_half.param"
-BIN_FILE = ROOT / "15cls_640_half.bin"
-NCNN_DIR = ROOT / "15cls_640_half_ncnn_model"
+NCNN_DIR = ROOT / "toppi_ncnn_model"
 CONF_THRESHOLD = 0.25
 
 # MQTT
@@ -41,12 +39,14 @@ MQTT_PORT = 1883
 MQTT_TOPIC = "imperial/yh4222/esp32/test"
 MQTT_CLIENT_ID_PUB = "pi_pub_trash_001"
 
-# 15 classes -> 4 categories: 1=paper/card, 2=general, 3=recycling, 4=food
+# Toppi 15cls: same order as predict_toppi_webcam (0=Metal .. 4=Plastic .. 14=Human)
+NUM_WASTE_CLASSES = 14  # 0..13 only; Human(14) not detected when using classes=trash_class_ids
 CLASS_NAMES_15 = [
     "Metal", "Cardboard", "Glass", "Paper", "Plastic", "Tetra",
     "Apple", "Apple-core", "Apple-peel", "Bread", "Orange", "Orange-peel",
     "Pear", "Vegetable", "Human",
 ]
+# 15 classes -> 4 categories: 1=paper/card, 2=general, 3=recycling, 4=food
 CLASS_TO_CATEGORY = {
     "Metal": (3, "dry mixing and recycling"),
     "Cardboard": (1, "paper and card"),
@@ -64,17 +64,14 @@ CLASS_TO_CATEGORY = {
     "Vegetable": (4, "food waste"),
     "Human": (2, "general waste"),
 }
+CATEGORY_NAMES = {1: "paper and card", 2: "general waste", 3: "dry mixing and recycling", 4: "food waste"}
+
+MQTT_DELAY_S = 2.0  # Publish only after object present for this many seconds; result = mode category in window
 
 
 def ensure_ncnn_model_dir():
-    """Use NCNN_DIR if present; else build from 15cls_640_half.param/.bin for YOLO."""
+    """Return toppi_ncnn_model path if model.ncnn.param and model.ncnn.bin exist."""
     if (NCNN_DIR / "model.ncnn.param").exists() and (NCNN_DIR / "model.ncnn.bin").exists():
-        return str(NCNN_DIR)
-    if PARAM_FILE.exists() and BIN_FILE.exists():
-        NCNN_DIR.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(str(PARAM_FILE), str(NCNN_DIR / "model.ncnn.param"))
-        shutil.copy2(str(BIN_FILE), str(NCNN_DIR / "model.ncnn.bin"))
-        print("Built NCNN dir from half.param/.bin:", NCNN_DIR)
         return str(NCNN_DIR)
     return None
 
@@ -86,6 +83,7 @@ def _infer_worker(frame_queue, result_queue, model_dir, conf, imgsz, shm0_name, 
     shm1 = SharedMemory(name=shm1_name)
     buf_shape = (height, width, 3)
     model = YOLO(model_dir, task="detect")
+    trash_class_ids = list(range(NUM_WASTE_CLASSES))  # 0..13 only, match predict_toppi_webcam
     while True:
         try:
             idx = frame_queue.get()
@@ -94,7 +92,10 @@ def _infer_worker(frame_queue, result_queue, model_dir, conf, imgsz, shm0_name, 
             shm = shm0 if idx == 0 else shm1
             raw = np.ndarray(buf_shape, dtype=np.uint8, buffer=shm.buf).copy()
             t0 = time.perf_counter()
-            results = model.predict(raw, conf=conf, imgsz=imgsz, verbose=False, device="cpu")[0]
+            results = model.predict(
+                raw, conf=conf, imgsz=imgsz, verbose=False, device="cpu",
+                classes=trash_class_ids,
+            )[0]
             t1 = time.perf_counter()
             infer_ms = (t1 - t0) * 1000
             if results.boxes is None or len(results.boxes.xyxy) == 0:
@@ -128,15 +129,12 @@ def _draw_arrays(frame, xyxy, conf, cls_id, names_list, conf_threshold=0.25, hid
     return frame
 
 
-def detections_arrays_to_category_and_publish(xyxy, conf_np, cls_np, names_list, conf_threshold, mqtt_client):
-    """Map detections to category 1–4 and publish to MQTT; names_list must match CLASS_NAMES_15."""
+def detections_arrays_to_category_list(xyxy, conf_np, cls_np, names_list, conf_threshold):
+    """Return list of (category_id, category_name) for this frame; names_list must match CLASS_NAMES_15."""
     if xyxy is None or len(xyxy) == 0:
-        payload = {"category": 0, "category_name": "none", "detections": []}
-        if mqtt_client:
-            mqtt_client.publish(MQTT_TOPIC, json.dumps(payload), qos=0)
-        return 0
+        return []
     n = len(names_list)
-    det_list = []
+    out = []
     for i in range(len(xyxy)):
         c = float(conf_np[i])
         if c < conf_threshold:
@@ -146,17 +144,49 @@ def detections_arrays_to_category_and_publish(xyxy, conf_np, cls_np, names_list,
         if label == "Human":
             continue
         cat_id, cat_name = CLASS_TO_CATEGORY.get(label, (2, "general waste"))
-        det_list.append({"class": label, "conf": round(c, 2), "category": cat_id, "category_name": cat_name})
-    if not det_list:
-        payload = {"category": 0, "category_name": "none", "detections": []}
-        if mqtt_client:
-            mqtt_client.publish(MQTT_TOPIC, json.dumps(payload), qos=0)
+        out.append((cat_id, cat_name))
+    return out
+
+
+def mqtt_update_and_maybe_publish(xyxy, conf_np, cls_np, names_list, conf_threshold, mqtt_client, mqtt_state, delay_s):
+    """
+    Append current frame categories to mqtt_state buffer. If object has been present for delay_s,
+    publish the most frequent category in that window and reset.
+    mqtt_state: dict with "buffer" [(timestamp, category_id), ...] and "window_start" (float or None).
+    """
+    cats = detections_arrays_to_category_list(xyxy, conf_np, cls_np, names_list, conf_threshold)
+    now = time.perf_counter()
+    if not cats:
         return 0
-    best = max(det_list, key=lambda d: d["conf"])
-    payload = {"category": best["category"], "category_name": best["category_name"], "detections": det_list}
+    buf = mqtt_state["buffer"]
+    start = mqtt_state["window_start"]
+    for cat_id, _ in cats:
+        buf.append((now, cat_id))
+    if start is None:
+        mqtt_state["window_start"] = now
+        return 0
+    if (now - start) < delay_s:
+        return 0
+    # Use only entries in [window_start, window_start + delay_s]
+    window_end = start + delay_s
+    in_window = [(t, cid) for t, cid in buf if start <= t <= window_end]
+    if not in_window:
+        mqtt_state["buffer"] = []
+        mqtt_state["window_start"] = None
+        return 0
+    counts = Counter(cid for _, cid in in_window)
+    mode_cat_id = counts.most_common(1)[0][0]
+    mode_cat_name = CATEGORY_NAMES.get(mode_cat_id, "general waste")
+    payload = {
+        "category": mode_cat_id,
+        "category_name": mode_cat_name,
+        "detections": [{"category": mode_cat_id, "category_name": mode_cat_name, "count_2s": counts.get(mode_cat_id, 0)}],
+    }
     if mqtt_client:
         mqtt_client.publish(MQTT_TOPIC, json.dumps(payload), qos=0)
-    return best["category"]
+    mqtt_state["buffer"] = []
+    mqtt_state["window_start"] = None
+    return mode_cat_id
 
 
 def draw_boxes(frame, boxes, names, conf_threshold=0.25, in_place=False):
@@ -239,11 +269,12 @@ def main():
     p.add_argument("--quality", type=int, default=85, help="MJPEG quality 1-100")
     p.add_argument("--no-mqtt", action="store_true", help="Disable MQTT")
     p.add_argument("--no-stream", action="store_true", help="No HTTP stream; capture+infer+MQTT only")
+    p.add_argument("--mqtt-delay", type=float, default=MQTT_DELAY_S, help="Publish MQTT after object present for N seconds; result = most frequent category in window (default 2)")
     args = p.parse_args()
 
     model_dir = ensure_ncnn_model_dir()
     if not model_dir:
-        print("NCNN model not found; need 15cls_640_half.param and 15cls_640_half.bin")
+        print("NCNN model not found; need toppi_ncnn_model/model.ncnn.param and model.ncnn.bin")
         sys.exit(1)
     print("Model:", model_dir, flush=True)
     print("Classes:", CLASS_NAMES_15, flush=True)
@@ -335,6 +366,7 @@ def main():
                 break
 
     det_count = [0]
+    mqtt_state = {"buffer": [], "window_start": None}
 
     def result_reader():
         nonlocal last_detections
@@ -347,11 +379,12 @@ def main():
                 fps = 1000.0 / infer_ms if infer_ms > 0 else 0
                 det_count[0] += 1
                 print("[det {}] NCNN: {:.1f} ms  ({:.1f} FPS)".format(det_count[0], infer_ms, fps), flush=True)
-                cat = detections_arrays_to_category_and_publish(
-                    xyxy, conf_np, cls_np, CLASS_NAMES_15, args.conf, mqtt_client
+                cat = mqtt_update_and_maybe_publish(
+                    xyxy, conf_np, cls_np, CLASS_NAMES_15, args.conf,
+                    mqtt_client, mqtt_state, args.mqtt_delay,
                 )
                 if cat > 0:
-                    print("  -> MQTT category: {}".format(cat), flush=True)
+                    print("  -> MQTT category (mode in {:.1f}s): {}".format(args.mqtt_delay, cat), flush=True)
             except Exception:
                 break
 
