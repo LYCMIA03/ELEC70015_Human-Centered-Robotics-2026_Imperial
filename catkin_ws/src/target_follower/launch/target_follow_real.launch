@@ -3,11 +3,10 @@
     真机目标追踪 — Target Following (Real Robot)
 
     两种模式:
-      A) 独立模式 (launch_move_base:=true, 默认):
-         自带 LiDAR + move_base (local-only costmap, 无需全局地图/gmapping).
-         只需树莓派 base.launch 已启动.
+      A) 在线SLAM任务模式 (launch_move_base:=true, use_online_slam:=true, 默认):
+         自带 LiDAR + gmapping + move_base + frontier-aware target_follower.
       B) 叠加模式 (launch_move_base:=false):
-         需要已运行的 move_base (如 real_robot_mapping_unitree.launch).
+         叠加到外部 move_base（如 map-assisted 导航）.
 
     功能:
       1. (可选) Unitree L1 / RPLIDAR A2 驱动
@@ -26,6 +25,8 @@
   <!-- ========== 参数 ========== -->
   <arg name="launch_move_base"       default="true"
        doc="true=独立模式(自带LiDAR+move_base); false=叠加已有move_base"/>
+  <arg name="use_online_slam"        default="true"
+       doc="当 launch_move_base=true 时, true=在线SLAM(map权威), false=仅本地odom规划(legacy)"/>
   <arg name="lidar_mode"             default="dual"
        doc="独立模式雷达策略: dual|unitree|rplidar"/>
   <arg name="unitree_port"           default="/dev/unitree_lidar"/>
@@ -36,6 +37,18 @@
   <arg name="rplidar_pre_start_motor_pwm" default="600"/>
   <arg name="rplidar_pre_start_motor_warmup_s" default="2.0"/>
   <arg name="scan_startup_timeout"   default="20.0"/>
+  <arg name="slam_map_topic" default="/map"/>
+  <arg name="slam_map_updates_topic" default="/map_updates"/>
+  <arg name="slam_map_metadata_topic" default="/map_metadata"/>
+  <arg name="slam_map_frame" default="map"/>
+  <arg name="slam_odom_frame" default="odom"/>
+  <arg name="slam_base_frame" default="base_link"/>
+  <arg name="slam_gmapping_param_file" default="$(find p3at_lms_navigation)/param/rplidar/gmapping.yaml"
+       if="$(eval arg('lidar_mode') == 'rplidar')"/>
+  <arg name="slam_gmapping_param_file" default="$(find p3at_lms_navigation)/param/unitree/gmapping.yaml"
+       unless="$(eval arg('lidar_mode') == 'rplidar')"/>
+  <arg name="slam_scan_topic" default="/scan_filtered" if="$(eval arg('lidar_mode') == 'rplidar')"/>
+  <arg name="slam_scan_topic" default="/unitree/scan" unless="$(eval arg('lidar_mode') == 'rplidar')"/>
   <arg name="udp_port"               default="16031"
        doc="UDP 端口, 与检测脚本 --udp-port 一致"/>
   <arg name="standoff_distance"      default="0.6"
@@ -62,10 +75,24 @@
        doc="后退导航的最大等待时间 (s)"/>
   <arg name="retreat_turn_angle_deg" default="100.0"
        doc="Retreat turn angle (deg). Use a moderate turn to leave the interaction area without over-rotating into nearby obstacles"/>
+  <arg name="retreat_reverse_enabled" default="true"
+       doc="是否启用对话后倒车优先撤离"/>
+  <arg name="retreat_reverse_distance" default="0.50"
+       doc="倒车优先阶段的目标距离 (m)"/>
+  <arg name="retreat_reverse_speed" default="0.10"
+       doc="倒车速度绝对值 (m/s)"/>
+  <arg name="retreat_reverse_safety_margin" default="0.20"
+       doc="倒车所需额外安全余量 (m)"/>
+  <arg name="retreat_reverse_scan_stale" default="0.8"
+       doc="用于倒车安全判断的scan最大允许延迟 (s)"/>
+  <arg name="retreat_reverse_rear_sector_deg" default="35.0"
+       doc="倒车方向后扇区半角 (deg)"/>
 
   <!-- Auto-explore params -->
-  <arg name="enable_auto_explore"      default="true" doc="无目标时自动探索"/>
-  <arg name="explore_goal_distance"    default="2.4" doc="每次探索目标前进距离 (m)"/>
+    <arg name="enable_auto_explore"      default="true" doc="无目标时自动探索"/>
+  <arg name="explore_goal_distance"    default="2.2" doc="frontier探索短视距子目标长度 (m)"/>
+  <arg name="explore_short_horizon"    default="2.2" doc="frontier approach投影的短视距上限 (m)"/>
+  <arg name="explore_goal_max_dist"    default="6.0" doc="frontier候选点允许的最大距离 (m)"/>
   <arg name="explore_goal_timeout"     default="30.0" doc="单个探索目标超时 (s)"/>
   <arg name="explore_target_confirm"   default="0.8" doc="How long a target stream must stay stable before exploration is interrupted"/>
   <arg name="explore_target_max_gap"   default="1.0" doc="Maximum allowed gap between target updates while considering the target stable"/>
@@ -74,6 +101,16 @@
   <arg name="explore_zero_cmd_vel_timeout" default="2.0" doc="Replan exploration early if move_base keeps publishing near-zero cmd_vel for this long (s)"/>
   <arg name="explore_revisit_window"   default="120.0" doc="探索去重时间窗 (s), 该时间内避免回到相同区域"/>
   <arg name="explore_revisit_radius"   default="1.5" doc="探索区域去重半径 (m)"/>
+  <arg name="explore_min_frontier_size" default="8"/>
+  <arg name="explore_map_clearance_m" default="0.35"/>
+  <arg name="explore_require_make_plan" default="true"/>
+  <arg name="explore_map_topic" default="/map"/>
+  <arg name="explore_costmap_topic" default="/move_base/global_costmap/costmap"/>
+  <arg name="explore_scan_topic" default="/scan_filtered" if="$(eval arg('lidar_mode') == 'rplidar')"/>
+  <arg name="explore_scan_topic" default="/unitree/scan" unless="$(eval arg('lidar_mode') == 'rplidar')"/>
+  <arg name="explore_initial_scan_duration" default="4.0"/>
+  <arg name="explore_goal_scan_duration" default="2.2"/>
+  <arg name="target_reacquire_duration" default="4.0"/>
   <arg name="target_reacquire_block_s" default="120.0" doc="对话后屏蔽重复目标的时长 (s)"/>
   <arg name="target_reacquire_radius"  default="1.6" doc="对话后屏蔽重复目标的半径 (m)"/>
 
@@ -86,15 +123,44 @@
   <arg name="rplidar_tf_qy" default="0.0"/>
   <arg name="rplidar_tf_qz" default="0.0"/>
   <arg name="rplidar_tf_qw" default="0.0"/>
+  <arg name="camera_tf_x" default="0.208"/>
+  <arg name="camera_tf_y" default="0.0"/>
+  <arg name="camera_tf_z" default="0.85"/>
+  <arg name="camera_tf_qx" default="-0.5"/>
+  <arg name="camera_tf_qy" default="0.5"/>
+  <arg name="camera_tf_qz" default="-0.5"/>
+  <arg name="camera_tf_qw" default="0.5"/>
 
-  <!-- Resolve global_frame: standalone→odom, overlay→map -->
-  <arg name="global_frame" default="odom" if="$(arg launch_move_base)"/>
-  <arg name="global_frame" default="map" unless="$(arg launch_move_base)"/>
+  <!-- Resolve global_frame:
+       - overlay: map
+       - standalone + online_slam: map
+       - standalone + legacy local-only: odom -->
+  <arg name="global_frame" default="map"
+       if="$(eval (arg('launch_move_base') == 'false') or (arg('use_online_slam') == 'true'))"/>
+  <arg name="global_frame" default="odom"
+       if="$(eval (arg('launch_move_base') == 'true') and (arg('use_online_slam') == 'false'))"/>
 
   <!-- ============================================================ -->
   <!--  独立模式: selected LiDAR + robot_description + move_base    -->
   <!-- ============================================================ -->
   <group if="$(arg launch_move_base)">
+
+    <node if="$(eval arg('lidar_mode') != 'unitree')"
+          pkg="tf2_ros" type="static_transform_publisher" name="rplidar_laser_tf"
+          args="$(arg rplidar_tf_x) $(arg rplidar_tf_y) $(arg rplidar_tf_z) $(arg rplidar_tf_qx) $(arg rplidar_tf_qy) $(arg rplidar_tf_qz) $(arg rplidar_tf_qw) base_link laser"/>
+
+    <group if="$(arg use_online_slam)">
+      <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping_online" output="screen">
+        <rosparam file="$(arg slam_gmapping_param_file)" command="load"/>
+        <param name="map_frame" value="$(arg slam_map_frame)"/>
+        <param name="odom_frame" value="$(arg slam_odom_frame)"/>
+        <param name="base_frame" value="$(arg slam_base_frame)"/>
+        <remap from="scan" to="$(arg slam_scan_topic)"/>
+        <remap from="map" to="$(arg slam_map_topic)"/>
+        <remap from="map_updates" to="$(arg slam_map_updates_topic)"/>
+        <remap from="map_metadata" to="$(arg slam_map_metadata_topic)"/>
+      </node>
+    </group>
 
     <group unless="$(eval arg('lidar_mode') == 'rplidar')">
       <!-- Unitree 4D Lidar L1 驱动 -->
@@ -139,9 +205,6 @@
             name="robot_state_publisher" output="screen"/>
 
       <group if="$(eval arg('lidar_mode') == 'dual')">
-        <node pkg="tf2_ros" type="static_transform_publisher" name="rplidar_laser_tf"
-              args="$(arg rplidar_tf_x) $(arg rplidar_tf_y) $(arg rplidar_tf_z) $(arg rplidar_tf_qx) $(arg rplidar_tf_qy) $(arg rplidar_tf_qz) $(arg rplidar_tf_qw) base_link laser"/>
-
         <node pkg="target_follower" type="rplidar_health_monitor.py" name="rplidar_health_monitor"
               output="screen" required="true">
           <param name="device" value="$(arg rplidar_port)"/>
@@ -177,9 +240,13 @@
       <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="false">
         <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="global_costmap"/>
         <rosparam file="$(find p3at_lms_navigation)/param/unitree/costmap_common.yaml" command="load" ns="local_costmap"/>
-        <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap_local_only.yaml" command="load"/>
+        <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap_local_only.yaml" command="load"
+                  unless="$(arg use_online_slam)"/>
+        <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap_slam.yaml" command="load"
+                  if="$(arg use_online_slam)"/>
         <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml"  command="load"/>
         <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml"      command="load"/>
+        <param if="$(arg use_online_slam)" name="global_costmap/static_layer/map_topic" value="$(arg slam_map_topic)"/>
         <!-- Dual-lidar policy:
              - local_costmap: Unitree + RPLIDAR (near-field supplement)
              - global_costmap: Unitree only -->
@@ -220,16 +287,20 @@
       </node>
 
       <param name="robot_description"
-             command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_lms.urdf.xacro"/>
+             command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
       <node pkg="robot_state_publisher" type="robot_state_publisher"
             name="robot_state_publisher" output="screen"/>
 
       <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="false">
         <rosparam file="$(find p3at_lms_navigation)/param/rplidar/costmap_common.yaml" command="load" ns="global_costmap"/>
         <rosparam file="$(find p3at_lms_navigation)/param/rplidar/costmap_common.yaml" command="load" ns="local_costmap"/>
-        <rosparam file="$(find p3at_lms_navigation)/param/rplidar/global_costmap_local_only.yaml" command="load"/>
+        <rosparam file="$(find p3at_lms_navigation)/param/rplidar/global_costmap_local_only.yaml" command="load"
+                  unless="$(arg use_online_slam)"/>
+        <rosparam file="$(find p3at_lms_navigation)/param/rplidar/global_costmap_slam.yaml" command="load"
+                  if="$(arg use_online_slam)"/>
         <rosparam file="$(find p3at_lms_navigation)/param/rplidar/local_costmap.yaml"  command="load"/>
         <rosparam file="$(find p3at_lms_navigation)/param/rplidar/move_base.yaml"      command="load"/>
+        <param if="$(arg use_online_slam)" name="global_costmap/static_layer/map_topic" value="$(arg slam_map_topic)"/>
       </node>
     </group>
 
@@ -239,7 +310,7 @@
   <!--  Static TF: base_link → camera_link (ROS→optical)            -->
   <!-- ============================================================ -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_tf"
-        args="0.208 0 1.0 -0.5 0.5 -0.5 0.5 base_link camera_link"/>
+        args="$(arg camera_tf_x) $(arg camera_tf_y) $(arg camera_tf_z) $(arg camera_tf_qx) $(arg camera_tf_qy) $(arg camera_tf_qz) $(arg camera_tf_qw) base_link camera_link"/>
 
   <!-- ========== UDP Bridge: detection → ROS ========== -->
   <node pkg="target_follower" type="udp_target_bridge.py" name="udp_target_bridge" output="screen">
@@ -274,8 +345,16 @@
     <param name="retreat_distance"       value="$(arg retreat_distance)"/>
     <param name="retreat_timeout_s"      value="$(arg retreat_timeout)"/>
     <param name="retreat_turn_angle_deg" value="$(arg retreat_turn_angle_deg)"/>
+    <param name="retreat_reverse_enabled" value="$(arg retreat_reverse_enabled)"/>
+    <param name="retreat_reverse_distance" value="$(arg retreat_reverse_distance)"/>
+    <param name="retreat_reverse_speed" value="$(arg retreat_reverse_speed)"/>
+    <param name="retreat_reverse_safety_margin" value="$(arg retreat_reverse_safety_margin)"/>
+    <param name="retreat_reverse_scan_stale_s" value="$(arg retreat_reverse_scan_stale)"/>
+    <param name="retreat_reverse_rear_sector_deg" value="$(arg retreat_reverse_rear_sector_deg)"/>
     <param name="enable_auto_explore"    value="$(arg enable_auto_explore)"/>
     <param name="explore_goal_distance"  value="$(arg explore_goal_distance)"/>
+    <param name="explore_short_horizon_m" value="$(arg explore_short_horizon)"/>
+    <param name="explore_goal_max_dist" value="$(arg explore_goal_max_dist)"/>
     <param name="explore_goal_timeout_s" value="$(arg explore_goal_timeout)"/>
     <param name="explore_target_confirm_s" value="$(arg explore_target_confirm)"/>
     <param name="explore_target_max_gap_s" value="$(arg explore_target_max_gap)"/>
@@ -284,6 +363,15 @@
     <param name="explore_zero_cmd_vel_timeout_s" value="$(arg explore_zero_cmd_vel_timeout)"/>
     <param name="explore_revisit_window_s" value="$(arg explore_revisit_window)"/>
     <param name="explore_revisit_radius" value="$(arg explore_revisit_radius)"/>
+    <param name="explore_min_frontier_size" value="$(arg explore_min_frontier_size)"/>
+    <param name="explore_map_clearance_m" value="$(arg explore_map_clearance_m)"/>
+    <param name="explore_require_make_plan" value="$(arg explore_require_make_plan)"/>
+    <param name="explore_map_topic" value="$(arg explore_map_topic)"/>
+    <param name="explore_costmap_topic" value="$(arg explore_costmap_topic)"/>
+    <param name="explore_scan_topic" value="$(arg explore_scan_topic)"/>
+    <param name="explore_initial_scan_duration_s" value="$(arg explore_initial_scan_duration)"/>
+    <param name="explore_goal_scan_duration_s" value="$(arg explore_goal_scan_duration)"/>
+    <param name="target_reacquire_duration_s" value="$(arg target_reacquire_duration)"/>
     <param name="target_reacquire_block_s" value="$(arg target_reacquire_block_s)"/>
     <param name="target_reacquire_radius" value="$(arg target_reacquire_radius)"/>
   </node>

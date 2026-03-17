@@ -15,22 +15,22 @@ single_instance::activate "$(basename "$0")"
 #   4. Jetson Host   — Dialogue UDP bridges (nav_success → UDP:16041 → dialogue → /trash_action)
 #
 # 任务主逻辑：
-#   auto explore 的目标是找垃圾拾取目标（target），不是专门探索地图。
-#   地图构建是任务执行过程中的副产物，可按需开启/关闭。
+#   默认进入 online_slam_task：实时SLAM地图作为权威地图，探索与去重基于 map frame。
+#   仍由 target_follower 作为 move_base 的唯一 goal owner；frontier 只提供探索候选点。
 #
 # 导航方式（可切换）：
-#   A) 默认：纯局部规划 (rolling-window costmap in odom frame)
-#   B) 导入已有地图：map_server + amcl + move_base（仍由 target_follower 负责找目标）
+#   A) 默认：online_slam_task（无先验地图，边建图边任务）
+#   B) 导入已有地图：map_server + amcl + move_base（map-assisted）
 #
-# 地图副产物（可切换）：
-#   --work-mapping 开启后，任务执行时后台运行被动 SLAM 并周期保存地图。
-#   若同时使用 --assist-map 导入旧地图，则会在执行过程中自动进行增量融合保存。
+# 地图保存（可切换）：
+#   --work-mapping 开启后，任务执行时持续保存在线地图。
+#   若使用 --assist-map，则可同时保存融合后的工作地图。
 #
 # 对话流程：
 #   REACHED → result=True → UDP:16041 → dialogue_udp_runner → UDP:16032 → /trash_action
 #   /trash_action=True  → cooldown to ensure trash drop is complete → retreat
 #   /trash_action=False → immediate retreat
-#   retreat             → large in-place turn + forward move → auto explore resumes
+#   retreat             → reverse-first (if safe) + turn-away → auto explore resumes
 #
 # 前提（需手动完成）：
 #   - Raspberry Pi 已启动: ./scripts/start_base.sh  (on Pi)
@@ -72,6 +72,9 @@ single_instance::activate "$(basename "$0")"
 #   --no-dialogue     不启动对话桥接（纲连测试）
 #   --no-dashboard    不启动 dashboard
 #   --dashboard-interval S dashboard 刷新周期(秒), 默认 2
+#   --nav-readiness MODE 导航 ready 判定 strict|relaxed, 默认 strict
+#   --strict-nav-readiness   等待 live /target_follower/status 后再视为 ready
+#   --relaxed-nav-readiness  只要 move_base + target_follower 节点起来就继续
 # =============================================================================
 
 set -uo pipefail
@@ -108,11 +111,14 @@ POST_ACCEPT_COOLDOWN_SET=false
 # A moderate retreat turn helps the robot leave the interaction area without
 # rotating so aggressively that it traps itself near nearby obstacles.
 RETREAT_TURN_DEG="100.0"
+RETREAT_REVERSE_ENABLED=true
+RETREAT_REVERSE_DIST="0.50"
 ENABLE_AUTO_EXPLORE=true
 # Keep exploration active, but slightly reduce step size so the robot probes
 # nearby free space more cautiously when the environment is cluttered.
 EXPLORE_STEP="2.4"
 EXPLORE_NO_REPEAT_SEC="120.0"
+EXPLORE_SCAN_TOPIC="/unitree/scan"
 WORK_MAPPING=true
 ASSIST_MAP_FILE=""
 MAP_SAVE_INTERVAL="45.0"
@@ -129,11 +135,26 @@ ONLY_MODULES=""
 NEED_MASTER=true
 SESSION_TAG="$(date +%Y%m%d_%H%M%S)"
 MAP_SAVE_PREFIX="${CATKIN_WS}/src/p3at_lms_navigation/maps/task_session_${SESSION_TAG}"
-NAV_PROFILE="standalone_local"
+NAV_PROFILE="online_slam_task"
 ENABLE_RPLIDAR_IN_NAV="true"
+NAV_READINESS_MODE="strict"
 # TODO: The RPLIDAR rear-mount transform is still an approximate carry-over
 # from temp/rplidar-a2-dev-20260314. Re-measure on the robot and move it into
 # the URDF once the dual-lidar layout is finalized.
+RPLIDAR_TF_X="-0.272"
+RPLIDAR_TF_Y="0.0"
+RPLIDAR_TF_Z="0.072"
+RPLIDAR_TF_QX="1.0"
+RPLIDAR_TF_QY="0.0"
+RPLIDAR_TF_QZ="0.0"
+RPLIDAR_TF_QW="0.0"
+CAMERA_TF_X="0.208"
+CAMERA_TF_Y="0.0"
+CAMERA_TF_Z="0.85"
+CAMERA_TF_QX="-0.5"
+CAMERA_TF_QY="0.5"
+CAMERA_TF_QZ="-0.5"
+CAMERA_TF_QW="0.5"
 
 # ---------- 解析参数 ----------
 while [[ $# -gt 0 ]]; do
@@ -168,9 +189,15 @@ while [[ $# -gt 0 ]]; do
     --no-dialogue)     LAUNCH_DIALOGUE=false; shift  ;;
     --no-dashboard)    LAUNCH_DASHBOARD=false; shift ;;
     --dashboard-interval) DASHBOARD_INTERVAL="$2"; shift 2 ;;
+    --nav-readiness)   NAV_READINESS_MODE="$2"; shift 2 ;;
+    --strict-nav-readiness) NAV_READINESS_MODE="strict"; shift ;;
+    --relaxed-nav-readiness) NAV_READINESS_MODE="relaxed"; shift ;;
     --no-auto-start-docker) AUTO_START_DOCKER=false; shift ;;
     -h|--help)
-      grep '^#' "$0" | head -64 | sed 's/^# \{0,2\}//' | sed '/^!/d;/^shellcheck /d'
+      awk '
+        /^# =============================================================================$/ {sep_count++; if (sep_count == 2) exit}
+        /^#/ {sub(/^# ?/, ""); print}
+      ' "$0" | sed '/^!/d;/^shellcheck /d'
       exit 0 ;;
     *) die "Unknown argument: $1" ;;
   esac
@@ -178,6 +205,10 @@ done
 
 if [[ "${LIDAR_MODE}" != "dual" && "${LIDAR_MODE}" != "unitree" && "${LIDAR_MODE}" != "rplidar" ]]; then
   die "Invalid --lidar: ${LIDAR_MODE}. Expected dual|unitree|rplidar"
+fi
+
+if [[ "${NAV_READINESS_MODE}" != "strict" && "${NAV_READINESS_MODE}" != "relaxed" ]]; then
+  die "Invalid --nav-readiness: ${NAV_READINESS_MODE}. Expected strict|relaxed"
 fi
 
 if [[ -n "${ASSIST_MAP_FILE}" ]]; then
@@ -193,8 +224,12 @@ fi
 
 if [[ "${LIDAR_MODE}" == "unitree" ]]; then
   ENABLE_RPLIDAR_IN_NAV="false"
+  EXPLORE_SCAN_TOPIC="/unitree/scan"
 elif [[ "${LIDAR_MODE}" == "dual" ]]; then
   ENABLE_RPLIDAR_IN_NAV="true"
+  EXPLORE_SCAN_TOPIC="/unitree/scan"
+elif [[ "${LIDAR_MODE}" == "rplidar" ]]; then
+  EXPLORE_SCAN_TOPIC="/scan_filtered"
 fi
 
 if [[ -n "${ONLY_MODULES}" ]]; then
@@ -266,6 +301,7 @@ _stop_docker_nav_and_lidar_processes() {
                   pkill -f '[m]ove_base' 2>/dev/null || true; \
                   pkill -f '[a]mcl' 2>/dev/null || true; \
                   pkill -f '[m]ap_server' 2>/dev/null || true; \
+                  pkill -f '[s]lam_gmapping' 2>/dev/null || true; \
                   pkill -f '[u]nitree_lidar_ros_node' 2>/dev/null || true; \
                   pkill -f '[p]ointcloud_to_laserscan_node' 2>/dev/null || true; \
                   pkill -f '[r]plidarNode' 2>/dev/null || true; \
@@ -360,6 +396,8 @@ POST_ACCEPT_COOLDOWN='${POST_ACCEPT_COOLDOWN}'
 ENABLE_AUTO_EXPLORE='${ENABLE_AUTO_EXPLORE}'
 EXPLORE_STEP='${EXPLORE_STEP}'
 EXPLORE_NO_REPEAT_SEC='${EXPLORE_NO_REPEAT_SEC}'
+EXPLORE_SCAN_TOPIC='${EXPLORE_SCAN_TOPIC}'
+NAV_READINESS_MODE='${NAV_READINESS_MODE}'
 TARGET_KIND='${TARGET_KIND}'
 DIALOGUE_DEVICE='${DIALOGUE_DEVICE}'
 RUNNER_READY_TIMEOUT='${RUNNER_READY_TIMEOUT}'
@@ -495,8 +533,27 @@ _target_follower_ready() {
 }
 
 _nav_stack_ready() {
-  _ros_node_exists "move_base" \
-    && _target_follower_ready
+  local core_ok=1
+  case "${NAV_READINESS_MODE}" in
+    strict)
+      _ros_node_exists "move_base" \
+        && _target_follower_ready \
+        || core_ok=0
+      ;;
+    relaxed)
+      _ros_node_exists "move_base" \
+        && _ros_node_exists "target_follower" \
+        || core_ok=0
+      ;;
+  esac
+  [[ "${core_ok}" -eq 1 ]] || return 1
+
+  if [[ "${NAV_PROFILE}" == "online_slam_task" ]]; then
+    _topic_has_message "/map" || return 1
+    _ros_tf_fresh map base_link 3.0 || return 1
+  fi
+
+  return 0
 }
 
 _lidar_stack_ready() {
@@ -556,7 +613,7 @@ _nav_stack_blockers() {
 
   if ! _ros_node_exists "target_follower"; then
     blockers+=("/target_follower node missing")
-  else
+  elif [[ "${NAV_READINESS_MODE}" == "strict" ]]; then
     if ! _topic_has_publisher "/target_follower/status"; then
       blockers+=("/target_follower/status has no publisher")
     elif ! _topic_has_message "/target_follower/status"; then
@@ -564,8 +621,13 @@ _nav_stack_blockers() {
     fi
   fi
 
-  if ! _ros_odom_alive; then
-    blockers+=("/odom has no messages")
+  if [[ "${NAV_PROFILE}" == "online_slam_task" ]]; then
+    if ! _topic_has_message "/map"; then
+      blockers+=("/map has no messages")
+    fi
+    if ! _ros_tf_fresh map base_link 3.0; then
+      blockers+=("TF map->base_link unavailable/stale")
+    fi
   fi
 
   if [[ ${#blockers[@]} -eq 0 ]]; then
@@ -683,6 +745,7 @@ echo -e "  Act.timeout:${ACTION_WAIT} s"
 echo -e "  Auto explore: $(${ENABLE_AUTO_EXPLORE} && echo enabled || echo DISABLED)"
 echo -e "  Explore step: ${EXPLORE_STEP} m"
 echo -e "  Explore no-repeat: ${EXPLORE_NO_REPEAT_SEC} s"
+echo -e "  Nav ready:  ${NAV_READINESS_MODE}"
 echo -e "  Sensor only:$(${SENSOR_ONLY} && echo enabled || echo disabled)"
 echo -e "  Target:     ${TARGET_KIND}"
 echo -e "  UDP detect: ${TRASH_UDP_PORT}  (trash_detection -> ROS)"
@@ -766,8 +829,13 @@ if ${NEED_MASTER}; then
       _ros_package_exists "rplidar_ros" || die "rplidar_ros not found in ROS environment. Install it first with ./setup_rplidar_a2.sh or apt."
     fi
   fi
-  if ${LAUNCH_NAV} && ${WORK_MAPPING} && ! _ros_package_exists "gmapping"; then
-    die "gmapping package missing in ROS environment (required by --work-mapping)"
+  if ${LAUNCH_NAV}; then
+    if [[ "${NAV_PROFILE}" == "online_slam_task" ]] && ! _ros_package_exists "gmapping"; then
+      die "gmapping package missing in ROS environment (required by online_slam_task)"
+    fi
+    if [[ "${NAV_PROFILE}" != "online_slam_task" ]] && ${WORK_MAPPING} && ! _ros_package_exists "gmapping"; then
+      die "gmapping package missing in ROS environment (required by --work-mapping)"
+    fi
   fi
   if ${LAUNCH_NAV} && [[ -n "${ASSIST_MAP_FILE}" ]]; then
     _ros_package_exists "map_server" || die "map_server package missing in ROS environment"
@@ -941,7 +1009,7 @@ else
   elif [[ "${NAV_PROFILE}" == "map_assisted" ]]; then
     info "Launching map-assisted task flow (map_server + amcl + move_base + target overlay)..."
   else
-    info "Launching standalone task flow (local-only move_base + target_follower)..."
+    info "Launching online_slam_task flow (LiDAR + SLAM + move_base + frontier target_follower)..."
   fi
 
   if [[ "${LIDAR_MODE}" == "dual" && "${UNITREE_PORT}" == "${RPLIDAR_PORT}" ]]; then
@@ -964,6 +1032,13 @@ else
         unitree_port:=${UNITREE_PORT} \
         rplidar_port:=${RPLIDAR_PORT} \
         rplidar_baud:=${RPLIDAR_BAUD} \
+        rplidar_tf_x:=${RPLIDAR_TF_X} \
+        rplidar_tf_y:=${RPLIDAR_TF_Y} \
+        rplidar_tf_z:=${RPLIDAR_TF_Z} \
+        rplidar_tf_qx:=${RPLIDAR_TF_QX} \
+        rplidar_tf_qy:=${RPLIDAR_TF_QY} \
+        rplidar_tf_qz:=${RPLIDAR_TF_QZ} \
+        rplidar_tf_qw:=${RPLIDAR_TF_QW} \
         rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
         rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
         rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \
@@ -978,6 +1053,13 @@ else
         enable_rplidar:=${ENABLE_RPLIDAR_IN_NAV} \
         rplidar_port:=${RPLIDAR_PORT} \
         rplidar_baud:=${RPLIDAR_BAUD} \
+        rplidar_tf_x:=${RPLIDAR_TF_X} \
+        rplidar_tf_y:=${RPLIDAR_TF_Y} \
+        rplidar_tf_z:=${RPLIDAR_TF_Z} \
+        rplidar_tf_qx:=${RPLIDAR_TF_QX} \
+        rplidar_tf_qy:=${RPLIDAR_TF_QY} \
+        rplidar_tf_qz:=${RPLIDAR_TF_QZ} \
+        rplidar_tf_qw:=${RPLIDAR_TF_QW} \
         rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
         rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
         rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \
@@ -991,6 +1073,20 @@ else
         unitree_port:=${UNITREE_PORT} \
         rplidar_port:=${RPLIDAR_PORT} \
         rplidar_baud:=${RPLIDAR_BAUD} \
+        rplidar_tf_x:=${RPLIDAR_TF_X} \
+        rplidar_tf_y:=${RPLIDAR_TF_Y} \
+        rplidar_tf_z:=${RPLIDAR_TF_Z} \
+        rplidar_tf_qx:=${RPLIDAR_TF_QX} \
+        rplidar_tf_qy:=${RPLIDAR_TF_QY} \
+        rplidar_tf_qz:=${RPLIDAR_TF_QZ} \
+        rplidar_tf_qw:=${RPLIDAR_TF_QW} \
+        camera_tf_x:=${CAMERA_TF_X} \
+        camera_tf_y:=${CAMERA_TF_Y} \
+        camera_tf_z:=${CAMERA_TF_Z} \
+        camera_tf_qx:=${CAMERA_TF_QX} \
+        camera_tf_qy:=${CAMERA_TF_QY} \
+        camera_tf_qz:=${CAMERA_TF_QZ} \
+        camera_tf_qw:=${CAMERA_TF_QW} \
         rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
         rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
         rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \
@@ -1000,9 +1096,15 @@ else
         udp_port:=${TRASH_UDP_PORT} \
         retreat_distance:=${RETREAT_DIST} \
         retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \
+        retreat_reverse_enabled:=${RETREAT_REVERSE_ENABLED} \
+        retreat_reverse_distance:=${RETREAT_REVERSE_DIST} \
         action_wait_timeout:=${ACTION_WAIT} \
         enable_auto_explore:=${ENABLE_AUTO_EXPLORE} \
         explore_goal_distance:=${EXPLORE_STEP} \
+        explore_short_horizon:=${EXPLORE_STEP} \
+        explore_map_topic:=/map \
+        explore_costmap_topic:=/move_base/global_costmap/costmap \
+        explore_scan_topic:=${EXPLORE_SCAN_TOPIC} \
         explore_revisit_window:=${EXPLORE_NO_REPEAT_SEC} \
         target_reacquire_block_s:=${EXPLORE_NO_REPEAT_SEC} \
         post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
@@ -1011,10 +1113,25 @@ else
     _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
       exec roslaunch target_follower target_follow_real.launch \
         launch_move_base:=true \
+        use_online_slam:=true \
         lidar_mode:=${LIDAR_MODE} \
         unitree_port:=${UNITREE_PORT} \
         rplidar_port:=${RPLIDAR_PORT} \
         rplidar_baud:=${RPLIDAR_BAUD} \
+        rplidar_tf_x:=${RPLIDAR_TF_X} \
+        rplidar_tf_y:=${RPLIDAR_TF_Y} \
+        rplidar_tf_z:=${RPLIDAR_TF_Z} \
+        rplidar_tf_qx:=${RPLIDAR_TF_QX} \
+        rplidar_tf_qy:=${RPLIDAR_TF_QY} \
+        rplidar_tf_qz:=${RPLIDAR_TF_QZ} \
+        rplidar_tf_qw:=${RPLIDAR_TF_QW} \
+        camera_tf_x:=${CAMERA_TF_X} \
+        camera_tf_y:=${CAMERA_TF_Y} \
+        camera_tf_z:=${CAMERA_TF_Z} \
+        camera_tf_qx:=${CAMERA_TF_QX} \
+        camera_tf_qy:=${CAMERA_TF_QY} \
+        camera_tf_qz:=${CAMERA_TF_QZ} \
+        camera_tf_qw:=${CAMERA_TF_QW} \
         rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
         rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
         rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \
@@ -1024,9 +1141,19 @@ else
         udp_port:=${TRASH_UDP_PORT} \
         retreat_distance:=${RETREAT_DIST} \
         retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \
+        retreat_reverse_enabled:=${RETREAT_REVERSE_ENABLED} \
+        retreat_reverse_distance:=${RETREAT_REVERSE_DIST} \
         action_wait_timeout:=${ACTION_WAIT} \
         enable_auto_explore:=${ENABLE_AUTO_EXPLORE} \
         explore_goal_distance:=${EXPLORE_STEP} \
+        explore_short_horizon:=${EXPLORE_STEP} \
+        explore_map_topic:=/map \
+        explore_costmap_topic:=/move_base/global_costmap/costmap \
+        explore_scan_topic:=${EXPLORE_SCAN_TOPIC} \
+        slam_map_topic:=/map \
+        slam_map_updates_topic:=/map_updates \
+        slam_map_metadata_topic:=/map_metadata \
+        slam_map_frame:=map \
         explore_revisit_window:=${EXPLORE_NO_REPEAT_SEC} \
         target_reacquire_block_s:=${EXPLORE_NO_REPEAT_SEC} \
         post_accept_cooldown:=${POST_ACCEPT_COOLDOWN} \
@@ -1058,7 +1185,11 @@ else
       die "LiDAR-only bringup failed. Check: docker exec ${DOCKER_NAME} tail -80 /tmp/lidar_bringup.log"
     fi
   else
-    info "Waiting for navigation stack readiness (move_base node + live target_follower status; /odom is soft-check)..."
+    if [[ "${NAV_READINESS_MODE}" == "strict" ]]; then
+      info "Waiting for navigation stack readiness (move_base + live target_follower status; online_slam 还需 /map + TF map->base_link)..."
+    else
+      info "Waiting for navigation control readiness (move_base + target_follower nodes; online_slam 还需 /map + TF map->base_link)..."
+    fi
     NAV_READY=0
     LAST_NAV_BLOCKERS=""
     ODOM_STALE_WARNED=0
@@ -1072,6 +1203,9 @@ else
         fi
         if ! _ros_odom_alive; then
           warn "STEP 4 proceeding without /odom stream (base not started or unreachable)"
+        fi
+        if ! _target_follower_ready; then
+          warn "STEP 4 proceeding before /target_follower/status became live; target_follower is still finishing startup"
         fi
         ok "Navigation stack is ready (${i}s)"
         break
@@ -1149,58 +1283,85 @@ else
     fi
 
     if ${WORK_MAPPING}; then
-      step "STEP 4.5 — Start passive map learning (task by-product)"
-
-      MAP_LEARN_SCAN_TOPIC="/unitree/scan"
-      if [[ "${LIDAR_MODE}" == "rplidar" ]]; then
-        MAP_LEARN_SCAN_TOPIC="/scan_filtered"
-      fi
-
-      info "Starting passive SLAM on ${MAP_LEARN_SCAN_TOPIC}..."
-      ${DOCKER_EXEC} "pkill -f 'roslaunch.*passive_mapping_unitree' 2>/dev/null; \
-                      pkill -f '[c]ontinuous_map_manager.py' 2>/dev/null; sleep 1" 2>/dev/null || true
-
-      _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
-        exec roslaunch p3at_lms_navigation passive_mapping_unitree.launch \
-          scan_topic:=${MAP_LEARN_SCAN_TOPIC} \
-          map_topic:=/work_map \
-          map_updates_topic:=/work_map_updates \
-          map_metadata_topic:=/work_map_metadata \
-          map_frame:=work_map \
-          odom_frame:=odom \
-          base_frame:=base_link \
-        > /tmp/passive_mapping.log 2>&1"
+      step "STEP 4.5 — Start map persistence"
 
       MAP_MANAGER_BASE_ARG="_base_map_yaml:="
       if [[ -n "${ASSIST_MAP_FILE}" ]]; then
         MAP_MANAGER_BASE_ARG="_base_map_yaml:=${ASSIST_MAP_FILE}"
       fi
 
-      info "Starting continuous map manager (save every ${MAP_SAVE_INTERVAL}s)..."
-      _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
-        exec rosrun p3at_lms_navigation continuous_map_manager.py \
-          _map_topic:=/work_map \
-          _save_interval_s:=${MAP_SAVE_INTERVAL} \
-          _output_map_prefix:=${MAP_SAVE_PREFIX} \
-          _base_frame:=map \
-          ${MAP_MANAGER_BASE_ARG} \
-        > /tmp/map_manager.log 2>&1"
+      if [[ "${NAV_PROFILE}" == "online_slam_task" ]]; then
+        info "Using online SLAM map (/map) as navigation + exploration authority."
+        ${DOCKER_EXEC} "pkill -f '[c]ontinuous_map_manager.py' 2>/dev/null; sleep 1" 2>/dev/null || true
+        info "Starting continuous map manager on /map (save every ${MAP_SAVE_INTERVAL}s)..."
+        _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
+          exec rosrun p3at_lms_navigation continuous_map_manager.py \
+            _map_topic:=/map \
+            _save_interval_s:=${MAP_SAVE_INTERVAL} \
+            _output_map_prefix:=${MAP_SAVE_PREFIX} \
+            _base_frame:=map \
+            ${MAP_MANAGER_BASE_ARG} \
+          > /tmp/map_manager.log 2>&1"
 
-      MAP_LEARN_READY=0
-      for i in $(seq 1 20); do
-        if _ros_node_exists "slam_gmapping_task" && _ros_node_exists "continuous_map_manager"; then
-          MAP_LEARN_READY=1
-          break
+        MAP_LEARN_READY=0
+        for i in $(seq 1 20); do
+          if _ros_node_exists "slam_gmapping_online" && _ros_node_exists "continuous_map_manager"; then
+            MAP_LEARN_READY=1
+            break
+          fi
+          sleep 1
+        done
+        if [[ "${MAP_LEARN_READY}" -ne 1 ]]; then
+          die "Online SLAM/map-manager stack failed to start. Check: tail -80 /tmp/target_follow.log and /tmp/map_manager.log"
         fi
-        sleep 1
-      done
-      if [[ "${MAP_LEARN_READY}" -ne 1 ]]; then
-        die "Passive mapping stack failed to start. Check: tail -80 /tmp/passive_mapping.log and /tmp/map_manager.log"
+        ok "Online SLAM + map persistence is running"
+      else
+        MAP_LEARN_SCAN_TOPIC="/unitree/scan"
+        if [[ "${LIDAR_MODE}" == "rplidar" ]]; then
+          MAP_LEARN_SCAN_TOPIC="/scan_filtered"
+        fi
+
+        info "Starting passive SLAM on ${MAP_LEARN_SCAN_TOPIC}..."
+        ${DOCKER_EXEC} "pkill -f 'roslaunch.*passive_mapping_unitree' 2>/dev/null; \
+                        pkill -f '[c]ontinuous_map_manager.py' 2>/dev/null; sleep 1" 2>/dev/null || true
+
+        _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
+          exec roslaunch p3at_lms_navigation passive_mapping_unitree.launch \
+            scan_topic:=${MAP_LEARN_SCAN_TOPIC} \
+            map_topic:=/work_map \
+            map_updates_topic:=/work_map_updates \
+            map_metadata_topic:=/work_map_metadata \
+            map_frame:=work_map \
+            odom_frame:=odom \
+            base_frame:=base_link \
+          > /tmp/passive_mapping.log 2>&1"
+
+        info "Starting continuous map manager (save every ${MAP_SAVE_INTERVAL}s)..."
+        _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
+          exec rosrun p3at_lms_navigation continuous_map_manager.py \
+            _map_topic:=/work_map \
+            _save_interval_s:=${MAP_SAVE_INTERVAL} \
+            _output_map_prefix:=${MAP_SAVE_PREFIX} \
+            _base_frame:=map \
+            ${MAP_MANAGER_BASE_ARG} \
+          > /tmp/map_manager.log 2>&1"
+
+        MAP_LEARN_READY=0
+        for i in $(seq 1 20); do
+          if _ros_node_exists "slam_gmapping_task" && _ros_node_exists "continuous_map_manager"; then
+            MAP_LEARN_READY=1
+            break
+          fi
+          sleep 1
+        done
+        if [[ "${MAP_LEARN_READY}" -ne 1 ]]; then
+          die "Passive mapping stack failed to start. Check: tail -80 /tmp/passive_mapping.log and /tmp/map_manager.log"
+        fi
+        ok "Passive map learning is running"
       fi
-      ok "Passive map learning is running"
       ok "Map output: ${MAP_SAVE_PREFIX}.yaml/.pgm"
     else
-      warn "Passive map learning disabled (--no-work-mapping)."
+      warn "Map persistence disabled (--no-work-mapping)."
     fi
   fi
 fi
@@ -1236,18 +1397,26 @@ if ${SENSOR_ONLY}; then
   fi
   echo -e "    ${CYN}docker exec ${DOCKER_NAME} tail -f /tmp/lidar_bringup.log${NC} — lidar bringup log"
 else
-  echo -e "    ${CYN}rostopic echo /target_follower/status${NC}   — IDLE|TRACKING|REACHED|WAITING_ACTION|RETREATING|LOST|FAILED"
+  echo -e "    ${CYN}rostopic echo /target_follower/status${NC}   — IDLE|EXPLORING|TRACKING|REACQUIRE_TARGET|REACHED|WAITING_ACTION|RETREATING|LOST|FAILED"
   echo -e "    ${CYN}rostopic echo /target_follower/result${NC}   — True/False (dialogue trigger)"
   echo -e "    ${CYN}rostopic echo /trash_action${NC}             — True=接受 / False=拒绝 (对话结果)"
   echo -e "    ${CYN}rostopic echo /target_pose${NC}              — current target pose"
   if ${WORK_MAPPING}; then
-    echo -e "    ${CYN}rostopic hz /work_map${NC}                     — passive mapping publish rate"
+    if [[ "${NAV_PROFILE}" == "online_slam_task" ]]; then
+      echo -e "    ${CYN}rostopic hz /map${NC}                          — online SLAM map publish rate"
+    else
+      echo -e "    ${CYN}rostopic hz /work_map${NC}                     — passive mapping publish rate"
+    fi
   fi
   echo -e "    ${CYN}tail -f /tmp/handobj.log${NC}                  — detection log"
   echo -e "    ${CYN}tail -f /tmp/dialogue_bridge.log${NC}           — dialogue bridge log"
   echo -e "    ${CYN}tail -f /tmp/dialogue_runner.log${NC}           — dialogue runner log"
   if ${WORK_MAPPING}; then
-    echo -e "    ${CYN}tail -f /tmp/passive_mapping.log${NC}           — passive gmapping log"
+    if [[ "${NAV_PROFILE}" == "online_slam_task" ]]; then
+      echo -e "    ${CYN}tail -f /tmp/target_follow.log${NC}             — nav + online SLAM log"
+    else
+      echo -e "    ${CYN}tail -f /tmp/passive_mapping.log${NC}           — passive gmapping log"
+    fi
     echo -e "    ${CYN}tail -f /tmp/map_manager.log${NC}               — map merge/save log"
     echo -e "    ${CYN}ls ${MAP_SAVE_PREFIX}.yaml ${MAP_SAVE_PREFIX}.pgm${NC} — latest by-product map"
   fi
@@ -1281,6 +1450,7 @@ while true; do
     TRACKING)         S_COLOR="${YLW}${STATUS}${NC}" ;;
     REACHED)          S_COLOR="${GRN}${STATUS}${NC}" ;;
     WAITING_ACTION)   S_COLOR="${CYN}${STATUS}${NC}" ;;
+    REACQUIRE_TARGET) S_COLOR="${CYN}${STATUS}${NC}" ;;
     RETREATING)       S_COLOR="${BLU}${STATUS}${NC}" ;;
     LOST|FAILED)      S_COLOR="${RED}${STATUS}${NC}" ;;
     *)                S_COLOR="${STATUS}" ;;

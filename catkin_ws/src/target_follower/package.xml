@@ -17,6 +17,8 @@
   <depend>actionlib</depend>
   <depend>move_base_msgs</depend>
   <depend>gazebo_msgs</depend>
+  <depend>std_srvs</depend>
+  <exec_depend>python3-numpy</exec_depend>
   <exec_depend>pointcloud_to_laserscan</exec_depend>
   <exec_depend>rplidar_ros</exec_depend>
 
