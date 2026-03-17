@@ -794,6 +794,7 @@ This section records the consolidated simulation work completed on **2026-03-17*
 - Standardised the simulation robot to the **dual-lidar + RGB-D** URDF path already present in `cat_ws`, and re-verified the sensor geometry with generated visuals under `Log/urdf_visual/`.
 - Shifted the simulated `RPLIDAR` further in the negative `x` direction by **3 cm**, resulting in `rplidar_tf_x = -0.232`, and kept the rest of the sensor layout unchanged.
 - Added experiment-specific automation and metrics collection so each experiment now generates reusable logs and JSON summaries under `Log/sim_experiments/`.
+- Updated `scripts/run_sim_four_experiments.sh` so **Exp3 defaults to the high-speed stable profile** (`target_speed=0.36 m/s`, high-speed DWA overrides, `enable_interaction_mode=false`), with conservative fallback used only if the high-speed run fails to launch or collect metrics.
 
 ### Sensor Configuration Policy Used in These Experiments
 
@@ -909,6 +910,24 @@ Interpretation:
 - aggressive moving-target setups were not reliable enough, so the accepted result uses a more conservative tuned target profile
 - additional robustness work was added afterwards to detect fake Gazebo starts (`/clock` missing) and avoid hanging metrics runs
 
+#### Exp3 — High-Speed Stable Profile (New One-Click Default)
+
+High-speed default source metric: [`Log/sim_experiments/20260317_0215_manual/metrics/exp3_target_follow_hs_fix_attempt5.json`](Log/sim_experiments/20260317_0215_manual/metrics/exp3_target_follow_hs_fix_attempt5.json)
+
+High-speed default launch log: [`Log/sim_experiments/20260317_0215_manual/logs/exp3_hs_fix_attempt5_launch.log`](Log/sim_experiments/20260317_0215_manual/logs/exp3_hs_fix_attempt5_launch.log)
+
+- Standoff target: **1.2 m**
+- Mean robot-target distance: **1.5046 m**
+- Standoff RMSE: **0.9816 m**
+- Within-tolerance rate (`±0.35 m`): **68.8%**
+- `result_false_count`: **0**
+- Tracking state ratio: **100% TRACKING**
+
+Speed-note for this high-speed run:
+
+- `move_target` waypoint-segment speed from launch logs: mean **0.3606 m/s**, median **0.3605 m/s**
+- metrics JSON reports lower aggregated robot/target speeds due sampling-time effects in long headless Gazebo runs; the target command profile itself is the intended **0.36 m/s** high-speed condition.
+
 #### Exp4 — Task6/7-Style Autonomous Mapping + AMCL Verification
 
 Mapping artifact:
@@ -961,7 +980,10 @@ As of the 2026-03-17 update, the simulation stack should be interpreted like thi
 
 - **Exp1** is fully passed.
 - **Exp2** is mostly passed but still exposes one difficult waypoint in the complex obstacle field.
-- **Exp3** has a usable conservative target-follow run and a hardened test procedure, but dynamic target following still benefits from more target-path tuning than fixed-point navigation.
+- **Exp3** now has two valid references:
+  - conservative slow-speed profile (historical baseline),
+  - high-speed stable profile (`0.36 m/s`) now used as the default in one-click four-experiment runs.
+  The high-speed profile reaches **68.8%** standoff tolerance with **0 false terminations**, but distance tightness can still be improved further.
 - **Exp4** is now in an acceptable state: short-horizon autonomous exploration is feasible, and the tuned Unitree-only AMCL verification passes cleanly.
 
 ---

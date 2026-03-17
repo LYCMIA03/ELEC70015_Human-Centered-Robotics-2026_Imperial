@@ -3,8 +3,11 @@
   <arg name="use_rviz_goal_relay" default="false"/>
   <arg name="robot_model_name" default="p3at"/>
   <arg name="camera_frame" default="rgbd_camera"/>
+  <arg name="send_rate_hz" default="2.0"/>
+  <arg name="min_update_dist" default="0.25"/>
   <arg name="standoff_distance" default="0.0"/>
   <arg name="face_target" default="false"/>
+  <arg name="enable_interaction_mode" default="true"/>
   <arg name="target_timeout" default="2.0"/>
   <arg name="enable_auto_explore" default="false"/>
   <arg name="close_approach_threshold" default="1.15"/>
@@ -52,8 +55,8 @@
     <param name="global_frame" value="map"/>
     <param name="robot_frame" value="base_link"/>
     <param name="camera_frame" value="$(arg camera_frame)"/>
-    <param name="send_rate_hz" value="2.0"/>
-    <param name="min_update_dist" value="0.25"/>
+    <param name="send_rate_hz" value="$(arg send_rate_hz)"/>
+    <param name="min_update_dist" value="$(arg min_update_dist)"/>
     <!-- Following cares about position; ignore orientation to avoid spin-in-place -->
     <param name="use_target_orientation" value="false"/>
     <param name="target_timeout_s" value="$(arg target_timeout)"/>
@@ -61,6 +64,7 @@
     <param name="standoff_distance" value="$(arg standoff_distance)"/>
     <!-- Orient the robot to face the target at the goal position -->
     <param name="face_target" value="$(arg face_target)"/>
+    <param name="enable_interaction_mode" value="$(arg enable_interaction_mode)"/>
     <param name="enable_auto_explore" value="$(arg enable_auto_explore)"/>
     <param name="close_approach_threshold" value="$(arg close_approach_threshold)"/>
     <param name="close_approach_timeout_s" value="$(arg close_approach_timeout)"/>

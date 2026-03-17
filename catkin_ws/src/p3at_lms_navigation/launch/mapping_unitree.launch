@@ -20,8 +20,11 @@
   <arg name="rplidar_scan_raw_topic" default="/scan"/>
   <arg name="rplidar_scan_filtered_topic" default="/rplidar/scan_filtered"/>
   <arg name="camera_frame" default="rgbd_camera"/>
+  <arg name="send_rate_hz" default="2.0"/>
+  <arg name="min_update_dist" default="0.25"/>
   <arg name="standoff_distance" default="0.0"/>
   <arg name="face_target" default="false"/>
+  <arg name="enable_interaction_mode" default="true"/>
   <arg name="target_timeout" default="2.0"/>
   <arg name="enable_auto_explore" default="false"/>
   <arg name="close_approach_threshold" default="1.15"/>
@@ -33,6 +36,16 @@
   <arg name="target_pause" default="1.0"/>
   <arg name="target_waypoints"
        default="[[2.8,0.0],[2.8,1.8],[0.6,1.8],[0.6,-1.8],[2.8,-1.8],[2.8,0.0]]"/>
+  <arg name="enable_high_speed_follow_tuning" default="false"/>
+  <arg name="follow_max_vel_x" default="0.42"/>
+  <arg name="follow_max_vel_trans" default="0.42"/>
+  <arg name="follow_acc_lim_x" default="0.80"/>
+  <arg name="follow_max_vel_theta" default="0.95"/>
+  <arg name="follow_acc_lim_theta" default="1.80"/>
+  <arg name="follow_xy_goal_tolerance" default="0.20"/>
+  <arg name="follow_yaw_goal_tolerance" default="3.14159"/>
+  <arg name="follow_latch_xy_goal_tolerance" default="true"/>
+  <arg name="follow_occdist_scale" default="0.06"/>
 
   <!-- Gazebo with dual-lidar robot model -->
   <include file="$(find p3at_lms_gazebo)/launch/sim_unitree.launch">
@@ -56,8 +69,29 @@
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap.yaml" command="load"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml" command="load"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml" command="load"/>
+    <!-- High-speed target-follow tuning: optional overrides for moving target tests -->
+    <rosparam if="$(arg enable_high_speed_follow_tuning)"
+              param="DWAPlannerROS/max_vel_x">$(arg follow_max_vel_x)</rosparam>
+    <rosparam if="$(arg enable_high_speed_follow_tuning)"
+              param="DWAPlannerROS/max_vel_trans">$(arg follow_max_vel_trans)</rosparam>
+    <rosparam if="$(arg enable_high_speed_follow_tuning)"
+              param="DWAPlannerROS/acc_lim_x">$(arg follow_acc_lim_x)</rosparam>
+    <rosparam if="$(arg enable_high_speed_follow_tuning)"
+              param="DWAPlannerROS/max_vel_theta">$(arg follow_max_vel_theta)</rosparam>
+    <rosparam if="$(arg enable_high_speed_follow_tuning)"
+              param="DWAPlannerROS/acc_lim_theta">$(arg follow_acc_lim_theta)</rosparam>
+    <rosparam if="$(arg enable_high_speed_follow_tuning)"
+              param="DWAPlannerROS/xy_goal_tolerance">$(arg follow_xy_goal_tolerance)</rosparam>
+    <rosparam if="$(arg enable_high_speed_follow_tuning)"
+              param="DWAPlannerROS/yaw_goal_tolerance">$(arg follow_yaw_goal_tolerance)</rosparam>
+    <rosparam if="$(arg enable_high_speed_follow_tuning)"
+              param="DWAPlannerROS/latch_xy_goal_tolerance">$(arg follow_latch_xy_goal_tolerance)</rosparam>
+    <rosparam if="$(arg enable_high_speed_follow_tuning)"
+              param="DWAPlannerROS/occdist_scale">$(arg follow_occdist_scale)</rosparam>
     <rosparam if="$(arg enable_rplidar_local_obstacle)"
               param="local_costmap/obstacle_layer/observation_sources">unitree_scan_sensor rplidar_scan_sensor</rosparam>
+    <rosparam if="$(arg enable_rplidar_local_obstacle)"
+              param="local_costmap/obstacle_layer/rplidar_scan_sensor/clearing">true</rosparam>
   </node>
 
   <node if="$(arg enable_rplidar_local_obstacle)"
@@ -78,8 +112,11 @@
     <arg name="use_gazebo_target" value="$(arg use_gazebo_target)"/>
     <arg name="use_rviz_goal_relay" value="$(arg use_rviz_goal_relay)"/>
     <arg name="camera_frame" value="$(arg camera_frame)"/>
+    <arg name="send_rate_hz" value="$(arg send_rate_hz)"/>
+    <arg name="min_update_dist" value="$(arg min_update_dist)"/>
     <arg name="standoff_distance" value="$(arg standoff_distance)"/>
     <arg name="face_target" value="$(arg face_target)"/>
+    <arg name="enable_interaction_mode" value="$(arg enable_interaction_mode)"/>
     <arg name="target_timeout" value="$(arg target_timeout)"/>
     <arg name="enable_auto_explore" value="$(arg enable_auto_explore)"/>
     <arg name="close_approach_threshold" value="$(arg close_approach_threshold)"/>

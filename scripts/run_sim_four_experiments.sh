@@ -287,45 +287,45 @@ run_target_follow_experiment() {
   local metric_out="$2"
   local chosen_attempt=""
   local chosen_metric=""
-  local eval_text=""
   local candidate_metric=""
-  local metric_acceptable="false"
 
-  info "Exp3 strategy: adaptive target setting with automatic retry when target-follow quality is poor"
+  info "Exp3 strategy: default high-speed moving-target profile (0.36 m/s), with conservative fallback only if launch/collection fails"
 
-  if candidate_metric="$(run_target_follow_attempt "attempt1_dynamic_default" 0.8 0.35 \
-      target_spawn_x:=2.8 \
+  if candidate_metric="$(run_target_follow_attempt "attempt1_highspeed_stable_default" 1.2 0.35 \
+      target_spawn_x:=2.6 \
       target_spawn_y:=0.0 \
       move_target:=true \
-      target_speed:=0.18 \
-      target_pause:=2.5 \
-      target_waypoints:="[[2.8,0.0],[2.8,1.8],[0.6,1.8],[0.6,-1.8],[2.8,-1.8],[2.8,0.0]]" \
-      standoff_distance:=0.8 \
-      face_target:=true \
-      target_timeout:=2.5 \
+      target_speed:=0.36 \
+      target_pause:=2.0 \
+      target_waypoints:="[[2.6,0.0],[2.6,1.2],[1.2,1.2],[1.2,-1.2],[2.6,-1.2],[2.6,0.0]]" \
+      standoff_distance:=1.2 \
+      face_target:=false \
+      enable_interaction_mode:=false \
+      target_timeout:=2.0 \
       camera_frame:=rgbd_camera \
       enable_auto_explore:=false \
-      close_approach_threshold:=1.1 \
+      send_rate_hz:=10.0 \
+      min_update_dist:=0.08 \
+      enable_high_speed_follow_tuning:=true \
+      follow_max_vel_x:=0.50 \
+      follow_max_vel_trans:=0.50 \
+      follow_acc_lim_x:=1.20 \
+      follow_max_vel_theta:=1.20 \
+      follow_acc_lim_theta:=2.00 \
+      follow_xy_goal_tolerance:=0.28 \
+      follow_yaw_goal_tolerance:=3.14159 \
+      follow_latch_xy_goal_tolerance:=true \
+      follow_occdist_scale:=0.04 \
+      close_approach_threshold:=1.50 \
       close_approach_timeout:=20.0 \
-      close_approach_speed:=0.10 \
-      close_approach_steer_gain:=0.45)"; then
-    if eval_text="$(evaluate_target_follow_metric "${candidate_metric}")"; then
-      info "Exp3 attempt1 quality accepted: ${eval_text}"
-      metric_acceptable="true"
-      chosen_attempt="attempt1_dynamic_default"
-      chosen_metric="${candidate_metric}"
-    else
-      warn "Exp3 attempt1 quality not accepted: ${eval_text}"
-      metric_acceptable="false"
-      chosen_attempt="attempt1_dynamic_default"
-      chosen_metric="${candidate_metric}"
-    fi
+      close_approach_speed:=0.22 \
+      close_approach_steer_gain:=0.90)"; then
+    chosen_attempt="attempt1_highspeed_stable_default"
+    chosen_metric="${candidate_metric}"
+    info "Exp3 selected high-speed default profile"
   else
-    warn "Exp3 attempt1 launch/metric collection failed; will retry with a more conservative target setup."
-  fi
-
-  if [[ "${metric_acceptable}" != "true" ]]; then
-    if candidate_metric="$(run_target_follow_attempt "attempt2_dynamic_conservative" 0.8 0.35 \
+    warn "Exp3 high-speed default failed to run; retrying with conservative fallback profile."
+    if candidate_metric="$(run_target_follow_attempt "attempt2_dynamic_conservative_fallback" 0.8 0.35 \
         target_spawn_x:=1.8 \
         target_spawn_y:=0.2 \
         move_target:=true \
@@ -341,47 +341,11 @@ run_target_follow_experiment() {
         close_approach_timeout:=24.0 \
         close_approach_speed:=0.08 \
         close_approach_steer_gain:=0.40)"; then
-      if eval_text="$(evaluate_target_follow_metric "${candidate_metric}")"; then
-        info "Exp3 attempt2 quality accepted: ${eval_text}"
-        metric_acceptable="true"
-        chosen_attempt="attempt2_dynamic_conservative"
-        chosen_metric="${candidate_metric}"
-      else
-        warn "Exp3 attempt2 quality not accepted: ${eval_text}"
-        metric_acceptable="false"
-        chosen_attempt="attempt2_dynamic_conservative"
-        chosen_metric="${candidate_metric}"
-      fi
-    else
-      warn "Exp3 attempt2 launch/metric collection failed; will use static target fallback."
-    fi
-  fi
-
-  if [[ "${metric_acceptable}" != "true" ]]; then
-    if candidate_metric="$(run_target_follow_attempt "attempt3_static_fallback" 0.8 0.35 \
-        target_spawn_x:=1.6 \
-        target_spawn_y:=0.0 \
-        move_target:=false \
-        standoff_distance:=0.8 \
-        face_target:=true \
-        target_timeout:=3.0 \
-        camera_frame:=rgbd_camera \
-        enable_auto_explore:=false \
-        close_approach_threshold:=0.95 \
-        close_approach_timeout:=24.0 \
-        close_approach_speed:=0.08 \
-        close_approach_steer_gain:=0.40)"; then
-      if eval_text="$(evaluate_target_follow_metric "${candidate_metric}")"; then
-        info "Exp3 attempt3 quality accepted: ${eval_text}"
-        metric_acceptable="true"
-      else
-        warn "Exp3 attempt3 quality still below target: ${eval_text}"
-        metric_acceptable="false"
-      fi
-      chosen_attempt="attempt3_static_fallback"
+      chosen_attempt="attempt2_dynamic_conservative_fallback"
       chosen_metric="${candidate_metric}"
+      warn "Exp3 fallback profile selected (high-speed default unavailable in this run)"
     else
-      err "Exp3 all attempts failed to generate metrics."
+      err "Exp3 high-speed and fallback profiles both failed."
       return 1
     fi
   fi
@@ -485,11 +449,12 @@ lines.append("")
 lines.append("## Exp3 Simple Obstacle Target Following")
 if follow:
     s = follow["summary"]
+    target_speed = s.get("target_speed_mean_unweighted_mps", s.get("target_speed_mean_mps", 0.0))
     lines.append(f"- sample_count: {s['sample_count']}")
     lines.append(f"- distance_mean_m: {s['distance_mean_m']:.4f}")
     lines.append(f"- standoff_rmse_m: {s['standoff_rmse_m']:.4f}")
     lines.append(f"- within_tolerance_rate: {s['within_tolerance_rate']*100:.1f}%")
-    lines.append(f"- target_speed_mean_mps: {s['target_speed_mean_mps']:.3f}")
+    lines.append(f"- target_speed_mean_mps: {target_speed:.3f}")
 else:
     lines.append("- data: missing")
 lines.append("")

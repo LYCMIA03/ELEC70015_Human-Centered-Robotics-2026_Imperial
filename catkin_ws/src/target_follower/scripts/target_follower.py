@@ -108,6 +108,10 @@ class TargetFollower:
         self.standoff_distance = float(rospy.get_param("~standoff_distance", 0.6))
         # Orient the robot to face the target at the goal pose.
         self.face_target = bool(rospy.get_param("~face_target", False))
+        # In pure-follow experiments we disable dialogue waiting at REACHED so
+        # the robot keeps tracking a moving target continuously.
+        self.enable_interaction_mode = bool(
+            rospy.get_param("~enable_interaction_mode", True))
 
         # ── Dialogue / trash-action integration params ─────────────────────
         # Topic published by udp_trash_action_bridge (Bool): True=accept, False=refuse
@@ -378,39 +382,59 @@ class TargetFollower:
     def _yaw_to_quaternion(yaw):
         return Quaternion(0.0, 0.0, math.sin(yaw / 2.0), math.cos(yaw / 2.0))
 
-    def _get_target_depth_in_camera(self):
-        """Return the z-distance (depth) of the current target in camera_link frame.
-
-        The detection pipeline (handobj_detection_rgbd / predict_15cls_rgbd) outputs
-        coordinates in the camera optical convention:
-            z = forward (depth),  x = right,  y = down
-        and labels the frame as camera_link.  This z-component is the most
-        reliable distance metric because it comes straight from the depth
-        sensor with no TF chain involved.
-
-        If the target is not in camera_link, we fall back to a TF lookup.
-        Returns None when target or TF is unavailable.
-        """
+    def _get_target_pose_in_frame(self, target_frame):
+        """Return last_target transformed to target_frame, or None."""
         if self.last_target is None:
             return None
-        # Fast path: target already in camera_link — just read z
-        if self.last_target.header.frame_id == self.camera_frame:
-            return self.last_target.pose.position.z
-        # Slow path: transform into camera_link
+        if self.last_target.header.frame_id == target_frame:
+            return self.last_target
         try:
             tfm = self.tfbuf.lookup_transform(
-                self.camera_frame,
+                target_frame,
                 self.last_target.header.frame_id,
                 rospy.Time(0),
                 rospy.Duration(0.2),
             )
-            target_cam = transform_pose_stamped(
-                self.last_target, tfm, self.camera_frame,
-            )
-            return target_cam.pose.position.z
+            return transform_pose_stamped(self.last_target, tfm, target_frame)
         except Exception as e:
-            rospy.logwarn_throttle(2.0, "TF error getting camera depth: %s", str(e))
+            rospy.logwarn_throttle(
+                2.0, "TF error transforming target to %s: %s", target_frame, str(e))
             return None
+
+    def _get_target_depth_in_camera(self):
+        """Return robust forward distance of target in camera frame.
+
+        The detection pipeline (handobj_detection_rgbd / predict_15cls_rgbd) outputs
+        coordinates in the camera optical convention:
+            z = forward (depth),  x = right,  y = down
+        and labels the frame as camera_link.
+
+        In Gazebo target-follow tests, target poses can come from non-optical
+        frames (e.g. base_footprint) and transformed z may become non-positive,
+        which causes false "reached" triggers. We therefore:
+          1) prefer optical depth z when z>0;
+          2) fall back to planar camera distance hypot(x,y) otherwise.
+        """
+        target_cam = self._get_target_pose_in_frame(self.camera_frame)
+        if target_cam is None:
+            return None
+        x = float(target_cam.pose.position.x)
+        y = float(target_cam.pose.position.y)
+        z = float(target_cam.pose.position.z)
+
+        if z > 0.05:
+            return z
+
+        planar = math.hypot(x, y)
+        if planar > 1e-3:
+            rospy.logwarn_throttle(
+                5.0,
+                "[TargetFollower] Non-positive camera depth z=%.3f in frame=%s; "
+                "fallback to planar distance hypot(x,y)=%.3f",
+                z, self.camera_frame, planar,
+            )
+            return planar
+        return abs(z)
 
     def _reload_dynamic_params(self):
         now = rospy.Time.now()
@@ -1130,19 +1154,29 @@ class TargetFollower:
                     d_cam_z, self.standoff_distance,
                 )
                 self._stop_cmd_vel()
-                self._on_reached()
+                if self.enable_interaction_mode:
+                    self._on_reached()
+                else:
+                    self._set_state("TRACKING")
                 return
 
-        # ── Steering: proportional controller on camera x-offset ─────────
-        # camera_link optical convention: x = right, so target at positive x
-        # means it's to the right → robot should turn right (negative angular.z)
-        cam_x = 0.0
-        if self.last_target is not None and self.last_target.header.frame_id == self.camera_frame:
-            cam_x = self.last_target.pose.position.x
+        # ── Steering: proportional controller on lateral offset ───────────
+        # Optical frame: x is right.
+        # Non-optical frame (robot-like): y is left, so convert to "right-positive".
+        lateral_right = 0.0
+        target_cam = self._get_target_pose_in_frame(self.camera_frame)
+        if target_cam is not None:
+            tx = float(target_cam.pose.position.x)
+            ty = float(target_cam.pose.position.y)
+            tz = float(target_cam.pose.position.z)
+            if tz > 0.05:
+                lateral_right = tx
+            else:
+                lateral_right = -ty
 
         twist = Twist()
         twist.linear.x = self.close_approach_speed
-        twist.angular.z = -self.close_approach_steer_gain * cam_x
+        twist.angular.z = -self.close_approach_steer_gain * lateral_right
         # Clamp angular velocity to avoid spinning
         max_ang = 0.35  # rad/s, same as DWA max_vel_theta
         twist.angular.z = max(-max_ang, min(max_ang, twist.angular.z))
@@ -1275,14 +1309,17 @@ class TargetFollower:
                             "(d_cam_z=%s <= %.2f) — REACHED",
                             "%.3f" % reach_dist, reach_threshold,
                         )
-                        self._on_reached()
-                    return
+                        if self.enable_interaction_mode:
+                            self._on_reached()
+                            return
+                    # Pure-follow mode: do not stop at standoff, continue
+                    # sending tracking goals for moving targets.
 
                 # ── Close approach: bypass move_base for last-metre ────
                 # When target is within close_approach_threshold but
                 # beyond standoff, switch to direct cmd_vel drive.
                 # This avoids DWA failure when the human is an obstacle.
-                if reach_dist < self.close_approach_threshold:
+                if self.enable_interaction_mode and reach_dist < self.close_approach_threshold:
                     rospy.loginfo(
                         "[TargetFollower] Target within close-approach zone "
                         "(d=%.3f < %.2f) — switching to CLOSE_APPROACH",

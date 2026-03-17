@@ -14,6 +14,7 @@ from threading import Lock
 
 import rospy
 from gazebo_msgs.msg import ModelStates
+from rosgraph_msgs.msg import Clock
 from std_msgs.msg import Bool, String
 
 
@@ -36,6 +37,9 @@ class TargetFollowMetrics:
         self._prev_robot = None
         self._prev_target = None
         self._prev_t = None
+        self.robot_path_len = 0.0
+        self.target_path_len = 0.0
+        self.motion_time_s = 0.0
 
         self.status_current = "UNKNOWN"
         self.status_enter_t = None
@@ -44,14 +48,31 @@ class TargetFollowMetrics:
         self.result_events = []
 
         self.latest_msg_time = None
+        self.clock_now_s = None
 
         rospy.Subscriber("/gazebo/model_states", ModelStates, self.cb_model_states, queue_size=20)
         rospy.Subscriber("/target_follower/status", String, self.cb_status, queue_size=50)
         rospy.Subscriber("/target_follower/result", Bool, self.cb_result, queue_size=50)
+        rospy.Subscriber("/clock", Clock, self.cb_clock, queue_size=50)
+
+    def cb_clock(self, msg):
+        with self.lock:
+            self.clock_now_s = msg.clock.to_sec()
+
+    @staticmethod
+    def _wall_now_s():
+        return time.time()
+
+    def _now_s(self):
+        # Prefer explicit /clock time even when /use_sim_time is false.
+        # Fall back to wall time before /clock starts.
+        if self.clock_now_s is not None and self.clock_now_s > 0.0:
+            return self.clock_now_s
+        return self._wall_now_s()
 
     def cb_status(self, msg):
         with self.lock:
-            now = time.time()
+            now = self._now_s()
             if self.status_enter_t is None:
                 self.status_enter_t = now
                 self.status_current = msg.data
@@ -67,13 +88,13 @@ class TargetFollowMetrics:
     def cb_result(self, msg):
         with self.lock:
             self.result_events.append({
-                "time_unix_s": time.time(),
+                "time_unix_s": self._now_s(),
                 "result": bool(msg.data),
             })
 
     def cb_model_states(self, msg):
         with self.lock:
-            now = time.time()
+            now = self._now_s()
             self.latest_msg_time = now
             self.samples += 1
 
@@ -93,11 +114,16 @@ class TargetFollowMetrics:
                 dt = now - self._prev_t
                 if dt > 1e-3:
                     if self._prev_robot is not None:
-                        v_r = math.hypot(rx - self._prev_robot[0], ry - self._prev_robot[1]) / dt
+                        dr = math.hypot(rx - self._prev_robot[0], ry - self._prev_robot[1])
+                        v_r = dr / dt
                         self.robot_speed_samples.append(v_r)
+                        self.robot_path_len += dr
                     if self._prev_target is not None:
-                        v_t = math.hypot(tx - self._prev_target[0], ty - self._prev_target[1]) / dt
+                        dtg = math.hypot(tx - self._prev_target[0], ty - self._prev_target[1])
+                        v_t = dtg / dt
                         self.target_speed_samples.append(v_t)
+                        self.target_path_len += dtg
+                    self.motion_time_s += dt
 
             self._prev_robot = (rx, ry)
             self._prev_target = (tx, ty)
@@ -105,7 +131,7 @@ class TargetFollowMetrics:
 
     def finalize_status(self):
         with self.lock:
-            now = time.time()
+            now = self._now_s()
             if self.status_enter_t is not None:
                 self.status_time_s[self.status_current] += max(0.0, now - self.status_enter_t)
 
@@ -123,6 +149,9 @@ def summarize(metrics, standoff, tolerance, run_start, run_end):
         d = list(metrics.distances)
         robot_speed_samples = list(metrics.robot_speed_samples)
         target_speed_samples = list(metrics.target_speed_samples)
+        robot_path_len = float(metrics.robot_path_len)
+        target_path_len = float(metrics.target_path_len)
+        motion_time_s = float(metrics.motion_time_s)
         result_events = list(metrics.result_events)
         status_time_s = dict(metrics.status_time_s)
         missing_model_samples = metrics.missing_model_samples
@@ -150,8 +179,18 @@ def summarize(metrics, standoff, tolerance, run_start, run_end):
             sum(1 for x in d if abs(x - standoff) <= tolerance) / float(len(d))
             if d else 0.0
         ),
-        "robot_speed_mean_mps": _safe_mean(robot_speed_samples),
-        "target_speed_mean_mps": _safe_mean(target_speed_samples),
+        # Use time-weighted mean speed (path length / elapsed) so high-rate
+        # repeated identical poses do not bias speed downward.
+        "robot_speed_mean_mps": (
+            robot_path_len / motion_time_s if motion_time_s > 1e-6 else 0.0
+        ),
+        "target_speed_mean_mps": (
+            target_path_len / motion_time_s if motion_time_s > 1e-6 else 0.0
+        ),
+        # Keep legacy unweighted means for debugging/comparison.
+        "robot_speed_mean_unweighted_mps": _safe_mean(robot_speed_samples),
+        "target_speed_mean_unweighted_mps": _safe_mean(target_speed_samples),
+        "motion_time_s": motion_time_s,
         "result_true_count": sum(1 for e in result_events if e["result"]),
         "result_false_count": sum(1 for e in result_events if not e["result"]),
         "status_time_s": status_time_s,
@@ -181,12 +220,12 @@ def main():
     rospy.loginfo("Warmup %.1fs before measurement...", args.warmup)
     rospy.sleep(args.warmup)
 
-    run_start = time.time()
+    run_start = collector._now_s()
     end_time = run_start + args.duration
     rate = rospy.Rate(20)
-    while not rospy.is_shutdown() and time.time() < end_time:
+    while not rospy.is_shutdown() and collector._now_s() < end_time:
         rate.sleep()
-    run_end = time.time()
+    run_end = collector._now_s()
 
     collector.finalize_status()
     summary = summarize(
