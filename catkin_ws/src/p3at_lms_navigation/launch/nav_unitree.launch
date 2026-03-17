@@ -11,6 +11,9 @@
   <arg name="map_file" default="$(find p3at_lms_navigation)/maps/demo_map.yaml"/>
   <arg name="use_gazebo_target" default="true"/>
   <arg name="use_rviz_goal_relay" default="false"/>
+  <arg name="enable_rplidar_local_obstacle" default="true"/>
+  <arg name="rplidar_scan_raw_topic" default="/scan"/>
+  <arg name="rplidar_scan_filtered_topic" default="/rplidar/scan_filtered"/>
 
   <!-- Gazebo with dual-lidar robot model -->
   <include file="$(find p3at_lms_gazebo)/launch/sim_unitree.launch">
@@ -34,6 +37,21 @@
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap.yaml" command="load"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml" command="load"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml" command="load"/>
+    <rosparam if="$(arg enable_rplidar_local_obstacle)"
+              param="local_costmap/obstacle_layer/observation_sources">unitree_scan_sensor rplidar_scan_sensor</rosparam>
+  </node>
+
+  <node if="$(arg enable_rplidar_local_obstacle)"
+        pkg="target_follower" type="scan_body_filter.py"
+        name="rplidar_scan_body_filter" output="screen">
+    <param name="body_x_min" value="-0.35"/>
+    <param name="body_x_max" value="0.35"/>
+    <param name="body_y_min" value="-0.30"/>
+    <param name="body_y_max" value="0.30"/>
+    <param name="lidar_x" value="-0.232"/>
+    <param name="lidar_y" value="0.0"/>
+    <remap from="~scan_raw" to="$(arg rplidar_scan_raw_topic)"/>
+    <remap from="~scan_out" to="$(arg rplidar_scan_filtered_topic)"/>
   </node>
 
   <!-- Target following -->

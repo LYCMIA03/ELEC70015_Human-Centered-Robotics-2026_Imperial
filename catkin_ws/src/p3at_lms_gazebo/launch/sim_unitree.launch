@@ -10,9 +10,12 @@
   <arg name="gui" default="true"/>
   <arg name="paused" default="false"/>
   <arg name="world" default="$(find p3at_lms_gazebo)/worlds/p3at_lms.world"/>
+  <arg name="target_x" default="4.0"/>
+  <arg name="target_y" default="0.0"/>
+  <arg name="target_z" default="0.0"/>
 
-  <!-- Robot description: P3-AT with BOTH lidars -->
-  <arg name="model" default="$(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
+  <!-- Robot description: integrated full-assembly URDF (Unitree + RPLIDAR-role + RGBD) -->
+  <arg name="model" default="$(find p3at_lms_description)/urdf/p3at_lms.urdf.xacro"/>
   <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
 
   <!-- Gazebo -->
@@ -33,5 +36,5 @@
 
   <!-- Spawn target object -->
   <node pkg="gazebo_ros" type="spawn_model" name="spawn_target"
-        args="-file $(find p3at_lms_gazebo)/models/target/model.sdf -sdf -model target -x 4 -y 0 -z 0.0"/>
+        args="-file $(find p3at_lms_gazebo)/models/target/model.sdf -sdf -model target -x $(arg target_x) -y $(arg target_y) -z $(arg target_z)"/>
 </launch>

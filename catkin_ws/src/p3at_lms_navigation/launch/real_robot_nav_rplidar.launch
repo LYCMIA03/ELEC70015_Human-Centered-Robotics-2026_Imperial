@@ -42,7 +42,7 @@
   <!-- Self-detection filter -->
   <node pkg="target_follower" type="scan_body_filter.py" name="scan_body_filter" output="screen">
     <!-- Use RPLIDAR mount pose from URDF (rear-underbody) -->
-    <param name="lidar_x" value="-0.202"/>
+    <param name="lidar_x" value="-0.232"/>
     <param name="lidar_y" value="0.0"/>
     <param name="body_x_min" value="-0.27"/>
     <param name="body_x_max" value="0.27"/>

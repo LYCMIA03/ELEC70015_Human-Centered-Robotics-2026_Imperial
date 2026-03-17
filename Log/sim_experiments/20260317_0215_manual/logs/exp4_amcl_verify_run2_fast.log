@@ -1,0 +1,304 @@
+... logging to /home/yuchen/.ros/log/cb184320-21ae-11f1-b6d3-00155d28b090/roslaunch-LYCMIA03DELL-14254.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/launch/auto_amcl_verify_unitree.launch
+[1mstarted roslaunch server http://LYCMIA03DELL:35217/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /amcl/base_frame_id: base_footprint
+ * /amcl/first_map_only: False
+ * /amcl/global_frame_id: map
+ * /amcl/initial_pose_a: 0.0
+ * /amcl/initial_pose_x: 0.0
+ * /amcl/initial_pose_y: 0.0
+ * /amcl/kld_err: 0.02
+ * /amcl/kld_z: 0.99
+ * /amcl/laser_max_beams: 240
+ * /amcl/laser_max_range: 30.0
+ * /amcl/laser_min_range: 0.05
+ * /amcl/laser_model_type: likelihood_field
+ * /amcl/max_particles: 3000
+ * /amcl/min_particles: 500
+ * /amcl/odom_alpha1: 0.1
+ * /amcl/odom_alpha2: 0.1
+ * /amcl/odom_alpha3: 0.2
+ * /amcl/odom_alpha4: 0.2
+ * /amcl/odom_frame_id: odom
+ * /amcl/odom_model_type: diff
+ * /amcl/recovery_alpha_fast: 0.1
+ * /amcl/recovery_alpha_slow: 0.001
+ * /amcl/resample_interval: 1
+ * /amcl/transform_tolerance: 0.3
+ * /amcl/update_min_a: 0.15
+ * /amcl/update_min_d: 0.1
+ * /amcl/use_map_topic: True
+ * /amcl_verifier/convergence_threshold: 0.3
+ * /amcl_verifier/goal_timeout: 90.0
+ * /amcl_verifier/initial_wait: 15.0
+ * /amcl_verifier/json_report_path: /home/yuchen/work...
+ * /amcl_verifier/report_path: /home/yuchen/work...
+ * /amcl_verifier/settle_time: 5.0
+ * /amcl_verifier/waypoints: [{'name': 'WP1_so...
+ * /gazebo/enable_ros_network: True
+ * /move_base/DWAPlannerROS/acc_lim_theta: 0.75
+ * /move_base/DWAPlannerROS/acc_lim_x: 0.35
+ * /move_base/DWAPlannerROS/acc_lim_y: 0.0
+ * /move_base/DWAPlannerROS/forward_point_distance: 0.25
+ * /move_base/DWAPlannerROS/goal_distance_bias: 24.0
+ * /move_base/DWAPlannerROS/latch_xy_goal_tolerance: True
+ * /move_base/DWAPlannerROS/max_vel_theta: 0.45
+ * /move_base/DWAPlannerROS/max_vel_trans: 0.26
+ * /move_base/DWAPlannerROS/max_vel_x: 0.26
+ * /move_base/DWAPlannerROS/max_vel_y: 0.0
+ * /move_base/DWAPlannerROS/min_vel_theta: 0.0
+ * /move_base/DWAPlannerROS/min_vel_trans: 0.02
+ * /move_base/DWAPlannerROS/min_vel_x: -0.1
+ * /move_base/DWAPlannerROS/min_vel_y: 0.0
+ * /move_base/DWAPlannerROS/occdist_scale: 0.08
+ * /move_base/DWAPlannerROS/oscillation_reset_dist: 0.1
+ * /move_base/DWAPlannerROS/path_distance_bias: 32.0
+ * /move_base/DWAPlannerROS/sim_granularity: 0.025
+ * /move_base/DWAPlannerROS/sim_time: 3.0
+ * /move_base/DWAPlannerROS/stop_time_buffer: 0.4
+ * /move_base/DWAPlannerROS/vtheta_samples: 40
+ * /move_base/DWAPlannerROS/vx_samples: 20
+ * /move_base/DWAPlannerROS/vy_samples: 1
+ * /move_base/DWAPlannerROS/xy_goal_tolerance: 0.15
+ * /move_base/DWAPlannerROS/yaw_goal_tolerance: 0.3
+ * /move_base/NavfnROS/allow_unknown: True
+ * /move_base/NavfnROS/default_tolerance: 0.15
+ * /move_base/NavfnROS/visualize_potential: False
+ * /move_base/base_global_planner: navfn/NavfnROS
+ * /move_base/base_local_planner: dwa_local_planner...
+ * /move_base/clearing_rotation_allowed: True
+ * /move_base/controller_frequency: 10.0
+ * /move_base/controller_patience: 20.0
+ * /move_base/global_costmap/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/global_costmap/footprint_padding: 0.05
+ * /move_base/global_costmap/global_frame: map
+ * /move_base/global_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/inflation_layer/inflation_radius: 0.3
+ * /move_base/global_costmap/inflation_radius: 0.3
+ * /move_base/global_costmap/obstacle_layer/observation_sources: unitree_scan_sensor
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/clearing: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/data_type: LaserScan
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/inf_is_valid: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/marking: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/obstacle_range: 6.0
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/raytrace_range: 8.0
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/sensor_frame: unitree_lidar
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/topic: unitree/scan
+ * /move_base/global_costmap/obstacle_range: 6.0
+ * /move_base/global_costmap/plugins: [{'name': 'static...
+ * /move_base/global_costmap/publish_frequency: 1.0
+ * /move_base/global_costmap/raytrace_range: 8.0
+ * /move_base/global_costmap/robot_base_frame: base_link
+ * /move_base/global_costmap/static_layer/map_topic: /map
+ * /move_base/global_costmap/static_layer/subscribe_to_updates: True
+ * /move_base/global_costmap/static_layer/track_unknown_space: False
+ * /move_base/global_costmap/static_map: True
+ * /move_base/global_costmap/transform_tolerance: 0.5
+ * /move_base/global_costmap/update_frequency: 2.0
+ * /move_base/local_costmap/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/local_costmap/footprint_padding: 0.05
+ * /move_base/local_costmap/global_frame: odom
+ * /move_base/local_costmap/height: 10.0
+ * /move_base/local_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/inflation_layer/inflation_radius: 0.3
+ * /move_base/local_costmap/inflation_radius: 0.3
+ * /move_base/local_costmap/obstacle_layer/observation_sources: unitree_scan_sens...
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/clearing: False
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/data_type: LaserScan
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/inf_is_valid: True
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/marking: True
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/obstacle_range: 2.5
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/raytrace_range: 3.0
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/sensor_frame: laser
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/topic: rplidar/scan_filt...
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/clearing: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/data_type: LaserScan
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/inf_is_valid: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/marking: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/obstacle_range: 6.0
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/raytrace_range: 8.0
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/sensor_frame: unitree_lidar
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/topic: unitree/scan
+ * /move_base/local_costmap/obstacle_range: 6.0
+ * /move_base/local_costmap/plugins: [{'name': 'obstac...
+ * /move_base/local_costmap/publish_frequency: 5.0
+ * /move_base/local_costmap/raytrace_range: 8.0
+ * /move_base/local_costmap/resolution: 0.05
+ * /move_base/local_costmap/robot_base_frame: base_link
+ * /move_base/local_costmap/rolling_window: True
+ * /move_base/local_costmap/static_map: False
+ * /move_base/local_costmap/transform_tolerance: 0.5
+ * /move_base/local_costmap/update_frequency: 10.0
+ * /move_base/local_costmap/width: 10.0
+ * /move_base/max_planning_retries: 5
+ * /move_base/planner_frequency: 1.0
+ * /move_base/planner_patience: 15.0
+ * /move_base/recovery_behavior_enabled: True
+ * /move_base/shutdown_costmaps: False
+ * /robot_description: <?xml version="1....
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /rplidar_scan_body_filter/body_x_max: 0.35
+ * /rplidar_scan_body_filter/body_x_min: -0.35
+ * /rplidar_scan_body_filter/body_y_max: 0.3
+ * /rplidar_scan_body_filter/body_y_min: -0.3
+ * /rplidar_scan_body_filter/lidar_x: -0.232
+ * /rplidar_scan_body_filter/lidar_y: 0.0
+ * /use_sim_time: True
+
+NODES
+  /
+    amcl (amcl/amcl)
+    amcl_verifier (p3at_lms_navigation/amcl_verifier.py)
+    gazebo (gazebo_ros/gzserver)
+    joint_state_publisher (joint_state_publisher/joint_state_publisher)
+    map_server (map_server/map_server)
+    move_base (move_base/move_base)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    rplidar_scan_body_filter (target_follower/scan_body_filter.py)
+    rviz (rviz/rviz)
+    spawn_p3at (gazebo_ros/spawn_model)
+    spawn_target (gazebo_ros/spawn_model)
+
+auto-starting new master
+[1mprocess[master]: started with pid [14326][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+[WARN] [1773717008.997623553, 0.354000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_x>, defaults to 0.000100
+[WARN] [1773717008.997688467, 0.354000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_y>, defaults to 0.000100
+[WARN] [1773717008.997698675, 0.354000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_yaw>, defaults to 0.010000
+[ERROR] [1773717009.143996544, 0.495000000]: Client [/rviz] wants topic /unitree/cloud to have datatype/md5sum [sensor_msgs/PointCloud2/1158d486dd51d683ce2f1be655c3c181], but our version has [sensor_msgs/PointCloud/d8e9c3f5afbdd8a130fd1d2763945fca]. Dropping connection.
+[WARN] [1773717009.585385546, 0.936000000]: global_costmap: Pre-Hydro parameter "static_map" unused since "plugins" is provided
+[WARN] [1773717009.942328099, 1.292000000]: local_costmap: Pre-Hydro parameter "static_map" unused since "plugins" is provided
+[WARN] [1773717041.869207296, 33.003000000]: DWA planner failed to produce path.
+[WARN] [1773717042.869610579, 34.003000000]: DWA planner failed to produce path.
+[WARN] [1773717043.471797780, 34.603000000]: DWA planner failed to produce path.
+[WARN] [1773717044.199265277, 35.303000000]: DWA planner failed to produce path.
+[WARN] [1773717044.297991955, 35.402000000]: DWA planner failed to produce path.
+[WARN] [1773717044.599266937, 35.702000000]: DWA planner failed to produce path.
+[WARN] [1773717045.400358016, 36.502000000]: DWA planner failed to produce path.
+[WARN] [1773717045.900197896, 37.002000000]: DWA planner failed to produce path.
+[WARN] [1773717047.916460961, 39.002000000]: DWA planner failed to produce path.
+[WARN] [1773717048.830062158, 39.902000000]: DWA planner failed to produce path.
+[WARN] [1773717049.329284153, 40.402000000]: DWA planner failed to produce path.
+[WARN] [1773717050.430561506, 41.501000000]: DWA planner failed to produce path.
+[WARN] [1773717050.849900252, 41.903000000]: DWA planner failed to produce path.
+[WARN] [1773717051.542649479, 42.602000000]: DWA planner failed to produce path.
+[WARN] [1773717054.454995203, 45.502000000]: DWA planner failed to produce path.
+[WARN] [1773717054.956523677, 46.003000000]: DWA planner failed to produce path.
+[WARN] [1773717055.156398064, 46.202000000]: DWA planner failed to produce path.
+[WARN] [1773717055.573720976, 46.604000000]: DWA planner failed to produce path.
+[WARN] [1773717055.768437757, 46.802000000]: DWA planner failed to produce path.
+[WARN] [1773717056.168622705, 47.203000000]: DWA planner failed to produce path.
+[WARN] [1773717056.669446370, 47.702000000]: DWA planner failed to produce path.
+[WARN] [1773717057.571870760, 48.603000000]: DWA planner failed to produce path.
+terminate called after throwing an instance of 'boost::wrapexcept<boost::lock_error>'
+  what():  boost: mutex lock failed in pthread_mutex_lock: Invalid argument
+terminate called recursively
+[INFO] [1773717009.587157456, 0.938000000]: global_costmap: Using plugin "static_layer"
+[INFO] [1773717009.592649289, 0.943000000]: Requesting the map...
+[INFO] [1773717009.794999363, 1.145000000]: Resizing costmap to 576 X 576 at 0.050000 m/pix
+[INFO] [1773717009.895299744, 1.245000000]: Received a 576 X 576 map at 0.050000 m/pix
+[INFO] [1773717009.895332361, 1.245000000]: Subscribing to updates
+[INFO] [1773717009.900201155, 1.250000000]: global_costmap: Using plugin "obstacle_layer"
+[INFO] [1773717009.903934224, 1.254000000]:     Subscribed to Topics: unitree_scan_sensor
+[INFO] [1773717009.915002782, 1.265000000]: global_costmap: Using plugin "inflation_layer"
+[INFO] [1773717009.943126551, 1.293000000]: local_costmap: Using plugin "obstacle_layer"
+[INFO] [1773717009.947864621, 1.298000000]:     Subscribed to Topics: unitree_scan_sensor rplidar_scan_sensor
+[INFO] [1773717009.963258854, 1.313000000]: local_costmap: Using plugin "inflation_layer"
+[INFO] [1773717009.985117863, 1.335000000]: Created local_planner dwa_local_planner/DWAPlannerROS
+[INFO] [1773717009.987930609, 1.338000000]: Sim period is set to 0.10
+[INFO] [1773717010.522313611, 1.838000000]: Recovery behavior will clear layer 'obstacles'
+[INFO] [1773717010.527102763, 1.844000000]: Recovery behavior will clear layer 'obstacles'
+[INFO] [1773717010.566299990, 1.886000000]: odom received!
+[INFO] [1773717040.453537167, 31.600000000]: Got new plan
+[INFO] [1773717041.468230159, 32.600000000]: Got new plan
+[INFO] [1773717041.966074650, 33.100000000]: Got new plan
+[INFO] [1773717042.967664480, 34.100000000]: Got new plan
+[INFO] [1773717043.570115171, 34.700000000]: Got new plan
+[INFO] [1773717044.295905146, 35.400000000]: Got new plan
+[INFO] [1773717044.395871073, 35.500000000]: Got new plan
+[INFO] [1773717044.697162874, 35.800000000]: Got new plan
+[INFO] [1773717045.497875877, 36.600000000]: Got new plan
+[INFO] [1773717045.998988804, 37.100000000]: Got new plan
+[INFO] [1773717047.013296655, 38.100000000]: Got new plan
+[INFO] [1773717048.014975050, 39.100000000]: Got new plan
+[INFO] [1773717048.927252234, 40.000000000]: Got new plan
+[INFO] [1773717049.426646238, 40.500000000]: Got new plan
+[INFO] [1773717050.428716868, 41.500000000]: Got new plan
+[INFO] [1773717050.529536332, 41.601000000]: Got new plan
+[INFO] [1773717050.943554551, 42.000000000]: Got new plan
+[INFO] [1773717051.640672240, 42.700000000]: Got new plan
+[INFO] [1773717052.643045081, 43.700000000]: Got new plan
+[INFO] [1773717053.652277787, 44.700000000]: Got new plan
+[INFO] [1773717054.552644972, 45.600000000]: Got new plan
+[INFO] [1773717055.053684413, 46.100000000]: Got new plan
+[INFO] [1773717055.255190377, 46.300000000]: Got new plan
+[INFO] [1773717055.667007494, 46.700000000]: Got new plan
+[INFO] [1773717055.866201564, 46.900000000]: Got new plan
+[INFO] [1773717056.265636183, 47.300000000]: Got new plan
+[INFO] [1773717056.767468116, 47.800000000]: Got new plan
+[INFO] [1773717057.668746911, 48.700000000]: Got new plan
+[INFO] [1773717004.807728195]: Loading map from image "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/maps/exp4_task67_tuned_run2.pgm"
+[INFO] [1773717007.030791117, 0.185000000]: Read a 576 X 576 map @ 0.050 m/cell
+[INFO] [1773717004.847849979]: Subscribed to map topic.
+[INFO] [1773717007.031944691, 0.186000000]: Received a 576 X 576 map @ 0.050 m/pix
+
+[INFO] [1773717007.040478457, 0.194000000]: Initializing likelihood field model; this can take some time on large maps...
+[INFO] [1773717007.056029732, 0.209000000]: Done initializing likelihood field model.
+[INFO] [1773717026.806262040, 18.016000000]: Setting pose (18.016000): -0.000 0.000 0.000
+[INFO] [1773717005.332350, 0.000000]: [ScanBodyFilter] body box x=[-0.35, 0.35] y=[-0.30, 0.30]  lidar@(-0.232, 0.000)
+[WARN] [1773717058.747524, 49.173000]: [AMCL Verifier] WP1_south: navigation TIMEOUT (state=1)
+[INFO] [1773717005.183470, 0.000000]: [AMCL Verifier] Waiting for move_base action server...
+[INFO] [1773717010.667821, 1.993000]: [AMCL Verifier] Connected to move_base.
+[INFO] [1773717010.669243, 1.994000]: [AMCL Verifier] Waiting 15 s for AMCL + move_base to initialize...
+[INFO] [1773717025.782254, 16.995000]: [AMCL Verifier] Waiting for Gazebo ground truth and AMCL pose...
+[INFO] [1773717026.786343, 17.996000]: [AMCL Verifier] Published initial pose (0, 0, 0°).
+[INFO] [1773717026.883442, 18.092000]: [AMCL Verifier] Converged in 1.1 s (err=0.014 m)
+[INFO] [1773717029.292470, 20.497000]: [AMCL Verifier] Gentle spin to help AMCL converge...
+[INFO] [1773717040.350706, 31.498000]: [AMCL Verifier] Initial error: pos=0.413 m, yaw=1.0°
+[INFO] [1773717040.351944, 31.499000]: 
+[AMCL Verifier] === Navigating to WP1_south (0.0, -1.5) ===
+[31m[rviz-12] escalating to SIGTERM[0m
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/launch/auto_amcl_verify_unitree.launch http://localhost:11311
+[1msetting /run_id to cb184320-21ae-11f1-b6d3-00155d28b090[0m
+[1mprocess[rosout-1]: started with pid [14355][0m
+started core service [/rosout]
+[1mprocess[gazebo-2]: started with pid [14362][0m
+[1mprocess[robot_state_publisher-3]: started with pid [14367][0m
+[1mprocess[joint_state_publisher-4]: started with pid [14368][0m
+[1mprocess[spawn_p3at-5]: started with pid [14374][0m
+[1mprocess[spawn_target-6]: started with pid [14381][0m
+[1mprocess[map_server-7]: started with pid [14388][0m
+[1mprocess[amcl-8]: started with pid [14393][0m
+[1mprocess[move_base-9]: started with pid [14396][0m
+[1mprocess[rplidar_scan_body_filter-10]: started with pid [14402][0m
+[1mprocess[amcl_verifier-11]: started with pid [14412][0m
+[1mprocess[rviz-12]: started with pid [14443][0m
+[1m[spawn_target-6] process has finished cleanly
+log file: /home/yuchen/.ros/log/cb184320-21ae-11f1-b6d3-00155d28b090/spawn_target-6*.log[0m
+[1m[spawn_p3at-5] process has finished cleanly
+log file: /home/yuchen/.ros/log/cb184320-21ae-11f1-b6d3-00155d28b090/spawn_p3at-5*.log[0m
+[rviz-12] killing on exit
+[rplidar_scan_body_filter-10] killing on exit
+[amcl_verifier-11] killing on exit
+[move_base-9] killing on exit
+[amcl-8] killing on exit
+[gazebo-2] killing on exit
+[joint_state_publisher-4] killing on exit
+[robot_state_publisher-3] killing on exit
+[map_server-7] killing on exit
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

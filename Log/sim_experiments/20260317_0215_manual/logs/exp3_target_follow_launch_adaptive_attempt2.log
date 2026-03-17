@@ -1,0 +1,272 @@
+... logging to /home/yuchen/.ros/log/af13a8aa-21b2-11f1-9445-00155d28b090/roslaunch-LYCMIA03DELL-13384.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/launch/mapping_unitree.launch
+[1mstarted roslaunch server http://LYCMIA03DELL:33061/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /gazebo/enable_ros_network: True
+ * /gazebo_target_publisher/model_name: target
+ * /gazebo_target_publisher/out_frame: base_footprint
+ * /gazebo_target_publisher/rate_hz: 10.0
+ * /gazebo_target_publisher/reference_frame: p3at::base_footprint
+ * /gazebo_target_publisher/robot_model_name: p3at
+ * /gazebo_target_publisher/topic: /target_pose
+ * /move_base/DWAPlannerROS/acc_lim_theta: 0.75
+ * /move_base/DWAPlannerROS/acc_lim_x: 0.35
+ * /move_base/DWAPlannerROS/acc_lim_y: 0.0
+ * /move_base/DWAPlannerROS/forward_point_distance: 0.25
+ * /move_base/DWAPlannerROS/goal_distance_bias: 24.0
+ * /move_base/DWAPlannerROS/latch_xy_goal_tolerance: True
+ * /move_base/DWAPlannerROS/max_vel_theta: 0.45
+ * /move_base/DWAPlannerROS/max_vel_trans: 0.26
+ * /move_base/DWAPlannerROS/max_vel_x: 0.26
+ * /move_base/DWAPlannerROS/max_vel_y: 0.0
+ * /move_base/DWAPlannerROS/min_vel_theta: 0.0
+ * /move_base/DWAPlannerROS/min_vel_trans: 0.02
+ * /move_base/DWAPlannerROS/min_vel_x: -0.1
+ * /move_base/DWAPlannerROS/min_vel_y: 0.0
+ * /move_base/DWAPlannerROS/occdist_scale: 0.08
+ * /move_base/DWAPlannerROS/oscillation_reset_dist: 0.1
+ * /move_base/DWAPlannerROS/path_distance_bias: 32.0
+ * /move_base/DWAPlannerROS/sim_granularity: 0.025
+ * /move_base/DWAPlannerROS/sim_time: 3.0
+ * /move_base/DWAPlannerROS/stop_time_buffer: 0.4
+ * /move_base/DWAPlannerROS/vtheta_samples: 40
+ * /move_base/DWAPlannerROS/vx_samples: 20
+ * /move_base/DWAPlannerROS/vy_samples: 1
+ * /move_base/DWAPlannerROS/xy_goal_tolerance: 0.15
+ * /move_base/DWAPlannerROS/yaw_goal_tolerance: 0.3
+ * /move_base/NavfnROS/allow_unknown: True
+ * /move_base/NavfnROS/default_tolerance: 0.15
+ * /move_base/NavfnROS/visualize_potential: False
+ * /move_base/base_global_planner: navfn/NavfnROS
+ * /move_base/base_local_planner: dwa_local_planner...
+ * /move_base/clearing_rotation_allowed: True
+ * /move_base/controller_frequency: 10.0
+ * /move_base/controller_patience: 20.0
+ * /move_base/global_costmap/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/global_costmap/footprint_padding: 0.05
+ * /move_base/global_costmap/global_frame: map
+ * /move_base/global_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/inflation_layer/inflation_radius: 0.3
+ * /move_base/global_costmap/inflation_radius: 0.3
+ * /move_base/global_costmap/obstacle_layer/observation_sources: unitree_scan_sensor
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/clearing: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/data_type: LaserScan
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/inf_is_valid: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/marking: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/obstacle_range: 6.0
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/raytrace_range: 8.0
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/sensor_frame: unitree_lidar
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/topic: unitree/scan
+ * /move_base/global_costmap/obstacle_range: 6.0
+ * /move_base/global_costmap/plugins: [{'name': 'static...
+ * /move_base/global_costmap/publish_frequency: 1.0
+ * /move_base/global_costmap/raytrace_range: 8.0
+ * /move_base/global_costmap/robot_base_frame: base_link
+ * /move_base/global_costmap/static_layer/map_topic: /map
+ * /move_base/global_costmap/static_layer/subscribe_to_updates: True
+ * /move_base/global_costmap/static_layer/track_unknown_space: False
+ * /move_base/global_costmap/static_map: True
+ * /move_base/global_costmap/transform_tolerance: 0.5
+ * /move_base/global_costmap/update_frequency: 2.0
+ * /move_base/local_costmap/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/local_costmap/footprint_padding: 0.05
+ * /move_base/local_costmap/global_frame: odom
+ * /move_base/local_costmap/height: 10.0
+ * /move_base/local_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/inflation_layer/inflation_radius: 0.3
+ * /move_base/local_costmap/inflation_radius: 0.3
+ * /move_base/local_costmap/obstacle_layer/observation_sources: unitree_scan_sens...
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/clearing: False
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/data_type: LaserScan
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/inf_is_valid: True
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/marking: True
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/obstacle_range: 2.5
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/raytrace_range: 3.0
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/sensor_frame: laser
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/topic: rplidar/scan_filt...
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/clearing: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/data_type: LaserScan
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/inf_is_valid: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/marking: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/obstacle_range: 6.0
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/raytrace_range: 8.0
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/sensor_frame: unitree_lidar
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/topic: unitree/scan
+ * /move_base/local_costmap/obstacle_range: 6.0
+ * /move_base/local_costmap/plugins: [{'name': 'obstac...
+ * /move_base/local_costmap/publish_frequency: 5.0
+ * /move_base/local_costmap/raytrace_range: 8.0
+ * /move_base/local_costmap/resolution: 0.05
+ * /move_base/local_costmap/robot_base_frame: base_link
+ * /move_base/local_costmap/rolling_window: True
+ * /move_base/local_costmap/static_map: False
+ * /move_base/local_costmap/transform_tolerance: 0.5
+ * /move_base/local_costmap/update_frequency: 10.0
+ * /move_base/local_costmap/width: 10.0
+ * /move_base/max_planning_retries: 5
+ * /move_base/planner_frequency: 1.0
+ * /move_base/planner_patience: 15.0
+ * /move_base/recovery_behavior_enabled: True
+ * /move_base/shutdown_costmaps: False
+ * /move_target/loop: True
+ * /move_target/model_name: target
+ * /move_target/pause: 3.0
+ * /move_target/speed: 0.12
+ * /move_target/waypoints: [[1.8, 0.2], [1.8...
+ * /robot_description: <?xml version="1....
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /rplidar_scan_body_filter/body_x_max: 0.35
+ * /rplidar_scan_body_filter/body_x_min: -0.35
+ * /rplidar_scan_body_filter/body_y_max: 0.3
+ * /rplidar_scan_body_filter/body_y_min: -0.3
+ * /rplidar_scan_body_filter/lidar_x: -0.232
+ * /rplidar_scan_body_filter/lidar_y: 0.0
+ * /slam_gmapping/angularUpdate: 0.15
+ * /slam_gmapping/astep: 0.05
+ * /slam_gmapping/base_frame: base_link
+ * /slam_gmapping/delta: 0.05
+ * /slam_gmapping/iterations: 5
+ * /slam_gmapping/kernelSize: 1
+ * /slam_gmapping/linearUpdate: 0.15
+ * /slam_gmapping/lsigma: 0.075
+ * /slam_gmapping/lskip: 0
+ * /slam_gmapping/lstep: 0.05
+ * /slam_gmapping/map_frame: map
+ * /slam_gmapping/map_update_interval: 2.0
+ * /slam_gmapping/maxRange: 30.0
+ * /slam_gmapping/maxUrange: 12.0
+ * /slam_gmapping/minimumScore: 50
+ * /slam_gmapping/odom_frame: odom
+ * /slam_gmapping/ogain: 3.0
+ * /slam_gmapping/particles: 50
+ * /slam_gmapping/resampleThreshold: 0.5
+ * /slam_gmapping/sigma: 0.05
+ * /slam_gmapping/srr: 0.1
+ * /slam_gmapping/srt: 0.2
+ * /slam_gmapping/str: 0.1
+ * /slam_gmapping/stt: 0.2
+ * /slam_gmapping/temporalUpdate: 0.5
+ * /slam_gmapping/xmax: 15.0
+ * /slam_gmapping/xmin: -15.0
+ * /slam_gmapping/ymax: 15.0
+ * /slam_gmapping/ymin: -15.0
+ * /target_follower/camera_frame: rgbd_camera
+ * /target_follower/close_approach_speed: 0.08
+ * /target_follower/close_approach_steer_gain: 0.4
+ * /target_follower/close_approach_threshold: 0.95
+ * /target_follower/close_approach_timeout_s: 24.0
+ * /target_follower/enable_auto_explore: False
+ * /target_follower/face_target: True
+ * /target_follower/global_frame: map
+ * /target_follower/min_update_dist: 0.25
+ * /target_follower/robot_frame: base_link
+ * /target_follower/send_rate_hz: 2.0
+ * /target_follower/standoff_distance: 0.8
+ * /target_follower/target_timeout_s: 3.0
+ * /target_follower/target_topic: /target_pose
+ * /target_follower/use_target_orientation: False
+ * /use_sim_time: True
+
+NODES
+  /
+    gazebo (gazebo_ros/gzserver)
+    gazebo_target_publisher (target_follower/gazebo_target_publisher.py)
+    joint_state_publisher (joint_state_publisher/joint_state_publisher)
+    move_base (move_base/move_base)
+    move_target (target_follower/move_target.py)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    rplidar_scan_body_filter (target_follower/scan_body_filter.py)
+    rviz (rviz/rviz)
+    slam_gmapping (gmapping/slam_gmapping)
+    spawn_p3at (gazebo_ros/spawn_model)
+    spawn_target (gazebo_ros/spawn_model)
+    target_follower (target_follower/target_follower.py)
+shutdown request: user request
+Traceback (most recent call last):
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/gazebo_target_publisher.py", line 83, in <module>
+    main()
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/gazebo_target_publisher.py", line 43, in main
+    rospy.wait_for_service("/gazebo/get_model_state")
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/impl/tcpros_service.py", line 166, in wait_for_service
+    raise ROSInterruptException("rospy shutdown")
+rospy.exceptions.ROSInterruptException: rospy shutdown
+[WARN] [1773719010.134626319]: Shutdown request received.
+[WARN] [1773719010.137009428]: Reason given for shutdown: [user request]
+[INFO] [1773718676.729753, 0.000000]: Using 6 waypoints from parameter
+[INFO] [1773718676.731405, 0.000000]: move_target: model='target', speed=0.12 m/s, pause=3.0 s, loop=True
+[INFO] [1773718676.733231, 0.000000]: Waiting for Gazebo services...
+shutdown request: user request
+[WARN] [1773719010.253845805]: Shutdown request received.
+Traceback (most recent call last):
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/move_target.py", line 165, in <module>
+    main()
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/move_target.py", line 67, in main
+    rospy.wait_for_service("/gazebo/get_model_state")
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/impl/tcpros_service.py", line 166, in wait_for_service
+    raise ROSInterruptException("rospy shutdown")
+rospy.exceptions.ROSInterruptException: rospy shutdown
+[WARN] [1773719010.256612885]: Reason given for shutdown: [user request]
+[WARN] [1773719010.258239209]: Shutdown request received.
+[WARN] [1773719010.258300630]: Reason given for shutdown: [user request]
+[WARN] [1773719010.505228152]: Shutdown request received.
+[WARN] [1773719010.505394016]: Reason given for shutdown: [user request]
+[WARN] [1773719010.506571848]: Shutdown request received.
+[WARN] [1773719010.507652878]: Reason given for shutdown: [user request]
+[INFO] [1773718676.708901, 0.000000]: [ScanBodyFilter] body box x=[-0.35, 0.35] y=[-0.30, 0.30]  lidar@(-0.232, 0.000)
+shutdown request: user request
+Traceback (most recent call last):
+  File "/opt/ros/noetic/lib/gazebo_ros/spawn_model", line 239, in <module>
+    exit_code = sm.run()
+  File "/opt/ros/noetic/lib/gazebo_ros/spawn_model", line 183, in run
+    success = gazebo_interface.spawn_urdf_model_client(self.args.model, model_xml, self.args.robot_namespace,
+  File "/opt/ros/noetic/lib/python3/dist-packages/gazebo_ros/gazebo_interface.py", line 28, in spawn_urdf_model_client
+    rospy.wait_for_service(gazebo_namespace+'/spawn_urdf_model')
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/impl/tcpros_service.py", line 166, in wait_for_service
+    raise ROSInterruptException("rospy shutdown")
+rospy.exceptions.ROSInterruptException: rospy shutdown
+virtual GMapping::GridSlamProcessor::~GridSlamProcessor(): Start
+virtual GMapping::GridSlamProcessor::~GridSlamProcessor(): Deleting tree
+[INFO] [1773718676.855195, 0.000000]: Waiting for move_base action server...
+shutdown request: user request
+[INFO] [1773719010.874870, 0.000000]: Connected to move_base.
+[INFO] [1773719010.879101, 0.000000]: standoff_distance = 0.80 m
+[INFO] [1773719010.879713, 0.000000]: close_approach_threshold = 0.95 m
+[INFO] [1773719010.880209, 0.000000]: close_approach_speed = 0.08 m/s
+[INFO] [1773719010.880807, 0.000000]: close_approach_steer_gain = 0.40
+[INFO] [1773719010.881450, 0.000000]: close_approach_max_depth_jump = 0.50 m
+[INFO] [1773719010.882299, 0.000000]: face_target = True
+[INFO] [1773719010.883126, 0.000000]: trash_action_topic = /trash_action
+[INFO] [1773719010.883630, 0.000000]: action_wait_timeout = 45.0 s
+[INFO] [1773719010.884063, 0.000000]: post_accept_cooldown = 15.0 s
+[INFO] [1773719010.884526, 0.000000]: retreat_distance = 1.50 m
+[INFO] [1773719010.885041, 0.000000]: retreat_turn_angle = 100.0 deg
+[INFO] [1773719010.885460, 0.000000]: enable_auto_explore = False
+[INFO] [1773719010.885846, 0.000000]: explore_target_confirm = 0.8 s
+[INFO] [1773719010.886206, 0.000000]: explore_target_max_gap = 1.0 s
+[INFO] [1773719010.886598, 0.000000]: explore_stuck_timeout = 8.0 s
+[INFO] [1773719010.887243, 0.000000]: explore_min_progress = 0.20 m
+[INFO] [1773719010.887907, 0.000000]: explore_zero_cmd_vel_timeout = 2.0 s
+[INFO] [1773719010.888530, 0.000000]: explore_revisit_window = 120.0 s
+[INFO] [1773719010.889045, 0.000000]: explore_revisit_radius = 1.50 m
+[INFO] [1773719010.889450, 0.000000]: Result topic: /target_follower/result (std_msgs/Bool)
+[INFO] [1773719010.889849, 0.000000]: Status topic: /target_follower/status (std_msgs/String)
+Traceback (most recent call last):
+  File "/opt/ros/noetic/lib/gazebo_ros/spawn_model", line 239, in <module>
+    exit_code = sm.run()
+  File "/opt/ros/noetic/lib/gazebo_ros/spawn_model", line 187, in run
+    success = gazebo_interface.spawn_sdf_model_client(self.args.model, model_xml, self.args.robot_namespace,
+  File "/opt/ros/noetic/lib/python3/dist-packages/gazebo_ros/gazebo_interface.py", line 16, in spawn_sdf_model_client
+    rospy.wait_for_service(gazebo_namespace+'/spawn_sdf_model')
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/impl/tcpros_service.py", line 166, in wait_for_service
+    raise ROSInterruptException("rospy shutdown")
+rospy.exceptions.ROSInterruptException: rospy shutdown

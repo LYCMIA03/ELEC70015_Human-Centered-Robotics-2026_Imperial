@@ -1,0 +1,116 @@
+=== ROS NODES ===
+/joint_state_publisher
+/move_base
+/robot_state_publisher
+/rosout
+/rplidar_scan_body_filter
+/rviz
+/slam_gmapping
+/spawn_p3at
+/spawn_target
+=== TOPIC HZ /unitree/scan ===
+WARNING: may be using simulated time
+subscribed to [/unitree/scan]
+no new messages
+no new messages
+no new messages
+average rate: 14.881
+	min: 0.066s max: 0.068s std dev: 0.00075s window: 6
+average rate: 14.914
+	min: 0.066s max: 0.068s std dev: 0.00074s window: 21
+average rate: 14.919
+	min: 0.065s max: 0.069s std dev: 0.00089s window: 35
+average rate: 14.921
+	min: 0.065s max: 0.069s std dev: 0.00084s window: 50
+average rate: 14.922
+	min: 0.065s max: 0.069s std dev: 0.00082s window: 59
+=== TOPIC HZ /scan ===
+WARNING: may be using simulated time
+subscribed to [/scan]
+average rate: 9.967
+	min: 0.099s max: 0.102s std dev: 0.00149s window: 10
+average rate: 10.128
+	min: 0.067s max: 0.133s std dev: 0.01300s window: 20
+average rate: 10.066
+	min: 0.067s max: 0.133s std dev: 0.01059s window: 30
+average rate: 10.036
+	min: 0.067s max: 0.133s std dev: 0.00917s window: 40
+average rate: 10.018
+	min: 0.067s max: 0.133s std dev: 0.00822s window: 50
+average rate: 10.007
+	min: 0.067s max: 0.133s std dev: 0.00752s window: 60
+average rate: 9.999
+	min: 0.067s max: 0.133s std dev: 0.00698s window: 70
+average rate: 9.995
+	min: 0.067s max: 0.133s std dev: 0.00671s window: 76
+=== TOPIC HZ /rplidar/scan_filtered ===
+WARNING: may be using simulated time
+subscribed to [/rplidar/scan_filtered]
+average rate: 9.967
+	min: 0.098s max: 0.103s std dev: 0.00189s window: 10
+average rate: 9.958
+	min: 0.098s max: 0.103s std dev: 0.00173s window: 20
+average rate: 9.952
+	min: 0.098s max: 0.103s std dev: 0.00181s window: 30
+average rate: 9.952
+	min: 0.098s max: 0.103s std dev: 0.00175s window: 40
+average rate: 9.951
+	min: 0.098s max: 0.103s std dev: 0.00174s window: 50
+average rate: 9.951
+	min: 0.098s max: 0.103s std dev: 0.00176s window: 60
+average rate: 9.999
+	min: 0.066s max: 0.134s std dev: 0.00724s window: 70
+average rate: 9.995
+	min: 0.066s max: 0.134s std dev: 0.00696s window: 76
+=== TF base_link->laser ===
+At time 0.000
+- Translation: [-0.232, 0.000, 0.072]
+- Rotation: in Quaternion [1.000, 0.000, 0.000, 0.000]
+            in RPY (radian) [3.142, -0.000, 0.000]
+            in RPY (degree) [180.000, -0.000, 0.000]
+At time 0.000
+- Translation: [-0.232, 0.000, 0.072]
+- Rotation: in Quaternion [1.000, 0.000, 0.000, 0.000]
+            in RPY (radian) [3.142, -0.000, 0.000]
+            in RPY (degree) [180.000, -0.000, 0.000]
+At time 0.000
+- Translation: [-0.232, 0.000, 0.072]
+- Rotation: in Quaternion [1.000, 0.000, 0.000, 0.000]
+            in RPY (radian) [3.142, -0.000, 0.000]
+            in RPY (degree) [180.000, -0.000, 0.000]
+At time 0.000
+- Translation: [-0.232, 0.000, 0.072]
+- Rotation: in Quaternion [1.000, 0.000, 0.000, 0.000]
+            in RPY (radian) [3.142, -0.000, 0.000]
+            in RPY (degree) [180.000, -0.000, 0.000]
+At time 0.000
+- Translation: [-0.232, 0.000, 0.072]
+- Rotation: in Quaternion [1.000, 0.000, 0.000, 0.000]
+            in RPY (radian) [3.142, -0.000, 0.000]
+            in RPY (degree) [180.000, -0.000, 0.000]
+=== TF base_link->rgbd_camera ===
+At time 0.000
+- Translation: [0.208, 0.000, 0.850]
+- Rotation: in Quaternion [0.000, 0.000, 0.000, 1.000]
+            in RPY (radian) [0.000, -0.000, 0.000]
+            in RPY (degree) [0.000, -0.000, 0.000]
+At time 0.000
+- Translation: [0.208, 0.000, 0.850]
+- Rotation: in Quaternion [0.000, 0.000, 0.000, 1.000]
+            in RPY (radian) [0.000, -0.000, 0.000]
+            in RPY (degree) [0.000, -0.000, 0.000]
+At time 0.000
+- Translation: [0.208, 0.000, 0.850]
+- Rotation: in Quaternion [0.000, 0.000, 0.000, 1.000]
+            in RPY (radian) [0.000, -0.000, 0.000]
+            in RPY (degree) [0.000, -0.000, 0.000]
+At time 0.000
+- Translation: [0.208, 0.000, 0.850]
+- Rotation: in Quaternion [0.000, 0.000, 0.000, 1.000]
+            in RPY (radian) [0.000, -0.000, 0.000]
+            in RPY (degree) [0.000, -0.000, 0.000]
+At time 0.000
+- Translation: [0.208, 0.000, 0.850]
+- Rotation: in Quaternion [0.000, 0.000, 0.000, 1.000]
+            in RPY (radian) [0.000, -0.000, 0.000]
+            in RPY (degree) [0.000, -0.000, 0.000]

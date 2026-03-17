@@ -33,19 +33,37 @@ CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 log() { echo -e "${CYAN}[$(date +%H:%M:%S)]${NC} $*"; }
 die() { echo -e "${RED}[FATAL]${NC} $*" >&2; exit 1; }
 
-for arg in "$@"; do
-  case "$arg" in
-    --headless)       HEADLESS=true ;;
-    --skip-build)     SKIP_BUILD=true ;;
-    --map-only)       MAP_ONLY=true ;;
-    --verify-only)    VERIFY_ONLY=true ;;
-    --timeout)        shift; EXPLORE_TIMEOUT="${2:-600}" ;;
-    --timeout=*)      EXPLORE_TIMEOUT="${arg#*=}" ;;
-    --map-name)       shift; MAP_NAME="${2:-explored_map_unitree}" ;;
-    --map-name=*)     MAP_NAME="${arg#*=}" ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --headless)       HEADLESS=true; shift ;;
+    --skip-build)     SKIP_BUILD=true; shift ;;
+    --map-only)       MAP_ONLY=true; shift ;;
+    --verify-only)    VERIFY_ONLY=true; shift ;;
+    --timeout)
+      [[ $# -ge 2 ]] || die "Missing value for --timeout"
+      EXPLORE_TIMEOUT="$2"
+      shift 2
+      ;;
+    --timeout=*)
+      EXPLORE_TIMEOUT="${1#*=}"
+      shift
+      ;;
+    --map-name)
+      [[ $# -ge 2 ]] || die "Missing value for --map-name"
+      MAP_NAME="$2"
+      shift 2
+      ;;
+    --map-name=*)
+      MAP_NAME="${1#*=}"
+      shift
+      ;;
     --help|-h)
       echo "Usage: $0 [--headless] [--skip-build] [--map-only] [--verify-only] [--timeout N] [--map-name NAME]"
-      exit 0 ;;
+      exit 0
+      ;;
+    *)
+      die "Unknown argument: $1"
+      ;;
   esac
 done
 

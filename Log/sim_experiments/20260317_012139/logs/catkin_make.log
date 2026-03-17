@@ -1,0 +1,9 @@
+Base path: /home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws
+Source space: /home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src
+Build space: /home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/build
+Devel space: /home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel
+Install space: /home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/install
+Creating symlink "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/CMakeLists.txt" pointing to "/opt/ros/noetic/share/catkin/cmake/toplevel.cmake"
+Multiple packages found with the same name "rplidar_ros":
+- rplidar_ros
+- rplidar_ros_nested_backup_20260317

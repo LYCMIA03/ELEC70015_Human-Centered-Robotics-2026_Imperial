@@ -1,0 +1,202 @@
+... logging to /home/yuchen/.ros/log/b0732c64-21a0-11f1-9328-00155d28b090/roslaunch-LYCMIA03DELL-23694.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/launch/mapping.launch
+[1mstarted roslaunch server http://LYCMIA03DELL:37529/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /gazebo/enable_ros_network: True
+ * /move_base/DWAPlannerROS/acc_lim_theta: 1.5
+ * /move_base/DWAPlannerROS/acc_lim_x: 0.6
+ * /move_base/DWAPlannerROS/acc_lim_y: 0.0
+ * /move_base/DWAPlannerROS/forward_point_distance: 0.2
+ * /move_base/DWAPlannerROS/goal_distance_bias: 36.0
+ * /move_base/DWAPlannerROS/latch_xy_goal_tolerance: True
+ * /move_base/DWAPlannerROS/max_vel_theta: 1.0
+ * /move_base/DWAPlannerROS/max_vel_trans: 0.5
+ * /move_base/DWAPlannerROS/max_vel_x: 0.5
+ * /move_base/DWAPlannerROS/max_vel_y: 0.0
+ * /move_base/DWAPlannerROS/min_vel_theta: 0.0
+ * /move_base/DWAPlannerROS/min_vel_trans: 0.05
+ * /move_base/DWAPlannerROS/min_vel_x: -0.1
+ * /move_base/DWAPlannerROS/min_vel_y: 0.0
+ * /move_base/DWAPlannerROS/occdist_scale: 0.05
+ * /move_base/DWAPlannerROS/oscillation_reset_dist: 0.25
+ * /move_base/DWAPlannerROS/path_distance_bias: 24.0
+ * /move_base/DWAPlannerROS/sim_granularity: 0.025
+ * /move_base/DWAPlannerROS/sim_time: 1.7
+ * /move_base/DWAPlannerROS/stop_time_buffer: 0.3
+ * /move_base/DWAPlannerROS/vtheta_samples: 20
+ * /move_base/DWAPlannerROS/vx_samples: 12
+ * /move_base/DWAPlannerROS/vy_samples: 1
+ * /move_base/DWAPlannerROS/xy_goal_tolerance: 0.55
+ * /move_base/DWAPlannerROS/yaw_goal_tolerance: 0.5
+ * /move_base/NavfnROS/allow_unknown: True
+ * /move_base/NavfnROS/default_tolerance: 0.1
+ * /move_base/NavfnROS/visualize_potential: False
+ * /move_base/base_global_planner: navfn/NavfnROS
+ * /move_base/base_local_planner: dwa_local_planner...
+ * /move_base/clearing_rotation_allowed: True
+ * /move_base/controller_frequency: 10.0
+ * /move_base/controller_patience: 10.0
+ * /move_base/global_costmap/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/global_costmap/footprint_padding: 0.05
+ * /move_base/global_costmap/global_frame: map
+ * /move_base/global_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/inflation_layer/inflation_radius: 0.45
+ * /move_base/global_costmap/inflation_radius: 0.5
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/clearing: True
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/data_type: LaserScan
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/inf_is_valid: True
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/marking: True
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/obstacle_range: 3.0
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/raytrace_range: 4.0
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/sensor_frame: laser
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/topic: scan
+ * /move_base/global_costmap/obstacle_layer/observation_sources: laser_scan_sensor
+ * /move_base/global_costmap/obstacle_range: 3.5
+ * /move_base/global_costmap/plugins: [{'name': 'static...
+ * /move_base/global_costmap/publish_frequency: 1.0
+ * /move_base/global_costmap/raytrace_range: 5.0
+ * /move_base/global_costmap/robot_base_frame: base_footprint
+ * /move_base/global_costmap/static_layer/map_topic: /map
+ * /move_base/global_costmap/static_layer/subscribe_to_updates: True
+ * /move_base/global_costmap/static_layer/track_unknown_space: False
+ * /move_base/global_costmap/static_map: True
+ * /move_base/global_costmap/transform_tolerance: 0.5
+ * /move_base/global_costmap/update_frequency: 2.0
+ * /move_base/local_costmap/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/local_costmap/footprint_padding: 0.05
+ * /move_base/local_costmap/global_frame: odom
+ * /move_base/local_costmap/height: 8.0
+ * /move_base/local_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/inflation_layer/inflation_radius: 0.45
+ * /move_base/local_costmap/inflation_radius: 0.5
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/clearing: True
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/data_type: LaserScan
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/inf_is_valid: True
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/marking: True
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/obstacle_range: 3.0
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/raytrace_range: 4.0
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/sensor_frame: laser
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/topic: scan
+ * /move_base/local_costmap/obstacle_layer/observation_sources: laser_scan_sensor
+ * /move_base/local_costmap/obstacle_range: 3.5
+ * /move_base/local_costmap/plugins: [{'name': 'obstac...
+ * /move_base/local_costmap/publish_frequency: 5.0
+ * /move_base/local_costmap/raytrace_range: 5.0
+ * /move_base/local_costmap/resolution: 0.05
+ * /move_base/local_costmap/robot_base_frame: base_footprint
+ * /move_base/local_costmap/rolling_window: True
+ * /move_base/local_costmap/static_map: False
+ * /move_base/local_costmap/transform_tolerance: 0.5
+ * /move_base/local_costmap/update_frequency: 10.0
+ * /move_base/local_costmap/width: 8.0
+ * /move_base/max_planning_retries: 3
+ * /move_base/planner_frequency: 1.0
+ * /move_base/planner_patience: 10.0
+ * /move_base/recovery_behavior_enabled: True
+ * /move_base/shutdown_costmaps: False
+ * /robot_description: <?xml version="1....
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /slam_gmapping/angularUpdate: 0.2
+ * /slam_gmapping/astep: 0.05
+ * /slam_gmapping/base_frame: base_link
+ * /slam_gmapping/delta: 0.05
+ * /slam_gmapping/iterations: 5
+ * /slam_gmapping/kernelSize: 1
+ * /slam_gmapping/linearUpdate: 0.2
+ * /slam_gmapping/lsigma: 0.075
+ * /slam_gmapping/lskip: 0
+ * /slam_gmapping/lstep: 0.05
+ * /slam_gmapping/map_frame: map
+ * /slam_gmapping/map_update_interval: 2.0
+ * /slam_gmapping/maxRange: 12.0
+ * /slam_gmapping/maxUrange: 8.0
+ * /slam_gmapping/odom_frame: odom
+ * /slam_gmapping/ogain: 3.0
+ * /slam_gmapping/particles: 30
+ * /slam_gmapping/resampleThreshold: 0.5
+ * /slam_gmapping/sigma: 0.05
+ * /slam_gmapping/srr: 0.1
+ * /slam_gmapping/srt: 0.2
+ * /slam_gmapping/str: 0.1
+ * /slam_gmapping/stt: 0.2
+ * /slam_gmapping/temporalUpdate: 0.5
+ * /slam_gmapping/xmax: 10.0
+ * /slam_gmapping/xmin: -10.0
+ * /slam_gmapping/ymax: 10.0
+ * /slam_gmapping/ymin: -10.0
+ * /use_sim_time: True
+
+NODES
+  /
+    gazebo (gazebo_ros/gzserver)
+    joint_state_publisher (joint_state_publisher/joint_state_publisher)
+    move_base (move_base/move_base)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    rviz (rviz/rviz)
+    slam_gmapping (gmapping/slam_gmapping)
+    spawn_p3at (gazebo_ros/spawn_model)
+    spawn_target (gazebo_ros/spawn_model)
+
+auto-starting new master
+[1mprocess[master]: started with pid [23748][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/launch/mapping.launch http://localhost:11311
+[1msetting /run_id to b0732c64-21a0-11f1-9328-00155d28b090[0m
+[1mprocess[rosout-1]: started with pid [23777][0m
+started core service [/rosout]
+[1mprocess[gazebo-2]: started with pid [23784][0m
+[1mprocess[robot_state_publisher-3]: started with pid [23788][0m
+[1mprocess[joint_state_publisher-4]: started with pid [23790][0m
+[1mprocess[spawn_p3at-5]: started with pid [23791][0m
+[1mprocess[spawn_target-6]: started with pid [23793][0m
+[1mprocess[slam_gmapping-7]: started with pid [23797][0m
+[1mprocess[move_base-8]: started with pid [23798][0m
+[1mprocess[rviz-9]: started with pid [23801][0m
+[rviz-9] killing on exit
+[spawn_target-6] killing on exit
+[joint_state_publisher-4] killing on exit
+[slam_gmapping-7] killing on exit
+[move_base-8] killing on exit
+[spawn_p3at-5] killing on exit
+virtual GMapping::GridSlamProcessor::~GridSlamProcessor(): Start
+virtual GMapping::GridSlamProcessor::~GridSlamProcessor(): Deleting tree
+Traceback (most recent call last):
+  File "/opt/ros/noetic/lib/gazebo_ros/spawn_model", line 239, in <module>
+    exit_code = sm.run()
+  File "/opt/ros/noetic/lib/gazebo_ros/spawn_model", line 187, in run
+    success = gazebo_interface.spawn_sdf_model_client(self.args.model, model_xml, self.args.robot_namespace,
+  File "/opt/ros/noetic/lib/python3/dist-packages/gazebo_ros/gazebo_interface.py", line 16, in spawn_sdf_model_client
+    rospy.wait_for_service(gazebo_namespace+'/spawn_sdf_model')
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/impl/tcpros_service.py", line 166, in wait_for_service
+    raise ROSInterruptException("rospy shutdown")
+rospy.exceptions.ROSInterruptException: rospy shutdown
+Traceback (most recent call last):
+  File "/opt/ros/noetic/lib/gazebo_ros/spawn_model", line 239, in <module>
+    exit_code = sm.run()
+  File "/opt/ros/noetic/lib/gazebo_ros/spawn_model", line 183, in run
+    success = gazebo_interface.spawn_urdf_model_client(self.args.model, model_xml, self.args.robot_namespace,
+  File "/opt/ros/noetic/lib/python3/dist-packages/gazebo_ros/gazebo_interface.py", line 28, in spawn_urdf_model_client
+    rospy.wait_for_service(gazebo_namespace+'/spawn_urdf_model')
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/impl/tcpros_service.py", line 166, in wait_for_service
+    raise ROSInterruptException("rospy shutdown")
+rospy.exceptions.ROSInterruptException: rospy shutdown
+[WARN] [1773711281.230374754]: Shutdown request received.
+[WARN] [1773711281.230434017]: Reason given for shutdown: [user request]
+[31m[gazebo-2] process has died [pid 23784, exit code 255, cmd /opt/ros/noetic/lib/gazebo_ros/gzserver -e ode /home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_gazebo/worlds/complex_maze.world __name:=gazebo __log:=/home/yuchen/.ros/log/b0732c64-21a0-11f1-9328-00155d28b090/gazebo-2.log].
+log file: /home/yuchen/.ros/log/b0732c64-21a0-11f1-9328-00155d28b090/gazebo-2*.log[0m
+[robot_state_publisher-3] killing on exit
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

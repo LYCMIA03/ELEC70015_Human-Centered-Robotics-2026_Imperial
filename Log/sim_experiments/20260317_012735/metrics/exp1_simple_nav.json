@@ -1,0 +1,121 @@
+{
+  "experiment_type": "fixed_point_navigation",
+  "scenario": "simple",
+  "frames": {
+    "global_frame": "map",
+    "robot_frame": "base_link"
+  },
+  "timestamps": {
+    "run_start_unix_s": 1773710900.4921155,
+    "run_end_unix_s": 1773710943.0603366
+  },
+  "config": {
+    "goal_timeout_s": 120.0,
+    "warmup_s": 8.0,
+    "waypoints": [
+      {
+        "name": "WP1_open_south",
+        "x": 0.0,
+        "y": -2.0
+      },
+      {
+        "name": "WP2_obstacle_detour",
+        "x": 3.5,
+        "y": 2.0
+      },
+      {
+        "name": "WP3_far_east",
+        "x": 5.0,
+        "y": 0.0
+      }
+    ]
+  },
+  "summary": {
+    "waypoints_total": 3,
+    "waypoints_succeeded": 3,
+    "success_rate": 1.0,
+    "mean_duration_s": 13.18681255976359,
+    "max_duration_s": 19.730611085891724,
+    "mean_goal_error_m": 0.5481343562669506,
+    "max_goal_error_m": 0.5737093471401045,
+    "mean_traveled_distance_m": 3.3520996901122104,
+    "total_traveled_distance_m": 10.056299070336632,
+    "mean_path_efficiency": 0.8752314968558514
+  },
+  "waypoint_results": [
+    {
+      "name": "WP1_open_south",
+      "target_xy": [
+        0.0,
+        -2.0
+      ],
+      "success": true,
+      "goal_state_code": 3,
+      "goal_state": "SUCCEEDED",
+      "start_xy": [
+        7.37846096603392e-05,
+        0.025757216612300925
+      ],
+      "end_xy": [
+        0.3398800531079824,
+        -1.5378052742671764
+      ],
+      "duration_s": 19.730611085891724,
+      "goal_error_m": 0.5737093471401045,
+      "direct_distance_m": 2.0257572179560377,
+      "traveled_distance_m": 2.907594365562593,
+      "path_efficiency": 0.6967124582262946,
+      "timeout_s": 120.0
+    },
+    {
+      "name": "WP2_obstacle_detour",
+      "target_xy": [
+        3.5,
+        2.0
+      ],
+      "success": true,
+      "goal_state_code": 3,
+      "goal_state": "SUCCEEDED",
+      "start_xy": [
+        0.36055326055356934,
+        -1.6899098653355575
+      ],
+      "end_xy": [
+        3.4241535258398637,
+        1.455881745083072
+      ],
+      "duration_s": 12.718978643417358,
+      "goal_error_m": 0.5493790703843451,
+      "direct_distance_m": 4.8447456738327865,
+      "traveled_distance_m": 4.825399171976905,
+      "path_efficiency": 1.0040093060006796,
+      "timeout_s": 120.0
+    },
+    {
+      "name": "WP3_far_east",
+      "target_xy": [
+        5.0,
+        0.0
+      ],
+      "success": true,
+      "goal_state_code": 3,
+      "goal_state": "SUCCEEDED",
+      "start_xy": [
+        3.421786767210473,
+        1.4585675474202797
+      ],
+      "end_xy": [
+        5.043122804260386,
+        0.5195280448523999
+      ],
+      "duration_s": 7.1108479499816895,
+      "goal_error_m": 0.5213146512764022,
+      "direct_distance_m": 2.14899425279352,
+      "traveled_distance_m": 2.323305532797135,
+      "path_efficiency": 0.9249727263405801,
+      "timeout_s": 120.0
+    }
+  ],
+  "odom_samples": 2536,
+  "odom_path_distance_total_m": 10.05924971176635
+}

@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-03-17T01:26:20.422626Z",
+  "run_dir": "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/Log/sim_experiments/20260317_012139",
+  "experiments": {
+    "exp1_simple_nav": null,
+    "exp2_complex_nav": null,
+    "exp3_target_follow": null,
+    "exp4_task67_amcl": null
+  }
+}

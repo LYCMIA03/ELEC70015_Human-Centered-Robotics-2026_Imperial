@@ -1,0 +1,179 @@
+{
+  "experiment_type": "fixed_point_navigation",
+  "scenario": "complex",
+  "frames": {
+    "global_frame": "map",
+    "robot_frame": "base_link"
+  },
+  "timestamps": {
+    "run_start_unix_s": 1773714007.2093644,
+    "run_end_unix_s": 1773714369.676548
+  },
+  "config": {
+    "goal_timeout_s": 180.0,
+    "warmup_s": 10.0,
+    "waypoints": [
+      {
+        "name": "WP1_south",
+        "x": 0.0,
+        "y": -1.5
+      },
+      {
+        "name": "WP2_north",
+        "x": 0.0,
+        "y": 1.5
+      },
+      {
+        "name": "WP3_west",
+        "x": -1.5,
+        "y": 0.0
+      },
+      {
+        "name": "WP4_east_s",
+        "x": 1.5,
+        "y": -0.5
+      },
+      {
+        "name": "WP5_return",
+        "x": 0.0,
+        "y": 0.0
+      }
+    ]
+  },
+  "summary": {
+    "waypoints_total": 5,
+    "waypoints_succeeded": 4,
+    "success_rate": 0.8,
+    "mean_duration_s": 71.48993878364563,
+    "max_duration_s": 180.22563886642456,
+    "mean_goal_error_m": 0.1529530011251839,
+    "max_goal_error_m": 0.16328274137239074,
+    "mean_traveled_distance_m": 3.5825660347512054,
+    "total_traveled_distance_m": 17.912830173756028,
+    "mean_path_efficiency": 0.7202181264194791
+  },
+  "waypoint_results": [
+    {
+      "name": "WP1_south",
+      "target_xy": [
+        0.0,
+        -1.5
+      ],
+      "success": true,
+      "goal_state_code": 3,
+      "goal_state": "SUCCEEDED",
+      "start_xy": [
+        0.006081579423372726,
+        -0.0008520241152981846
+      ],
+      "end_xy": [
+        -0.14749543442660976,
+        -1.5700453456939767
+      ],
+      "duration_s": 65.08282923698425,
+      "goal_error_m": 0.16328274137239074,
+      "direct_distance_m": 1.4991603113768324,
+      "traveled_distance_m": 2.4059842598358303,
+      "path_efficiency": 0.6230964750696772,
+      "timeout_s": 180.0
+    },
+    {
+      "name": "WP2_north",
+      "target_xy": [
+        0.0,
+        1.5
+      ],
+      "success": true,
+      "goal_state_code": 3,
+      "goal_state": "SUCCEEDED",
+      "start_xy": [
+        -0.14859120966276212,
+        -1.5711249990368377
+      ],
+      "end_xy": [
+        -0.06108371367918099,
+        1.3648301376541874
+      ],
+      "duration_s": 70.58905863761902,
+      "goal_error_m": 0.14833108832414768,
+      "direct_distance_m": 3.0747175654518353,
+      "traveled_distance_m": 4.636636300020577,
+      "path_efficiency": 0.663135377997664,
+      "timeout_s": 180.0
+    },
+    {
+      "name": "WP3_west",
+      "target_xy": [
+        -1.5,
+        0.0
+      ],
+      "success": false,
+      "goal_state_code": 1,
+      "goal_state": "ACTIVE",
+      "start_xy": [
+        -0.06315973764545237,
+        1.3655437581786758
+      ],
+      "end_xy": [
+        -1.3443085651943847,
+        0.027116606483748282
+      ],
+      "duration_s": 180.22563886642456,
+      "goal_error_m": 0.15803522777857354,
+      "direct_distance_m": 1.9822259444936712,
+      "traveled_distance_m": 6.5468056539534984,
+      "path_efficiency": 0.30277757570161573,
+      "timeout_s": 180.0
+    },
+    {
+      "name": "WP4_east_s",
+      "target_xy": [
+        1.5,
+        -0.5
+      ],
+      "success": true,
+      "goal_state_code": 3,
+      "goal_state": "SUCCEEDED",
+      "start_xy": [
+        -1.349420224675188,
+        0.026216982194019283
+      ],
+      "end_xy": [
+        1.3538170861738732,
+        -0.49476034856500684
+      ],
+      "duration_s": 26.28302264213562,
+      "goal_error_m": 0.14627678640801842,
+      "direct_distance_m": 2.8976024449771196,
+      "traveled_distance_m": 2.8922167328862365,
+      "path_efficiency": 1.0018621398699634,
+      "timeout_s": 180.0
+    },
+    {
+      "name": "WP5_return",
+      "target_xy": [
+        0.0,
+        0.0
+      ],
+      "success": true,
+      "goal_state_code": 3,
+      "goal_state": "SUCCEEDED",
+      "start_xy": [
+        1.3532748937441705,
+        -0.5089412486316803
+      ],
+      "end_xy": [
+        0.10420344862949264,
+        0.10627670187777218
+      ],
+      "duration_s": 15.269144535064697,
+      "goal_error_m": 0.14883916174278924,
+      "direct_distance_m": 1.4458126201541712,
+      "traveled_distance_m": 1.4311872270598869,
+      "path_efficiency": 1.0102190634584753,
+      "timeout_s": 180.0
+    }
+  ],
+  "odom_samples": 18656,
+  "odom_path_distance_total_m": 17.91832244371039
+}

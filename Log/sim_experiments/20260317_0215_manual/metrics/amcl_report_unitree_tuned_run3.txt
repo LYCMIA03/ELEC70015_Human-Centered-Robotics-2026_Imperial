@@ -1,0 +1,42 @@
+======================================================================
+  AMCL LOCALIZATION VERIFICATION REPORT
+  Generated: 2026-03-17 03:53:44
+======================================================================
+
+--- Convergence ---
+  Convergence time:   1.1 s (threshold: 0.30 m)
+
+--- Continuous Tracking Statistics ---
+  Samples:           550
+  Mean pos error:    0.0610 m
+  Max pos error:     0.3340 m
+  Std pos error:     0.0474 m
+  Median pos error:  0.0539 m
+  Mean yaw error:    2.22°
+  Max yaw error:     10.53°
+
+--- Per-Waypoint Results ---
+  Waypoint                  NavOK    Pos Err(m)   Yaw Err(°)   Cov(xy)    Spread    
+  -----------------------------------------------------------------------------
+  WP1_south                 YES      0.0664       1.37         0.0066     0.0930    
+  WP2_north                 YES      0.0104       0.67         0.0102     0.1197    
+  WP3_west                  YES      0.0719       5.19         0.0040     0.0744    
+  WP4_east_s                YES      0.0184       1.37         0.0031     0.0634    
+  WP5_north2                YES      0.0237       1.22         0.0114     0.1249    
+  WP6_return                YES      0.0964       3.51         0.0025     0.0585    
+
+--- Waypoint Summary ---
+  Navigation success:   6 / 6
+  Mean position error:  0.0479 m
+  Max position error:   0.0964 m
+  Mean yaw error:       2.22°
+  Max yaw error:        5.19°
+
+--- PASS/FAIL Criteria ---
+  Mean position error < 0.30 m:  PASS (0.0479 m)
+  Max position error  < 0.50 m:  PASS (0.0964 m)
+  Navigation success  >= 80%:    PASS (100%)
+
+  OVERALL: *** PASS ***
+
+======================================================================

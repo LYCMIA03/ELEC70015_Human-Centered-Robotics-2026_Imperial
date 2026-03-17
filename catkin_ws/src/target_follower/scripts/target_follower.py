@@ -490,7 +490,11 @@ class TargetFollower:
             window_s = self.explore_revisit_window_s
         if radius_m is None:
             radius_m = self.explore_revisit_radius
-        cutoff = now - rospy.Duration(window_s)
+        # In simulation startup, /clock can still be near zero. Guard against
+        # negative rospy.Time results when subtracting long windows.
+        cutoff = rospy.Time(0)
+        if now.to_sec() > window_s:
+            cutoff = now - rospy.Duration(window_s)
 
         for stamp, px, py in reversed(self._path_history):
             if stamp < cutoff:
@@ -506,7 +510,9 @@ class TargetFollower:
             window_s = self.target_reacquire_block_s
         if radius_m is None:
             radius_m = self.target_reacquire_radius
-        cutoff = now - rospy.Duration(window_s)
+        cutoff = rospy.Time(0)
+        if now.to_sec() > window_s:
+            cutoff = now - rospy.Duration(window_s)
 
         for stamp, px, py, _ in reversed(self._dialogue_points):
             if stamp < cutoff:

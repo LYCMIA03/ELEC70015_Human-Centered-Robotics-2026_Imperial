@@ -1,0 +1,1569 @@
+{
+  "experiment_type": "target_following",
+  "config": {
+    "robot_model": "p3at",
+    "target_model": "target",
+    "duration_s": 180.0,
+    "warmup_s": 8.0,
+    "standoff_m": 0.8,
+    "tolerance_m": 0.35
+  },
+  "timestamps": {
+    "run_start_unix_s": 1773718472.889514,
+    "run_end_unix_s": 1773718652.907489
+  },
+  "summary": {
+    "sample_count": 187427,
+    "missing_model_samples": 0,
+    "sample_dropout_rate": 0.0,
+    "distance_mean_m": 2.3270984865526856,
+    "distance_std_m": 0.8073814697397362,
+    "distance_min_m": 0.6000104387137125,
+    "distance_max_m": 3.3287227520525313,
+    "distance_median_m": 2.5832075347622814,
+    "standoff_target_m": 0.8,
+    "standoff_rmse_m": 1.72739532976983,
+    "within_tolerance_rate": 0.12641721843704481,
+    "robot_speed_mean_mps": 2.439197103546266e-05,
+    "target_speed_mean_mps": 0.014895952974435486,
+    "result_true_count": 5,
+    "result_false_count": 4,
+    "status_time_s": {
+      "WAITING_ACTION": 185.51997303962708,
+      "IDLE": 0.5483481884002686
+    },
+    "status_time_ratio": {
+      "WAITING_ACTION": 0.9970529739571936,
+      "IDLE": 0.0029470260428064274
+    },
+    "run_duration_s": 180.0179750919342
+  },
+  "status_events": [
+    {
+      "time_unix_s": 1773718466.8391724,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718467.3396115,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718467.8419328,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718468.341801,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718468.842423,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718469.3430355,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718469.8436863,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718470.3436174,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718470.845297,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718471.3454957,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718471.8465724,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718472.3468106,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718472.8477669,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718473.3490224,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718473.8490927,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718474.3499727,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718474.850071,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718475.3510115,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718475.8517354,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718476.3526356,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718476.8524354,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718477.3542273,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718477.8544621,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718478.355222,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718478.8555465,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718479.3568432,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718479.8577518,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718480.3593783,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718480.8615224,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718481.36126,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718481.8625536,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718482.3636193,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718482.8644552,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718483.3654041,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718483.8662446,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718484.3675337,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718484.8678389,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718485.36852,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718485.8701212,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718486.3729968,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718486.8747644,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718487.3748417,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718487.8752122,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718488.376622,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718488.8769736,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718489.3775513,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718489.878623,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718490.3792593,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718490.879442,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718491.3805873,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718491.8805633,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718492.3819473,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718492.8832228,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718493.3871229,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718493.8865259,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718494.3878856,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718494.8883932,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718495.3892372,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718495.889647,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718496.3905513,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718496.8921497,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718497.3924758,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718497.8939943,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718498.3951092,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718498.8962264,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718499.396647,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718499.8982718,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718500.3993125,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718500.900795,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718501.401186,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718501.9021914,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718502.4037225,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718502.904351,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718503.4047632,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718503.9075031,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718504.4092672,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718504.9103305,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718505.4110205,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718505.9128797,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718506.4135845,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718506.914622,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718507.4156373,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718507.9166546,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718508.4185212,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718508.9238038,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718509.4236333,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718509.9228678,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718510.424498,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718510.9280365,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718511.432166,
+      "status": "IDLE"
+    },
+    {
+      "time_unix_s": 1773718511.9805143,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718512.4832525,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718512.9838426,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718513.4852595,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718513.9864597,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718514.4871883,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718514.9885538,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718515.4902122,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718515.990844,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718516.4943793,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718516.9960394,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718517.4976373,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718517.9993045,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718518.5009313,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718519.0023258,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718519.5039818,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718520.0037112,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718520.511067,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718521.0086792,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718521.5090964,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718522.0124247,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718522.514588,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718523.0158155,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718523.5181298,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718524.017486,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718524.5183232,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718525.023086,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718525.524345,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718526.0260339,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718526.5273848,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718527.0276797,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718527.528452,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718528.0295177,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718528.5303802,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718529.0317109,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718529.533125,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718530.0327618,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718530.5335126,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718531.0345898,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718531.5362365,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718532.0395045,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718532.5408638,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718533.0418608,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718533.5417228,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718534.0429375,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718534.544199,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718535.0444353,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718535.5456417,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718536.046546,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718536.546605,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718537.0484235,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718537.5490274,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718538.0494726,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718538.551308,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718539.0514297,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718539.5518076,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718540.0530763,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718540.553327,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718541.054514,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718541.5548372,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718542.0556755,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718542.556341,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718543.0582716,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718543.5578225,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718544.0595026,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718544.5600646,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718545.061131,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718545.5621579,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718546.06365,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718546.5654233,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718547.0655568,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718547.5668035,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718548.0683758,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718548.5690525,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718549.0694747,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718549.5709498,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718550.0734708,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718550.5731602,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718551.0742006,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718551.5745935,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718552.0758066,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718552.5760026,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718553.0773401,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718553.5773752,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718554.0792828,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718554.580207,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718555.0804043,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718555.5816417,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718556.0823507,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718556.5844,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718557.0852542,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718557.585807,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718558.0867405,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718558.5886648,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718559.0887268,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718559.5898275,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718560.0909135,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718560.5917177,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718561.093251,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718561.595386,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718562.0963342,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718562.5965714,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718563.0977032,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718563.5983667,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718564.0994134,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718564.599445,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718565.1009068,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718565.6017306,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718566.1024933,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718566.6027894,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718567.104211,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718567.6047935,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718568.105623,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718568.6064434,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718569.1074653,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718569.6093652,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718570.114209,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718570.6156878,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718571.116064,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718571.6172006,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718572.1189435,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718572.618418,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718573.1192186,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718573.6196432,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718574.1232893,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718574.6251667,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718575.1268203,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718575.6282678,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718576.1293101,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718576.6302335,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718577.1313305,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718577.6323159,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718578.1324797,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718578.6359148,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718579.135233,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718579.6373172,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718580.1375358,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718580.6394243,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718581.1403036,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718581.6418247,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718582.1424465,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718582.644562,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718583.1460574,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718583.6463509,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718584.1459908,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718584.6482193,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718585.1485937,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718585.6492934,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718586.1503766,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718586.6512592,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718587.1521382,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718587.652681,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718588.1532652,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718588.6543362,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718589.1548173,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718589.6565619,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718590.1557074,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718590.6566179,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718591.157696,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718591.6588266,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718592.158843,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718592.659132,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718593.160671,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718593.6609814,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718594.1614983,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718594.6623554,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718595.1641877,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718595.6659021,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718596.1663024,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718596.6673412,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718597.168422,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718597.6678393,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718598.1686735,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718598.6695714,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718599.1706638,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718599.6712627,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718600.171438,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718600.6736329,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718601.1737688,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718601.6740875,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718602.1752782,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718602.676782,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718603.1765294,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718603.678032,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718604.1796744,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718604.6805797,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718605.1815135,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718605.681829,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718606.182892,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718606.68396,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718607.1842763,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718607.68492,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718608.1865518,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718608.6871693,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718609.1888878,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718609.6892436,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718610.1893122,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718610.6904392,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718611.1909428,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718611.6913185,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718612.1923213,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718612.6927328,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718613.1936712,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718613.6958485,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718614.1966527,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718614.6979253,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718615.1985433,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718615.7000916,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718616.199517,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718616.7013085,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718617.2025948,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718617.7023807,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718618.2036154,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718618.7045047,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718619.2047532,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718619.7065034,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718620.2072878,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718620.7086484,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718621.2091563,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718621.709574,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718622.2101958,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718622.7108517,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718623.211818,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718623.7122557,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718624.2144215,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718624.7153149,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718625.217481,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718625.7192295,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718626.218729,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718626.7192907,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718627.2206566,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718627.7205896,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718628.2218757,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718628.7228005,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718629.2251315,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718629.7255826,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718630.2260294,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718630.7264538,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718631.2277217,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718631.727682,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718632.228579,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718632.730347,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718633.2301195,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718633.7320218,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718634.233706,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718634.7336626,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718635.2346466,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718635.7353032,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718636.2357156,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718636.7360146,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718637.2379396,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718637.7391522,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718638.2404063,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718638.7415714,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718639.2425017,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718639.7446263,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718640.2460744,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718640.7460237,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718641.2461069,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718641.746992,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718642.2486467,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718642.7493784,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718643.249957,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718643.750614,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718644.251016,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718644.7521026,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718645.253135,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718645.7539077,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718646.2552042,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718646.7544947,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718647.2566023,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718647.757355,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718648.2581441,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718648.7594151,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718649.260737,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718649.7603395,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718650.2615018,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718650.7614162,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718651.2624242,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718651.7632687,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718652.2639256,
+      "status": "WAITING_ACTION"
+    },
+    {
+      "time_unix_s": 1773718652.764685,
+      "status": "WAITING_ACTION"
+    }
+  ],
+  "result_events": [
+    {
+      "time_unix_s": 1773718466.3217854,
+      "result": true
+    },
+    {
+      "time_unix_s": 1773718511.4300077,
+      "result": false
+    },
+    {
+      "time_unix_s": 1773718511.4865956,
+      "result": true
+    },
+    {
+      "time_unix_s": 1773718556.6372707,
+      "result": false
+    },
+    {
+      "time_unix_s": 1773718556.6913762,
+      "result": true
+    },
+    {
+      "time_unix_s": 1773718601.8286595,
+      "result": false
+    },
+    {
+      "time_unix_s": 1773718601.8818586,
+      "result": true
+    },
+    {
+      "time_unix_s": 1773718647.0085757,
+      "result": false
+    },
+    {
+      "time_unix_s": 1773718647.0611355,
+      "result": true
+    }
+  ]
+}

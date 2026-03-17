@@ -79,7 +79,7 @@
 
   <!-- Approximate RPLIDAR mount for dual-lidar mode.
        TODO: replace with measured pose / URDF once hardware layout is final. -->
-  <arg name="rplidar_tf_x" default="-0.272"/>
+  <arg name="rplidar_tf_x" default="-0.232"/>
   <arg name="rplidar_tf_y" default="0.0"/>
   <arg name="rplidar_tf_z" default="0.072"/>
   <arg name="rplidar_tf_qx" default="1.0"/>
@@ -163,7 +163,7 @@
 
         <node pkg="target_follower" type="scan_body_filter.py"
               name="rplidar_scan_body_filter" output="screen">
-          <param name="lidar_x" value="-0.202"/>
+          <param name="lidar_x" value="-0.232"/>
           <param name="lidar_y" value="0.0"/>
           <param name="body_x_min" value="-0.27"/>
           <param name="body_x_max" value="0.27"/>
@@ -209,7 +209,7 @@
 
       <node pkg="target_follower" type="scan_body_filter.py"
             name="scan_body_filter" output="screen">
-        <param name="lidar_x" value="-0.202"/>
+        <param name="lidar_x" value="-0.232"/>
         <param name="lidar_y" value="0.0"/>
         <param name="body_x_min" value="-0.27"/>
         <param name="body_x_max" value="0.27"/>

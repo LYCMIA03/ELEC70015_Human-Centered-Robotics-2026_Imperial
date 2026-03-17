@@ -25,6 +25,7 @@ import subprocess
 import os
 import sys
 import time
+import random
 from collections import deque
 
 from nav_msgs.msg import OccupancyGrid, Odometry
@@ -47,6 +48,8 @@ class FrontierExplorer:
         # Parameters
         self.min_frontier_size = rospy.get_param('~min_frontier_size', 8)
         self.goal_timeout = rospy.get_param('~goal_timeout', 90.0)
+        self.stuck_progress_timeout = rospy.get_param('~stuck_progress_timeout', 8.0)
+        self.stuck_min_progress = rospy.get_param('~stuck_min_progress', 0.15)
         self.exploration_timeout = rospy.get_param('~exploration_timeout', 600.0)
         self.save_map = rospy.get_param('~save_map', True)
         self.map_save_path = rospy.get_param(
@@ -292,7 +295,12 @@ class FrontierExplorer:
         return best[1], best[2]
 
     def send_nav_goal(self, wx, wy):
-        """Send a MoveBaseGoal and wait for result."""
+        """Send a MoveBaseGoal with progress watchdog.
+
+        Returns:
+            (success: bool, reason: str)
+              reason in {"succeeded", "timeout", "aborted", "stuck_no_progress", ...}
+        """
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
@@ -308,21 +316,57 @@ class FrontierExplorer:
 
         self.client.send_goal(goal)
         self.goals_sent += 1
-        finished = self.client.wait_for_result(rospy.Duration(self.goal_timeout))
+        start_wall = time.time()
+        last_progress_wall = start_wall
+        progress_anchor = (self.robot_x, self.robot_y)
+        reason = "unknown"
 
-        state = self.client.get_state()
-        if finished and state == GoalStatus.SUCCEEDED:
-            self.goals_succeeded += 1
-            return True
-        else:
-            self.goals_failed += 1
-            self.client.cancel_goal()
-            rospy.logwarn("[Explorer] Goal (%.2f, %.2f) failed (state=%d), blacklisting."
-                          % (wx, wy, state))
-            self.blacklisted_goals.append((wx, wy))
-            # Recovery: clear costmaps so the planner can re-plan from scratch
-            self._clear_costmaps()
-            return False
+        terminal_fail_states = {
+            GoalStatus.ABORTED: "aborted",
+            GoalStatus.REJECTED: "rejected",
+            GoalStatus.PREEMPTED: "preempted",
+            GoalStatus.RECALLED: "recalled",
+            GoalStatus.LOST: "lost",
+        }
+
+        rate = rospy.Rate(5)
+        while not rospy.is_shutdown():
+            state = self.client.get_state()
+            if state == GoalStatus.SUCCEEDED:
+                self.goals_succeeded += 1
+                return True, "succeeded"
+
+            if state in terminal_fail_states:
+                reason = terminal_fail_states[state]
+                break
+
+            now_wall = time.time()
+            if now_wall - start_wall > self.goal_timeout:
+                reason = "timeout"
+                break
+
+            progress = math.hypot(
+                self.robot_x - progress_anchor[0],
+                self.robot_y - progress_anchor[1],
+            )
+            if progress >= self.stuck_min_progress:
+                progress_anchor = (self.robot_x, self.robot_y)
+                last_progress_wall = now_wall
+            elif now_wall - last_progress_wall > self.stuck_progress_timeout:
+                reason = "stuck_no_progress"
+                break
+
+            rate.sleep()
+
+        self.goals_failed += 1
+        self.client.cancel_goal()
+        rospy.logwarn(
+            "[Explorer] Goal (%.2f, %.2f) failed (%s), blacklisting.",
+            wx, wy, reason)
+        self.blacklisted_goals.append((wx, wy))
+        # Recovery: clear costmaps so the planner can re-plan from scratch
+        self._clear_costmaps()
+        return False, reason
 
     def _clear_costmaps(self):
         """Clear costmaps via the move_base service to recover from stuck states."""
@@ -363,8 +407,9 @@ class FrontierExplorer:
         rospy.sleep(0.5)
 
         # Then do a gentle rotation to face a new direction
-        twist.angular.z = 0.3
-        rospy.loginfo("[Explorer] Rotating to find new direction...")
+        turn_sign = random.choice([-1.0, 1.0])
+        twist.angular.z = turn_sign * 0.35
+        rospy.loginfo("[Explorer] Rotating to find new direction (sign=%+.0f)...", turn_sign)
         start = rospy.Time.now()
         while (rospy.Time.now() - start).to_sec() < 3.0 and not rospy.is_shutdown():
             cmd_pub.publish(twist)
@@ -528,11 +573,15 @@ class FrontierExplorer:
             coverage, _, _, _ = self.compute_coverage()
             rospy.loginfo("[Explorer] >>> Goal #%d: (%.2f, %.2f) | Coverage: %.1f%%"
                           % (self.goals_sent + 1, wx, wy, coverage))
-            success = self.send_nav_goal(wx, wy)
+            success, fail_reason = self.send_nav_goal(wx, wy)
             if success:
                 consecutive_failures = 0
             else:
                 consecutive_failures += 1
+                if fail_reason == "stuck_no_progress":
+                    rospy.logwarn("[Explorer] Stuck detected during goal execution, immediate backup recovery.")
+                    self._try_backup()
+                    consecutive_failures = 0
             rospy.sleep(1.0)
 
         # Save map

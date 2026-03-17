@@ -1,0 +1,3109 @@
+Warning: Warning: TF_REPEATED_DATA ignoring data with redundant timestamp for frame odom (parent map) at time 0.299000 according to authority unknown_publisherTF_REPEATED_DATA ignoring data with redundant timestamp for frame odom (parent map) at time 0.299000 according to authority unknown_publisher[WARN] [1773710889.702238048, 0.249000000]: TF_REPEATED_DATA ignoring data with redundant timestamp for frame odom (parent map) at time 0.299000 according to authority unknown_publisher
+
+
+         at line          at line 277277 in  in /tmp/binarydeb/ros-noetic-tf2-0.7.10/src/buffer_core.cpp/tmp/binarydeb/ros-noetic-tf2-0.7.10/src/buffer_core.cpp
+
+[WARN] [1773710890.049509627, 0.355000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_x>, defaults to 0.000100
+[WARN] [1773710890.049602163, 0.355000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_y>, defaults to 0.000100
+[WARN] [1773710890.049614983, 0.355000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_yaw>, defaults to 0.010000
+[WARN] [1773710890.316482742, 0.597000000]: global_costmap: Pre-Hydro parameter "static_map" unused since "plugins" is provided
+[INFO] [1773710890.377442266, 0.658000000]: Laser is mounted upwards.
+ -maxUrange 8 -maxUrange 12 -sigma     0.05 -kernelSize 1 -lstep 0.05 -lobsGain 3 -astep 0.05
+ -srr 0.1 -srt 0.2 -str 0.1 -stt 0.2
+ -linearUpdate 0.2 -angularUpdate 0.2 -resampleThreshold 0.5
+ -xmin -10 -xmax 10 -ymin -10 -ymax 10 -delta 0.05 -particles 30
+[INFO] [1773710890.380072575, 0.660000000]: Initialization complete
+update frame 0
+update ld=0 ad=0
+Laser Pose= -0.0240389 4.21277e-05 -3.56825e-05
+m_count 0
+Registering First Scan
+[WARN] [1773710890.755941399, 1.024000000]: local_costmap: Pre-Hydro parameter "static_map" unused since "plugins" is provided
+... logging to /home/yuchen/.ros/log/8c1b5198-21a0-11f1-9ffd-00155d28b090/roslaunch-LYCMIA03DELL-22842.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/launch/mapping.launch
+[1mstarted roslaunch server http://LYCMIA03DELL:40777/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /gazebo/enable_ros_network: True
+ * /move_base/DWAPlannerROS/acc_lim_theta: 1.5
+ * /move_base/DWAPlannerROS/acc_lim_x: 0.6
+ * /move_base/DWAPlannerROS/acc_lim_y: 0.0
+ * /move_base/DWAPlannerROS/forward_point_distance: 0.2
+ * /move_base/DWAPlannerROS/goal_distance_bias: 36.0
+ * /move_base/DWAPlannerROS/latch_xy_goal_tolerance: True
+ * /move_base/DWAPlannerROS/max_vel_theta: 1.0
+ * /move_base/DWAPlannerROS/max_vel_trans: 0.5
+ * /move_base/DWAPlannerROS/max_vel_x: 0.5
+ * /move_base/DWAPlannerROS/max_vel_y: 0.0
+ * /move_base/DWAPlannerROS/min_vel_theta: 0.0
+ * /move_base/DWAPlannerROS/min_vel_trans: 0.05
+ * /move_base/DWAPlannerROS/min_vel_x: -0.1
+ * /move_base/DWAPlannerROS/min_vel_y: 0.0
+ * /move_base/DWAPlannerROS/occdist_scale: 0.05
+ * /move_base/DWAPlannerROS/oscillation_reset_dist: 0.25
+ * /move_base/DWAPlannerROS/path_distance_bias: 24.0
+ * /move_base/DWAPlannerROS/sim_granularity: 0.025
+ * /move_base/DWAPlannerROS/sim_time: 1.7
+ * /move_base/DWAPlannerROS/stop_time_buffer: 0.3
+ * /move_base/DWAPlannerROS/vtheta_samples: 20
+ * /move_base/DWAPlannerROS/vx_samples: 12
+ * /move_base/DWAPlannerROS/vy_samples: 1
+ * /move_base/DWAPlannerROS/xy_goal_tolerance: 0.55
+ * /move_base/DWAPlannerROS/yaw_goal_tolerance: 0.5
+ * /move_base/NavfnROS/allow_unknown: True
+ * /move_base/NavfnROS/default_tolerance: 0.1
+ * /move_base/NavfnROS/visualize_potential: False
+ * /move_base/base_global_planner: navfn/NavfnROS
+ * /move_base/base_local_planner: dwa_local_planner...
+ * /move_base/clearing_rotation_allowed: True
+ * /move_base/controller_frequency: 10.0
+ * /move_base/controller_patience: 10.0
+ * /move_base/global_costmap/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/global_costmap/footprint_padding: 0.05
+ * /move_base/global_costmap/global_frame: map
+ * /move_base/global_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/inflation_layer/inflation_radius: 0.45
+ * /move_base/global_costmap/inflation_radius: 0.5
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/clearing: True
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/data_type: LaserScan
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/inf_is_valid: True
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/marking: True
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/obstacle_range: 3.0
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/raytrace_range: 4.0
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/sensor_frame: laser
+ * /move_base/global_costmap/obstacle_layer/laser_scan_sensor/topic: scan
+ * /move_base/global_costmap/obstacle_layer/observation_sources: laser_scan_sensor
+ * /move_base/global_costmap/obstacle_range: 3.5
+ * /move_base/global_costmap/plugins: [{'name': 'static...
+ * /move_base/global_costmap/publish_frequency: 1.0
+ * /move_base/global_costmap/raytrace_range: 5.0
+ * /move_base/global_costmap/robot_base_frame: base_footprint
+ * /move_base/global_costmap/static_layer/map_topic: /map
+ * /move_base/global_costmap/static_layer/subscribe_to_updates: True
+ * /move_base/global_costmap/static_layer/track_unknown_space: False
+ * /move_base/global_costmap/static_map: True
+ * /move_base/global_costmap/transform_tolerance: 0.5
+ * /move_base/global_costmap/update_frequency: 2.0
+ * /move_base/local_costmap/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/local_costmap/footprint_padding: 0.05
+ * /move_base/local_costmap/global_frame: odom
+ * /move_base/local_costmap/height: 8.0
+ * /move_base/local_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/inflation_layer/inflation_radius: 0.45
+ * /move_base/local_costmap/inflation_radius: 0.5
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/clearing: True
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/data_type: LaserScan
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/inf_is_valid: True
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/marking: True
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/obstacle_range: 3.0
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/raytrace_range: 4.0
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/sensor_frame: laser
+ * /move_base/local_costmap/obstacle_layer/laser_scan_sensor/topic: scan
+ * /move_base/local_costmap/obstacle_layer/observation_sources: laser_scan_sensor
+ * /move_base/local_costmap/obstacle_range: 3.5
+ * /move_base/local_costmap/plugins: [{'name': 'obstac...
+ * /move_base/local_costmap/publish_frequency: 5.0
+ * /move_base/local_costmap/raytrace_range: 5.0
+ * /move_base/local_costmap/resolution: 0.05
+ * /move_base/local_costmap/robot_base_frame: base_footprint
+ * /move_base/local_costmap/rolling_window: True
+ * /move_base/local_costmap/static_map: False
+ * /move_base/local_costmap/transform_tolerance: 0.5
+ * /move_base/local_costmap/update_frequency: 10.0
+ * /move_base/local_costmap/width: 8.0
+ * /move_base/max_planning_retries: 3
+ * /move_base/planner_frequency: 1.0
+ * /move_base/planner_patience: 10.0
+ * /move_base/recovery_behavior_enabled: True
+ * /move_base/shutdown_costmaps: False
+ * /robot_description: <?xml version="1....
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /slam_gmapping/angularUpdate: 0.2
+ * /slam_gmapping/astep: 0.05
+ * /slam_gmapping/base_frame: base_link
+ * /slam_gmapping/delta: 0.05
+ * /slam_gmapping/iterations: 5
+ * /slam_gmapping/kernelSize: 1
+ * /slam_gmapping/linearUpdate: 0.2
+ * /slam_gmapping/lsigma: 0.075
+ * /slam_gmapping/lskip: 0
+ * /slam_gmapping/lstep: 0.05
+ * /slam_gmapping/map_frame: map
+ * /slam_gmapping/map_update_interval: 2.0
+ * /slam_gmapping/maxRange: 12.0
+ * /slam_gmapping/maxUrange: 8.0
+ * /slam_gmapping/odom_frame: odom
+ * /slam_gmapping/ogain: 3.0
+ * /slam_gmapping/particles: 30
+ * /slam_gmapping/resampleThreshold: 0.5
+ * /slam_gmapping/sigma: 0.05
+ * /slam_gmapping/srr: 0.1
+ * /slam_gmapping/srt: 0.2
+ * /slam_gmapping/str: 0.1
+ * /slam_gmapping/stt: 0.2
+ * /slam_gmapping/temporalUpdate: 0.5
+ * /slam_gmapping/xmax: 10.0
+ * /slam_gmapping/xmin: -10.0
+ * /slam_gmapping/ymax: 10.0
+ * /slam_gmapping/ymin: -10.0
+ * /use_sim_time: True
+
+NODES
+  /
+    gazebo (gazebo_ros/gzserver)
+    joint_state_publisher (joint_state_publisher/joint_state_publisher)
+    move_base (move_base/move_base)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    rviz (rviz/rviz)
+    slam_gmapping (gmapping/slam_gmapping)
+    spawn_p3at (gazebo_ros/spawn_model)
+    spawn_target (gazebo_ros/spawn_model)
+
+auto-starting new master
+[1mprocess[master]: started with pid [22903][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/launch/mapping.launch http://localhost:11311
+[1msetting /run_id to 8c1b5198-21a0-11f1-9ffd-00155d28b090[0m
+[1mprocess[rosout-1]: started with pid [22932][0m
+started core service [/rosout]
+[1mprocess[gazebo-2]: started with pid [22935][0m
+[1mprocess[robot_state_publisher-3]: started with pid [22939][0m
+[1mprocess[joint_state_publisher-4]: started with pid [22941][0m
+[1mprocess[spawn_p3at-5]: started with pid [22942][0m
+[1mprocess[spawn_target-6]: started with pid [22943][0m
+[1mprocess[slam_gmapping-7]: started with pid [22944][0m
+[1mprocess[move_base-8]: started with pid [22945][0m
+[1mprocess[rviz-9]: started with pid [22947][0m
+[1m[spawn_p3at-5] process has finished cleanly
+log file: /home/yuchen/.ros/log/8c1b5198-21a0-11f1-9ffd-00155d28b090/spawn_p3at-5*.log[0m
+update frame 6
+update ld=0.0380221 ad=3.8096e-05
+Laser Pose= 3.50053e-05 -2.90366e-05 2.12984e-06
+m_count 1
+Average Scan Matching Score=52.578
+neff= 30
+Registering Scans:Done
+update frame 12
+update ld=1.23021e-07 ad=2.74794e-09
+Laser Pose= 3.48823e-05 -2.90364e-05 2.12709e-06
+m_count 2
+Average Scan Matching Score=52.6747
+neff= 30
+Registering Scans:Done
+update frame 18
+update ld=1.36487e-07 ad=2.63413e-09
+Laser Pose= 3.47458e-05 -2.90361e-05 2.12445e-06
+m_count 3
+Average Scan Matching Score=52.7088
+neff= 30
+Registering Scans:Done
+update frame 24
+update ld=1.36487e-07 ad=2.63388e-09
+Laser Pose= 3.46094e-05 -2.90359e-05 2.12182e-06
+m_count 4
+Average Scan Matching Score=52.7307
+neff= 30
+Registering Scans:Done
+update frame 30
+update ld=1.36488e-07 ad=2.63365e-09
+Laser Pose= 3.44729e-05 -2.90357e-05 2.11919e-06
+m_count 5
+Average Scan Matching Score=52.7818
+neff= 30
+Registering Scans:Done
+update frame 36
+update ld=1.36489e-07 ad=2.63341e-09
+Laser Pose= 3.43364e-05 -2.90354e-05 2.11655e-06
+m_count 6
+Average Scan Matching Score=52.7355
+neff= 30
+Registering Scans:Done
+update frame 42
+update ld=1.3649e-07 ad=2.63319e-09
+Laser Pose= 3.41999e-05 -2.90352e-05 2.11392e-06
+m_count 7
+Average Scan Matching Score=52.7887
+neff= 30
+Registering Scans:Done
+update frame 48
+update ld=1.3649e-07 ad=2.63296e-09
+Laser Pose= 3.40634e-05 -2.9035e-05 2.11129e-06
+m_count 8
+Average Scan Matching Score=52.7725
+neff= 30
+Registering Scans:Done
+update frame 54
+update ld=1.36491e-07 ad=2.63275e-09
+Laser Pose= 3.39269e-05 -2.90347e-05 2.10866e-06
+m_count 9
+Average Scan Matching Score=52.8
+neff= 30
+Registering Scans:Done
+update frame 60
+update ld=1.36492e-07 ad=2.63254e-09
+Laser Pose= 3.37904e-05 -2.90345e-05 2.10602e-06
+m_count 10
+Average Scan Matching Score=52.7887
+neff= 30
+Registering Scans:Done
+update frame 66
+update ld=1.36492e-07 ad=2.63233e-09
+Laser Pose= 3.36539e-05 -2.90342e-05 2.10339e-06
+m_count 11
+Average Scan Matching Score=52.7838
+neff= 30
+Registering Scans:Done
+update frame 72
+update ld=1.36493e-07 ad=2.63213e-09
+Laser Pose= 3.35174e-05 -2.9034e-05 2.10076e-06
+m_count 12
+Average Scan Matching Score=52.7872
+neff= 30
+Registering Scans:Done
+update frame 78
+update ld=1.36494e-07 ad=2.63193e-09
+Laser Pose= 3.33809e-05 -2.90338e-05 2.09813e-06
+m_count 13
+Average Scan Matching Score=52.7868
+neff= 30
+Registering Scans:Done
+update frame 84
+update ld=1.36494e-07 ad=2.63174e-09
+Laser Pose= 3.32444e-05 -2.90335e-05 2.09549e-06
+m_count 14
+Average Scan Matching Score=52.7607
+neff= 30
+Registering Scans:Done
+update frame 90
+update ld=1.36495e-07 ad=2.63155e-09
+Laser Pose= 3.31079e-05 -2.90333e-05 2.09286e-06
+m_count 15
+Average Scan Matching Score=52.7756
+neff= 30
+Registering Scans:Done
+update frame 96
+update ld=1.36495e-07 ad=2.63137e-09
+Laser Pose= 3.29715e-05 -2.90331e-05 2.09023e-06
+m_count 16
+Average Scan Matching Score=52.8171
+neff= 30
+Registering Scans:Done
+update frame 102
+update ld=1.36496e-07 ad=2.63119e-09
+Laser Pose= 3.2835e-05 -2.90328e-05 2.0876e-06
+m_count 17
+Average Scan Matching Score=52.8087
+neff= 30
+Registering Scans:Done
+update frame 108
+update ld=0.0280623 ad=0.201286
+Laser Pose= -0.00592656 -0.0257792 -0.201284
+m_count 18
+Average Scan Matching Score=51.75
+neff= 30
+Registering Scans:Done
+update frame 113
+update ld=0.0357569 ad=0.232607
+Laser Pose= -0.0103805 -0.0578238 -0.433891
+m_count 19
+Average Scan Matching Score=49.7771
+neff= 30
+Registering Scans:Done
+update frame 117
+update ld=0.0782432 ad=0.236527
+Laser Pose= 0.0345153 -0.121718 -0.670418
+m_count 20
+Average Scan Matching Score=51.7637
+neff= 30
+Registering Scans:Done
+update frame 121
+update ld=0.149102 ad=0.218642
+Laser Pose= 0.123554 -0.241208 -0.889061
+m_count 21
+Average Scan Matching Score=45.7885
+neff= 30
+Registering Scans:Done
+update frame 126
+update ld=0.241566 ad=0.228205
+Laser Pose= 0.23621 -0.454465 -1.11727
+m_count 22
+Average Scan Matching Score=16.8823
+neff= 30
+Registering Scans:Done
+update frame 131
+update ld=0.241169 ad=0.19488
+Laser Pose= 0.305274 -0.685096 -1.31215
+m_count 23
+Average Scan Matching Score=15.9319
+neff= 30
+Registering Scans:Done
+update frame 136
+update ld=0.244712 ad=0.174072
+Laser Pose= 0.332298 -0.928023 -1.48622
+m_count 24
+Average Scan Matching Score=14.9323
+neff= 30
+Registering Scans:Done
+update frame 141
+update ld=0.246193 ad=0.162258
+Laser Pose= 0.313649 -1.17316 -1.64848
+m_count 25
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.332298 -0.928023 -1.48622
+op:0.313649 -1.17316 -1.64848
+Average Scan Matching Score=0
+neff= 30
+Registering Scans:Done
+update frame 146
+update ld=0.218423 ad=0.12814
+Laser Pose= 0.267686 -1.38646 -1.77662
+m_count 26
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.313649 -1.17316 -1.64848
+op:0.267686 -1.38646 -1.77662
+Average Scan Matching Score=0
+neff= 30
+Registering Scans:Done
+update frame 152
+update ld=0.150332 ad=0.0455009
+Laser Pose= 0.226554 -1.53101 -1.82212
+m_count 27
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.267686 -1.38646 -1.77662
+op:0.226554 -1.53101 -1.82212
+Average Scan Matching Score=0
+neff= 30
+Registering Scans:Done
+update frame 158
+update ld=0.0251696 ad=0.159284
+Laser Pose= 0.245395 -1.53899 -1.66285
+m_count 28
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Scan Matching Failed, using odometry. Likelihood=0
+lp:0.226554 -1.53101 -1.82212
+op:0.245395 -1.53899 -1.66285
+Average Scan Matching Score=0
+neff= 30
+Registering Scans:Done
+update frame 162
+update ld=0.0318608 ad=0.241845
+Laser Pose= 0.277177 -1.53802 -1.42101
+m_count 29
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-20
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-0.00366526
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-13.3333
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-0.0136946
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-0.0165803
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-20
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-0.0258199
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-0.0148415
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-20
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-0.0157832
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-0.0243156
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-20
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-20
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-20
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Scan Matching Failed, using odometry. Likelihood=-20
+lp:0.245395 -1.53899 -1.66285
+op:0.277177 -1.53802 -1.42101
+Average Scan Matching Score=1.19217
+neff= 29.6699
+Registering Scans:Done
+update frame 165
+update ld=0.0288079 ad=0.215323
+Laser Pose= 0.304996 -1.53072 -1.20569
+m_count 30
+Average Scan Matching Score=15.1509
+neff= 29.8431
+Registering Scans:Done
+update frame 168
+update ld=0.030907 ad=0.230878
+Laser Pose= 0.332356 -1.51648 -0.974808
+m_count 31
+Average Scan Matching Score=17.8878
+neff= 29.8431
+Registering Scans:Done
+update frame 172
+update ld=0.0410612 ad=0.241916
+Laser Pose= 0.337724 -1.48035 -0.732892
+m_count 32
+Average Scan Matching Score=16.921
+neff= 29.843
+Registering Scans:Done
+update frame 178
+update ld=0.0608612 ad=0.144774
+Laser Pose= 0.30229 -1.43394 -0.614221
+m_count 33
+Average Scan Matching Score=29.4131
+neff= 29.5773
+Registering Scans:Done
+update frame 184
+update ld=0.0316058 ad=0.227015
+Laser Pose= 0.276873 -1.44821 -0.841236
+m_count 34
+Average Scan Matching Score=16.8343
+neff= 29.5773
+Registering Scans:Done
+update frame 189
+update ld=0.0810636 ad=0.230281
+Laser Pose= 0.301693 -1.52498 -1.07152
+m_count 35
+Average Scan Matching Score=16.8724
+neff= 29.5773
+Registering Scans:Done
+update frame 195
+update ld=0.160885 ad=0.22285
+Laser Pose= 0.348271 -1.67803 -1.2214
+m_count 36
+Average Scan Matching Score=17.8771
+neff= 29.5774
+Registering Scans:Done
+update frame 200
+update ld=0.0301132 ad=0.253756
+Laser Pose= 0.375415 -1.66577 -0.967642
+m_count 37
+Average Scan Matching Score=18.8916
+neff= 29.5774
+Registering Scans:Done
+update frame 203
+update ld=0.0268124 ad=0.200418
+Laser Pose= 0.395783 -1.6484 -0.767224
+m_count 38
+Average Scan Matching Score=18.8995
+neff= 29.5775
+Registering Scans:Done
+update frame 209
+update ld=0.0347619 ad=0.155043
+Laser Pose= 0.383803 -1.62696 -0.685592
+m_count 39
+Average Scan Matching Score=17.8974
+neff= 29.5775
+Registering Scans:Done
+update frame 215
+update ld=0.0240396 ad=0.186109
+Laser Pose= 0.373732 -1.64131 -0.871701
+m_count 40
+Average Scan Matching Score=18.9108
+neff= 29.5774
+Registering Scans:Done
+update frame 221
+update ld=0.0255934 ad=0.213946
+Laser Pose= 0.349784 -1.64619 -1.08565
+m_count 41
+Average Scan Matching Score=17.9094
+neff= 29.5776
+Registering Scans:Done
+update frame 227
+update ld=0.0975398 ad=0.234825
+Laser Pose= 0.359203 -1.74225 -1.32047
+m_count 42
+Average Scan Matching Score=5.98127
+neff= 29.5776
+Registering Scans:Done
+update frame 233
+update ld=0.0239266 ad=0.222535
+Laser Pose= 0.379048 -1.73697 -1.09794
+m_count 43
+Average Scan Matching Score=18.912
+neff= 29.5776
+Registering Scans:Done
+update frame 239
+update ld=0.0280038 ad=0.132257
+Laser Pose= 0.39329 -1.74216 -1.03327
+m_count 44
+Average Scan Matching Score=18.9173
+neff= 29.5776
+Registering Scans:Done
+update frame 245
+update ld=0.0279089 ad=0.154318
+Laser Pose= 0.394804 -1.72597 -0.947785
+m_count 45
+Average Scan Matching Score=18.9113
+neff= 29.5776
+Registering Scans:Done
+update frame 251
+update ld=0.0281944 ad=0.192363
+Laser Pose= 0.405716 -1.70801 -0.786306
+m_count 46
+Average Scan Matching Score=19.8727
+neff= 29.5776
+Registering Scans:Done
+update frame 257
+update ld=0.0298283 ad=0.117662
+Laser Pose= 0.397053 -1.71338 -0.87946
+m_count 47
+Average Scan Matching Score=18.9198
+neff= 29.5775
+Registering Scans:Done
+update frame 261
+update ld=0.0838652 ad=0.201578
+Laser Pose= 0.424882 -1.79248 -1.08104
+m_count 48
+Average Scan Matching Score=18.9198
+neff= 29.5774
+Registering Scans:Done
+update frame 265
+update ld=0.048491 ad=0.219998
+Laser Pose= 0.450181 -1.81704 -0.968088
+m_count 49
+Average Scan Matching Score=19.9087
+neff= 29.5773
+Registering Scans:Done
+update frame 271
+update ld=0.048775 ad=0.14614
+Laser Pose= 0.432878 -1.78111 -0.881557
+m_count 50
+Average Scan Matching Score=19.9094
+neff= 29.5771
+Registering Scans:Done
+update frame 277
+update ld=0.051496 ad=0.241545
+Laser Pose= 0.421539 -1.81206 -1.1231
+m_count 51
+Average Scan Matching Score=19.9136
+neff= 29.5771
+Registering Scans:Done
+update frame 281
+update ld=0.0248263 ad=0.217308
+Laser Pose= 0.442115 -1.80125 -0.905795
+m_count 52
+Average Scan Matching Score=19.9058
+neff= 29.577
+Registering Scans:Done
+update frame 287
+update ld=0.0328707 ad=0.169767
+Laser Pose= 0.440232 -1.77963 -0.790729
+m_count 53
+Average Scan Matching Score=19.9131
+neff= 29.5768
+Registering Scans:Done
+update frame 292
+update ld=0.0266047 ad=0.212836
+Laser Pose= 0.454777 -1.76367 -0.629722
+m_count 54
+Average Scan Matching Score=19.9203
+neff= 29.5768
+Registering Scans:Done
+update frame 297
+update ld=0.050433 ad=0.20585
+Laser Pose= 0.422541 -1.72614 -0.423871
+m_count 55
+Average Scan Matching Score=41.313
+neff= 28.053
+Registering Scans:Done
+update frame 303
+update ld=0.0105211 ad=0.00353844
+Laser Pose= 0.413192 -1.72243 -0.42741
+m_count 56
+Average Scan Matching Score=43.7296
+neff= 28.0527
+Registering Scans:Done
+update frame 309
+update ld=1.53344e-07 ad=2.48205e-09
+Laser Pose= 0.413192 -1.72243 -0.42741
+m_count 57
+Average Scan Matching Score=43.7946
+neff= 28.0527
+Registering Scans:Done
+update frame 315
+update ld=0.0415275 ad=0.163487
+Laser Pose= 0.453354 -1.71465 -0.263923
+m_count 58
+Average Scan Matching Score=43.7188
+neff= 28.0516
+Registering Scans:Done
+update frame 319
+update ld=0.115134 ad=0.200544
+Laser Pose= 0.568149 -1.70617 -0.0633795
+m_count 59
+Average Scan Matching Score=45.7487
+neff= 28.0514
+Registering Scans:Done
+update frame 323
+update ld=0.190886 ad=0.2455
+Laser Pose= 0.753581 -1.66248 0.18212
+m_count 60
+Average Scan Matching Score=48.7209
+neff= 28.0509
+Registering Scans:Done
+update frame 327
+update ld=0.198388 ad=0.20403
+Laser Pose= 0.934043 -1.5806 0.38615
+m_count 61
+Average Scan Matching Score=50.7386
+neff= 28.0507
+Registering Scans:Done
+update frame 332
+update ld=0.246086 ad=0.177515
+Laser Pose= 1.13972 -1.44574 0.563665
+m_count 62
+Average Scan Matching Score=54.6967
+neff= 28.0501
+Registering Scans:Done
+update frame 337
+update ld=0.248771 ad=0.144817
+Laser Pose= 1.32752 -1.28288 0.708482
+m_count 63
+Average Scan Matching Score=56.7025
+neff= 28.0504
+Registering Scans:Done
+update frame 342
+update ld=0.244704 ad=0.0908031
+Laser Pose= 1.49639 -1.10581 0.799286
+m_count 64
+Average Scan Matching Score=59.7021
+neff= 28.0501
+Registering Scans:Done
+update frame 347
+update ld=0.247233 ad=0.0587266
+Laser Pose= 1.6574 -0.918198 0.858012
+m_count 65
+Average Scan Matching Score=66.6723
+neff= 28.05
+Registering Scans:Done
+update frame 352
+update ld=0.24796 ad=0.0318751
+Laser Pose= 1.81313 -0.725242 0.889887
+m_count 66
+Average Scan Matching Score=78.4568
+neff= 27.9481
+Registering Scans:Done
+update frame 357
+update ld=0.248557 ad=0.0126192
+Laser Pose= 1.9673 -0.530279 0.899593
+m_count 67
+Average Scan Matching Score=93.4492
+neff= 27.9472
+Registering Scans:Done
+update frame 362
+update ld=0.248936 ad=0.00850494
+Laser Pose= 2.12226 -0.335462 0.897719
+m_count 68
+Average Scan Matching Score=80.5427
+neff= 27.9472
+Registering Scans:Done
+update frame 367
+update ld=0.248756 ad=0.0143891
+Laser Pose= 2.27533 -0.139388 0.911346
+m_count 69
+Average Scan Matching Score=64.675
+neff= 27.9686
+Registering Scans:Done
+update frame 372
+update ld=0.248407 ad=0.021279
+Laser Pose= 2.42417 0.0594741 0.932489
+m_count 70
+Average Scan Matching Score=66.534
+neff= 28.146
+Registering Scans:Done
+update frame 377
+update ld=0.248007 ad=0.0359964
+Laser Pose= 2.56497 0.263621 0.968485
+m_count 71
+Average Scan Matching Score=75.5604
+neff= 28.146
+Registering Scans:Done
+update frame 382
+update ld=0.2479 ad=0.0515968
+Laser Pose= 2.6951 0.474585 1.02008
+m_count 72
+Average Scan Matching Score=57.7163
+neff= 28.146
+Registering Scans:Done
+update frame 387
+update ld=0.24961 ad=0.0429463
+Laser Pose= 2.817 0.692356 1.06303
+m_count 73
+Average Scan Matching Score=30.8572
+neff= 28.1459
+Registering Scans:Done
+update frame 392
+update ld=0.248244 ad=0.029294
+Laser Pose= 2.93148 0.91262 1.09232
+m_count 74
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.817 0.692356 1.06303
+op:2.93148 0.91262 1.09232
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 397
+update ld=0.24817 ad=0.0438869
+Laser Pose= 3.03667 1.13735 1.13621
+m_count 75
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Scan Matching Failed, using odometry. Likelihood=0
+lp:2.93148 0.91262 1.09232
+op:3.03667 1.13735 1.13621
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 402
+update ld=0.249237 ad=0.0559909
+Laser Pose= 3.12895 1.36884 1.1922
+m_count 76
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.03667 1.13735 1.13621
+op:3.12895 1.36884 1.1922
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 407
+update ld=0.244836 ad=0.0496992
+Laser Pose= 3.20762 1.60068 1.2419
+m_count 77
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.12895 1.36884 1.1922
+op:3.20762 1.60068 1.2419
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 413
+update ld=0.198269 ad=0.0723309
+Laser Pose= 3.25964 1.78903 1.26887
+m_count 78
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.20762 1.60068 1.2419
+op:3.25964 1.78903 1.26887
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 418
+update ld=0.025557 ad=0.206219
+Laser Pose= 3.28335 1.78216 1.06265
+m_count 79
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.25964 1.78903 1.26887
+op:3.28335 1.78216 1.06265
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 422
+update ld=0.0328857 ad=0.245867
+Laser Pose= 3.30996 1.76297 0.816787
+m_count 80
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.28335 1.78216 1.06265
+op:3.30996 1.76297 0.816787
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 428
+update ld=0.0264776 ad=0.200266
+Laser Pose= 3.32429 1.74431 0.616521
+m_count 81
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.30996 1.76297 0.816787
+op:3.32429 1.74431 0.616521
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 434
+update ld=0.0217116 ad=0.147949
+Laser Pose= 3.33468 1.75 0.581424
+m_count 82
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.32429 1.74431 0.616521
+op:3.33468 1.75 0.581424
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 440
+update ld=0.00369071 ad=0.00955579
+Laser Pose= 3.33207 1.7474 0.571868
+m_count 83
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33468 1.75 0.581424
+op:3.33207 1.7474 0.571868
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 446
+update ld=3.43824e-07 ad=1.63728e-08
+Laser Pose= 3.33207 1.7474 0.571868
+m_count 84
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.33207 1.7474 0.571868
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 452
+update ld=0.0541825 ad=0.172
+Laser Pose= 3.38297 1.75252 0.399869
+m_count 85
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.33207 1.7474 0.571868
+op:3.38297 1.75252 0.399869
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 458
+update ld=0.210856 ad=0.243
+Laser Pose= 3.59121 1.78329 0.156869
+m_count 86
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.38297 1.75252 0.399869
+op:3.59121 1.78329 0.156869
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 462
+update ld=0.197152 ad=0.214484
+Laser Pose= 3.78705 1.76584 -0.0576154
+m_count 87
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Scan Matching Failed, using odometry. Likelihood=0
+lp:3.59121 1.78329 0.156869
+op:3.78705 1.76584 -0.0576154
+Average Scan Matching Score=0
+neff= 28.1459
+Registering Scans:Done
+update frame 466
+update ld=0.197546 ad=0.224703
+Laser Pose= 3.97399 1.70292 -0.282319
+m_count 88
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:3.78705 1.76584 -0.0576154
+op:3.97399 1.70292 -0.282319
+Scan Matching Failed, using odometry. Likelihood=-0.110948
+lp:3.78705 1.76584 -0.0576154
+op:3.97399 1.70292 -0.282319
+Scan Matching Failed, using odometry. Likelihood=-0.116356
+lp:3.78705 1.76584 -0.0576154
+op:3.97399 1.70292 -0.282319
+Scan Matching Failed, using odometry. Likelihood=-6.69475
+lp:3.78705 1.76584 -0.0576154
+op:3.97399 1.70292 -0.282319
+Scan Matching Failed, using odometry. Likelihood=-0.0213859
+lp:3.78705 1.76584 -0.0576154
+op:3.97399 1.70292 -0.282319
+Average Scan Matching Score=4.37548
+neff= 27.7458
+Registering Scans:Done
+update frame 471
+update ld=0.248061 ad=0.180942
+Laser Pose= 4.19425 1.58925 -0.463261
+m_count 89
+Average Scan Matching Score=15.6773
+neff= 27.4424
+Registering Scans:Done
+update frame 476
+update ld=0.248029 ad=0.189029
+Laser Pose= 4.39111 1.43939 -0.652289
+m_count 90
+Average Scan Matching Score=26.5455
+neff= 26.9725
+Registering Scans:Done
+update frame 481
+update ld=0.247791 ad=0.182781
+Laser Pose= 4.5548 1.25362 -0.835071
+m_count 91
+Average Scan Matching Score=27.8032
+neff= 26.9715
+Registering Scans:Done
+update frame 486
+update ld=0.248929 ad=0.135598
+Laser Pose= 4.69291 1.04659 -0.970669
+m_count 92
+Average Scan Matching Score=27.8506
+neff= 26.9712
+Registering Scans:Done
+update frame 491
+update ld=0.248558 ad=0.107865
+Laser Pose= 4.80991 0.827427 -1.07853
+m_count 93
+Average Scan Matching Score=27.8662
+neff= 26.9712
+Registering Scans:Done
+update frame 496
+update ld=0.223119 ad=0.1024
+Laser Pose= 4.89451 0.621033 -1.18093
+m_count 94
+Average Scan Matching Score=28.8557
+neff= 26.9715
+Registering Scans:Done
+update frame 502
+update ld=0.09229 ad=0.172031
+Laser Pose= 4.92862 0.549127 -1.07872
+m_count 95
+Average Scan Matching Score=28.8487
+neff= 26.9718
+Registering Scans:Done
+update frame 506
+update ld=0.0317951 ad=0.237805
+Laser Pose= 4.95458 0.567365 -0.84092
+m_count 96
+Average Scan Matching Score=8.96719
+neff= 26.9718
+Registering Scans:Done
+update frame 509
+update ld=0.0274242 ad=0.204929
+Laser Pose= 4.97291 0.587699 -0.63599
+m_count 97
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.95458 0.567365 -0.84092
+op:4.97291 0.587699 -0.63599
+Average Scan Matching Score=0
+neff= 26.9718
+Registering Scans:Done
+update frame 513
+update ld=0.0295258 ad=0.220585
+Laser Pose= 4.98746 0.613323 -0.415405
+m_count 98
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.97291 0.587699 -0.63599
+op:4.98746 0.613323 -0.415405
+Average Scan Matching Score=0
+neff= 26.9718
+Registering Scans:Done
+update frame 519
+update ld=0.0119384 ad=0.0889161
+Laser Pose= 4.99165 0.624494 -0.32649
+m_count 99
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.98746 0.613323 -0.415405
+op:4.99165 0.624494 -0.32649
+Average Scan Matching Score=0
+neff= 26.9718
+Registering Scans:Done
+update frame 525
+update ld=9.3783e-08 ad=1.38798e-08
+Laser Pose= 4.99165 0.624495 -0.32649
+m_count 100
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624494 -0.32649
+op:4.99165 0.624495 -0.32649
+Average Scan Matching Score=0
+neff= 26.9718
+Registering Scans:Done
+update frame 531
+update ld=9.50153e-08 ad=1.35804e-08
+Laser Pose= 4.99165 0.624495 -0.32649
+m_count 101
+Scan Matching Failed, using odometry. Likelihood=1.42686e-320
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Scan Matching Failed, using odometry. Likelihood=0
+lp:4.99165 0.624495 -0.32649
+op:4.99165 0.624495 -0.32649
+Average Scan Matching Score=0
+neff= 26.9718
+Registering Scans:Done
+[WARN] [1773710943.944848817, 54.000000000]: Shutdown request received.
+[WARN] [1773710943.945040537, 54.000000000]: Reason given for shutdown: [user request]
+[WARN] [1773710943.945681076, 54.000000000]: Shutdown request received.
+[WARN] [1773710943.945741181, 54.000000000]: Reason given for shutdown: [user request]
+terminate called recursively
+terminate called after throwing an instance of 'boost::wrapexcept<boost::lock_error>'
+  what():  boost: mutex lock failed in pthread_mutex_lock: Invalid argument
+virtual GMapping::GridSlamProcessor::~GridSlamProcessor(): Start
+virtual GMapping::GridSlamProcessor::~GridSlamProcessor(): Deleting tree
+[INFO] [1773710890.318939488, 0.600000000]: global_costmap: Using plugin "static_layer"
+[INFO] [1773710890.330781297, 0.611000000]: Requesting the map...
+[INFO] [1773710890.533125989, 0.813000000]: Resizing costmap to 384 X 384 at 0.050000 m/pix
+[INFO] [1773710890.633130877, 0.913000000]: Received a 384 X 384 map at 0.050000 m/pix
+[INFO] [1773710890.633184965, 0.913000000]: Subscribing to updates
+[INFO] [1773710890.639805156, 0.919000000]: global_costmap: Using plugin "obstacle_layer"
+[INFO] [1773710890.645897120, 0.926000000]:     Subscribed to Topics: laser_scan_sensor
+[INFO] [1773710890.680160317, 0.958000000]: global_costmap: Using plugin "inflation_layer"
+[INFO] [1773710890.756955888, 1.025000000]: local_costmap: Using plugin "obstacle_layer"
+[INFO] [1773710890.761710512, 1.030000000]:     Subscribed to Topics: laser_scan_sensor
+[INFO] [1773710890.778499192, 1.046000000]: local_costmap: Using plugin "inflation_layer"
+[INFO] [1773710890.815487886, 1.084000000]: Created local_planner dwa_local_planner/DWAPlannerROS
+[INFO] [1773710890.819409657, 1.088000000]: Sim period is set to 0.10
+[INFO] [1773710891.314469152, 1.584000000]: Recovery behavior will clear layer 'obstacles'
+[INFO] [1773710891.319451021, 1.589000000]: Recovery behavior will clear layer 'obstacles'
+[INFO] [1773710891.339594821, 1.610000000]: odom received!
+[INFO] [1773710900.595672922, 10.850000000]: Got new plan
+[INFO] [1773710901.596893614, 11.850000000]: Got new plan
+[INFO] [1773710902.599633356, 12.850000000]: Got new plan
+[INFO] [1773710903.599172251, 13.850000000]: Got new plan
+[INFO] [1773710904.601894170, 14.850000000]: Got new plan
+[INFO] [1773710905.603405483, 15.850000000]: Got new plan
+[INFO] [1773710906.604571293, 16.850000000]: Got new plan
+[INFO] [1773710907.605675439, 17.850000000]: Got new plan
+[INFO] [1773710908.607824714, 18.850000000]: Got new plan
+[INFO] [1773710909.608644959, 19.850000000]: Got new plan
+[INFO] [1773710910.610030803, 20.851000000]: Got new plan
+[INFO] [1773710911.612359716, 21.850000000]: Got new plan
+[INFO] [1773710912.613340211, 22.851000000]: Got new plan
+[INFO] [1773710913.613549584, 23.850000000]: Got new plan
+[INFO] [1773710914.615491174, 24.850000000]: Got new plan
+[INFO] [1773710915.616714311, 25.850000000]: Got new plan
+[INFO] [1773710916.618192504, 26.850000000]: Got new plan
+[INFO] [1773710917.619909778, 27.850000000]: Got new plan
+[INFO] [1773710918.622190480, 28.851000000]: Got new plan
+[INFO] [1773710919.623453387, 29.850000000]: Got new plan
+[INFO] [1773710920.223562038, 30.450000000]: Goal reached
+[INFO] [1773710921.329023761, 31.553000000]: Got new plan
+[INFO] [1773710922.329581212, 32.553000000]: Got new plan
+[INFO] [1773710923.330950228, 33.553000000]: Got new plan
+[INFO] [1773710924.333451858, 34.553000000]: Got new plan
+[INFO] [1773710925.334404638, 35.553000000]: Got new plan
+[INFO] [1773710926.335691889, 36.553000000]: Got new plan
+[INFO] [1773710927.338409195, 37.554000000]: Got new plan
+[INFO] [1773710928.338544237, 38.553000000]: Got new plan
+[INFO] [1773710929.339633928, 39.553000000]: Got new plan
+[INFO] [1773710930.341053489, 40.553000000]: Got new plan
+[INFO] [1773710931.342883123, 41.553000000]: Got new plan
+[INFO] [1773710932.344413191, 42.553000000]: Got new plan
+[INFO] [1773710933.345414986, 43.554000000]: Got new plan
+[INFO] [1773710933.945795634, 44.153000000]: Goal reached
+[INFO] [1773710935.049447597, 45.255000000]: Got new plan
+[INFO] [1773710936.051661521, 46.255000000]: Got new plan
+[INFO] [1773710937.052600412, 47.255000000]: Got new plan
+[INFO] [1773710938.055360323, 48.256000000]: Got new plan
+[INFO] [1773710939.054337386, 49.255000000]: Got new plan
+[INFO] [1773710940.057502339, 50.255000000]: Got new plan
+[INFO] [1773710941.057642137, 51.255000000]: Got new plan
+[INFO] [1773710942.058695584, 52.255000000]: Got new plan
+[INFO] [1773710942.058764154, 52.255000000]: Goal reached
+[1m[spawn_target-6] process has finished cleanly
+log file: /home/yuchen/.ros/log/8c1b5198-21a0-11f1-9ffd-00155d28b090/spawn_target-6*.log[0m
+[rviz-9] killing on exit
+[move_base-8] killing on exit
+[slam_gmapping-7] killing on exit
+[joint_state_publisher-4] killing on exit
+[gazebo-2] killing on exit
+[robot_state_publisher-3] killing on exit
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

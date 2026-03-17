@@ -1,0 +1,11 @@
+[INFO] [1773711009.064843, 0.000000]: Waiting for move_base server...
+Traceback (most recent call last):
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/lib/p3at_lms_navigation/nav_experiment_runner.py", line 15, in <module>
+    exec(compile(fh.read(), python_script, 'exec'), context)
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/scripts/nav_experiment_runner.py", line 279, in <module>
+    main()
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/scripts/nav_experiment_runner.py", line 226, in main
+    runner.wait_ready(args.move_base_timeout, args.tf_timeout)
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/scripts/nav_experiment_runner.py", line 95, in wait_ready
+    raise RuntimeError(
+RuntimeError: move_base action server not ready after 60.0s

@@ -1,0 +1,3 @@
+[INFO] [1773718463.266614, 0.000000]: Warmup 8.0s before measurement...
+[INFO] [1773718653.203084, 188.274000]: [TargetFollowMetrics] saved to /home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/Log/sim_experiments/20260317_0215_manual/metrics/exp3_target_follow_adaptive_attempt1.json
+[INFO] [1773718653.204835, 188.279000]: [TargetFollowMetrics] mean dist=2.327m, rmse=1.727m, within_tol=12.6%

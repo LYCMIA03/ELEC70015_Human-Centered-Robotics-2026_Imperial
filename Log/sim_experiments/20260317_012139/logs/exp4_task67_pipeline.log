@@ -1,0 +1,9 @@
+
+==============================================================
+  P3-AT Autonomous Mapping & AMCL Verification Pipeline
+==============================================================
+
+[0;36m[INFO][0m  Phase 0: Skipping build (--skip-build).
+/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/run_full_pipeline.sh: line 118: /home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/devel/setup.bash: No such file or directory
+[0;36m[INFO][0m  Cleaning up ROS processes...
+[0;32m[OK][0m    Cleanup complete.

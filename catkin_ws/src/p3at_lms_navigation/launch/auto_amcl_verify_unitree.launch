@@ -10,6 +10,9 @@
 
   <arg name="gui" default="true"/>
   <arg name="map_file" default="$(find p3at_lms_navigation)/maps/complex_maze_map.yaml"/>
+  <arg name="enable_rplidar_local_obstacle" default="true"/>
+  <arg name="rplidar_scan_raw_topic" default="/scan"/>
+  <arg name="rplidar_scan_filtered_topic" default="/rplidar/scan_filtered"/>
 
   <!-- Gazebo with complex maze world + dual-lidar model -->
   <include file="$(find p3at_lms_gazebo)/launch/sim_unitree.launch">
@@ -34,6 +37,29 @@
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/global_costmap.yaml" command="load"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/local_costmap.yaml" command="load"/>
     <rosparam file="$(find p3at_lms_navigation)/param/unitree/move_base.yaml" command="load"/>
+    <!-- Task4 AMCL verification tuning:
+         1) navigation success focuses on position reachability (not strict final yaw),
+         2) keep dual-lidar local obstacle fusion, and let RPLIDAR observations clear. -->
+    <rosparam param="DWAPlannerROS/yaw_goal_tolerance">3.14159</rosparam>
+    <rosparam param="DWAPlannerROS/xy_goal_tolerance">0.20</rosparam>
+    <rosparam param="DWAPlannerROS/latch_xy_goal_tolerance">true</rosparam>
+    <rosparam if="$(arg enable_rplidar_local_obstacle)"
+              param="local_costmap/obstacle_layer/rplidar_scan_sensor/clearing">true</rosparam>
+    <rosparam if="$(arg enable_rplidar_local_obstacle)"
+              param="local_costmap/obstacle_layer/observation_sources">unitree_scan_sensor rplidar_scan_sensor</rosparam>
+  </node>
+
+  <node if="$(arg enable_rplidar_local_obstacle)"
+        pkg="target_follower" type="scan_body_filter.py"
+        name="rplidar_scan_body_filter" output="screen">
+    <param name="body_x_min" value="-0.35"/>
+    <param name="body_x_max" value="0.35"/>
+    <param name="body_y_min" value="-0.30"/>
+    <param name="body_y_max" value="0.30"/>
+    <param name="lidar_x" value="-0.232"/>
+    <param name="lidar_y" value="0.0"/>
+    <remap from="~scan_raw" to="$(arg rplidar_scan_raw_topic)"/>
+    <remap from="~scan_out" to="$(arg rplidar_scan_filtered_topic)"/>
   </node>
 
   <!-- AMCL verification node -->

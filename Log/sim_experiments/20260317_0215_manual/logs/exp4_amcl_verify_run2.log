@@ -1,0 +1,1656 @@
+... logging to /home/yuchen/.ros/log/2c30744e-21ae-11f1-9f66-00155d28b090/roslaunch-LYCMIA03DELL-10363.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/launch/auto_amcl_verify_unitree.launch
+[1mstarted roslaunch server http://LYCMIA03DELL:42651/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /amcl/base_frame_id: base_footprint
+ * /amcl/first_map_only: False
+ * /amcl/global_frame_id: map
+ * /amcl/initial_pose_a: 0.0
+ * /amcl/initial_pose_x: 0.0
+ * /amcl/initial_pose_y: 0.0
+ * /amcl/kld_err: 0.02
+ * /amcl/kld_z: 0.99
+ * /amcl/laser_max_beams: 240
+ * /amcl/laser_max_range: 30.0
+ * /amcl/laser_min_range: 0.05
+ * /amcl/laser_model_type: likelihood_field
+ * /amcl/max_particles: 3000
+ * /amcl/min_particles: 500
+ * /amcl/odom_alpha1: 0.1
+ * /amcl/odom_alpha2: 0.1
+ * /amcl/odom_alpha3: 0.2
+ * /amcl/odom_alpha4: 0.2
+ * /amcl/odom_frame_id: odom
+ * /amcl/odom_model_type: diff
+ * /amcl/recovery_alpha_fast: 0.1
+ * /amcl/recovery_alpha_slow: 0.001
+ * /amcl/resample_interval: 1
+ * /amcl/transform_tolerance: 0.3
+ * /amcl/update_min_a: 0.15
+ * /amcl/update_min_d: 0.1
+ * /amcl/use_map_topic: True
+ * /amcl_verifier/convergence_threshold: 0.3
+ * /amcl_verifier/goal_timeout: 90.0
+ * /amcl_verifier/initial_wait: 15.0
+ * /amcl_verifier/json_report_path: /home/yuchen/work...
+ * /amcl_verifier/report_path: /home/yuchen/work...
+ * /amcl_verifier/settle_time: 5.0
+ * /amcl_verifier/waypoints: [{'name': 'WP1_so...
+ * /gazebo/enable_ros_network: True
+ * /move_base/DWAPlannerROS/acc_lim_theta: 0.75
+ * /move_base/DWAPlannerROS/acc_lim_x: 0.35
+ * /move_base/DWAPlannerROS/acc_lim_y: 0.0
+ * /move_base/DWAPlannerROS/forward_point_distance: 0.25
+ * /move_base/DWAPlannerROS/goal_distance_bias: 24.0
+ * /move_base/DWAPlannerROS/latch_xy_goal_tolerance: True
+ * /move_base/DWAPlannerROS/max_vel_theta: 0.45
+ * /move_base/DWAPlannerROS/max_vel_trans: 0.26
+ * /move_base/DWAPlannerROS/max_vel_x: 0.26
+ * /move_base/DWAPlannerROS/max_vel_y: 0.0
+ * /move_base/DWAPlannerROS/min_vel_theta: 0.0
+ * /move_base/DWAPlannerROS/min_vel_trans: 0.02
+ * /move_base/DWAPlannerROS/min_vel_x: -0.1
+ * /move_base/DWAPlannerROS/min_vel_y: 0.0
+ * /move_base/DWAPlannerROS/occdist_scale: 0.08
+ * /move_base/DWAPlannerROS/oscillation_reset_dist: 0.1
+ * /move_base/DWAPlannerROS/path_distance_bias: 32.0
+ * /move_base/DWAPlannerROS/sim_granularity: 0.025
+ * /move_base/DWAPlannerROS/sim_time: 3.0
+ * /move_base/DWAPlannerROS/stop_time_buffer: 0.4
+ * /move_base/DWAPlannerROS/vtheta_samples: 40
+ * /move_base/DWAPlannerROS/vx_samples: 20
+ * /move_base/DWAPlannerROS/vy_samples: 1
+ * /move_base/DWAPlannerROS/xy_goal_tolerance: 0.15
+ * /move_base/DWAPlannerROS/yaw_goal_tolerance: 0.3
+ * /move_base/NavfnROS/allow_unknown: True
+ * /move_base/NavfnROS/default_tolerance: 0.15
+ * /move_base/NavfnROS/visualize_potential: False
+ * /move_base/base_global_planner: navfn/NavfnROS
+ * /move_base/base_local_planner: dwa_local_planner...
+ * /move_base/clearing_rotation_allowed: True
+ * /move_base/controller_frequency: 10.0
+ * /move_base/controller_patience: 20.0
+ * /move_base/global_costmap/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/global_costmap/footprint_padding: 0.05
+ * /move_base/global_costmap/global_frame: map
+ * /move_base/global_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/inflation_layer/inflation_radius: 0.3
+ * /move_base/global_costmap/inflation_radius: 0.3
+ * /move_base/global_costmap/obstacle_layer/observation_sources: unitree_scan_sensor
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/clearing: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/data_type: LaserScan
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/inf_is_valid: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/marking: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/obstacle_range: 6.0
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/raytrace_range: 8.0
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/sensor_frame: unitree_lidar
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/topic: unitree/scan
+ * /move_base/global_costmap/obstacle_range: 6.0
+ * /move_base/global_costmap/plugins: [{'name': 'static...
+ * /move_base/global_costmap/publish_frequency: 1.0
+ * /move_base/global_costmap/raytrace_range: 8.0
+ * /move_base/global_costmap/robot_base_frame: base_link
+ * /move_base/global_costmap/static_layer/map_topic: /map
+ * /move_base/global_costmap/static_layer/subscribe_to_updates: True
+ * /move_base/global_costmap/static_layer/track_unknown_space: False
+ * /move_base/global_costmap/static_map: True
+ * /move_base/global_costmap/transform_tolerance: 0.5
+ * /move_base/global_costmap/update_frequency: 2.0
+ * /move_base/local_costmap/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/local_costmap/footprint_padding: 0.05
+ * /move_base/local_costmap/global_frame: odom
+ * /move_base/local_costmap/height: 10.0
+ * /move_base/local_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/inflation_layer/inflation_radius: 0.3
+ * /move_base/local_costmap/inflation_radius: 0.3
+ * /move_base/local_costmap/obstacle_layer/observation_sources: unitree_scan_sens...
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/clearing: False
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/data_type: LaserScan
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/inf_is_valid: True
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/marking: True
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/obstacle_range: 2.5
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/raytrace_range: 3.0
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/sensor_frame: laser
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/topic: rplidar/scan_filt...
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/clearing: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/data_type: LaserScan
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/inf_is_valid: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/marking: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/obstacle_range: 6.0
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/raytrace_range: 8.0
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/sensor_frame: unitree_lidar
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/topic: unitree/scan
+ * /move_base/local_costmap/obstacle_range: 6.0
+ * /move_base/local_costmap/plugins: [{'name': 'obstac...
+ * /move_base/local_costmap/publish_frequency: 5.0
+ * /move_base/local_costmap/raytrace_range: 8.0
+ * /move_base/local_costmap/resolution: 0.05
+ * /move_base/local_costmap/robot_base_frame: base_link
+ * /move_base/local_costmap/rolling_window: True
+ * /move_base/local_costmap/static_map: False
+ * /move_base/local_costmap/transform_tolerance: 0.5
+ * /move_base/local_costmap/update_frequency: 10.0
+ * /move_base/local_costmap/width: 10.0
+ * /move_base/max_planning_retries: 5
+ * /move_base/planner_frequency: 1.0
+ * /move_base/planner_patience: 15.0
+ * /move_base/recovery_behavior_enabled: True
+ * /move_base/shutdown_costmaps: False
+ * /robot_description: <?xml version="1....
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /rplidar_scan_body_filter/body_x_max: 0.35
+ * /rplidar_scan_body_filter/body_x_min: -0.35
+ * /rplidar_scan_body_filter/body_y_max: 0.3
+ * /rplidar_scan_body_filter/body_y_min: -0.3
+ * /rplidar_scan_body_filter/lidar_x: -0.232
+ * /rplidar_scan_body_filter/lidar_y: 0.0
+ * /use_sim_time: True
+
+NODES
+  /
+    amcl (amcl/amcl)
+    amcl_verifier (p3at_lms_navigation/amcl_verifier.py)
+    gazebo (gazebo_ros/gzserver)
+    joint_state_publisher (joint_state_publisher/joint_state_publisher)
+    map_server (map_server/map_server)
+    move_base (move_base/move_base)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    rplidar_scan_body_filter (target_follower/scan_body_filter.py)
+    rviz (rviz/rviz)
+    spawn_p3at (gazebo_ros/spawn_model)
+    spawn_target (gazebo_ros/spawn_model)
+
+auto-starting new master
+[1mprocess[master]: started with pid [10441][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+[WARN] [1773716742.924757495, 0.495000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_x>, defaults to 0.000100
+[WARN] [1773716742.924824528, 0.495000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_y>, defaults to 0.000100
+[WARN] [1773716742.924834957, 0.495000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_yaw>, defaults to 0.010000
+[ERROR] [1773716743.181125964, 0.749000000]: Client [/rviz] wants topic /unitree/cloud to have datatype/md5sum [sensor_msgs/PointCloud2/1158d486dd51d683ce2f1be655c3c181], but our version has [sensor_msgs/PointCloud/d8e9c3f5afbdd8a130fd1d2763945fca]. Dropping connection.
+[WARN] [1773716743.511038145, 1.077000000]: global_costmap: Pre-Hydro parameter "static_map" unused since "plugins" is provided
+[WARN] [1773716743.867804397, 1.433000000]: local_costmap: Pre-Hydro parameter "static_map" unused since "plugins" is provided
+[WARN] [1773716776.447400086, 33.882000000]: DWA planner failed to produce path.
+[WARN] [1773716777.147890832, 34.582000000]: DWA planner failed to produce path.
+[WARN] [1773716777.750145895, 35.183000000]: DWA planner failed to produce path.
+[WARN] [1773716781.757628022, 39.182000000]: DWA planner failed to produce path.
+[WARN] [1773716784.273358083, 41.683000000]: DWA planner failed to produce path.
+[WARN] [1773716785.473524769, 42.883000000]: DWA planner failed to produce path.
+[WARN] [1773716786.575634274, 43.982000000]: DWA planner failed to produce path.
+[WARN] [1773716787.076857713, 44.482000000]: DWA planner failed to produce path.
+[WARN] [1773716787.577458632, 44.983000000]: DWA planner failed to produce path.
+[WARN] [1773716806.850741838, 64.182000000]: DWA planner failed to produce path.
+[WARN] [1773716807.453077588, 64.784000000]: DWA planner failed to produce path.
+[WARN] [1773716808.352744648, 65.682000000]: DWA planner failed to produce path.
+[WARN] [1773716810.156563603, 67.482000000]: DWA planner failed to produce path.
+[INFO] [1773716743.512530860, 1.079000000]: global_costmap: Using plugin "static_layer"
+[INFO] [1773716743.518889061, 1.085000000]: Requesting the map...
+[INFO] [1773716743.721652001, 1.287000000]: Resizing costmap to 576 X 576 at 0.050000 m/pix
+[INFO] [1773716743.821724276, 1.387000000]: Received a 576 X 576 map at 0.050000 m/pix
+[INFO] [1773716743.821753148, 1.387000000]: Subscribing to updates
+[INFO] [1773716743.825776165, 1.391000000]: global_costmap: Using plugin "obstacle_layer"
+[INFO] [1773716743.828749109, 1.394000000]:     Subscribed to Topics: unitree_scan_sensor
+[INFO] [1773716743.841944563, 1.407000000]: global_costmap: Using plugin "inflation_layer"
+[INFO] [1773716743.868555410, 1.434000000]: local_costmap: Using plugin "obstacle_layer"
+[INFO] [1773716743.872095258, 1.438000000]:     Subscribed to Topics: unitree_scan_sensor rplidar_scan_sensor
+[INFO] [1773716743.888582689, 1.454000000]: local_costmap: Using plugin "inflation_layer"
+[INFO] [1773716743.913568093, 1.479000000]: Created local_planner dwa_local_planner/DWAPlannerROS
+[INFO] [1773716743.916458986, 1.482000000]: Sim period is set to 0.10
+[INFO] [1773716744.414608728, 1.979000000]: Recovery behavior will clear layer 'obstacles'
+[INFO] [1773716744.418441971, 1.983000000]: Recovery behavior will clear layer 'obstacles'
+[INFO] [1773716744.439075698, 2.004000000]: odom received!
+[INFO] [1773716774.330482180, 31.780000000]: Got new plan
+[INFO] [1773716775.332317310, 32.780000000]: Got new plan
+[INFO] [1773716776.345980069, 33.781000000]: Got new plan
+[INFO] [1773716776.545248934, 33.980000000]: Got new plan
+[INFO] [1773716777.245954083, 34.680000000]: Got new plan
+[INFO] [1773716777.847366268, 35.281000000]: Got new plan
+[INFO] [1773716778.848586903, 36.280000000]: Got new plan
+[INFO] [1773716779.853333641, 37.280000000]: Got new plan
+[INFO] [1773716780.854507644, 38.280000000]: Got new plan
+[INFO] [1773716781.856287318, 39.280000000]: Got new plan
+[INFO] [1773716782.867670915, 40.280000000]: Got new plan
+[INFO] [1773716783.868524567, 41.280000000]: Got new plan
+[INFO] [1773716784.369392118, 41.780000000]: Got new plan
+[INFO] [1773716785.370768432, 42.780000000]: Got new plan
+[INFO] [1773716785.570939297, 42.980000000]: Got new plan
+[INFO] [1773716786.573212985, 43.980000000]: Got new plan
+[INFO] [1773716786.674142981, 44.080000000]: Got new plan
+[INFO] [1773716787.174780576, 44.580000000]: Got new plan
+[INFO] [1773716787.674697386, 45.080000000]: Got new plan
+[INFO] [1773716788.676344814, 46.080000000]: Got new plan
+[INFO] [1773716789.678359197, 47.080000000]: Got new plan
+[INFO] [1773716790.679567193, 48.080000000]: Got new plan
+[INFO] [1773716791.682650775, 49.081000000]: Got new plan
+[INFO] [1773716792.721006747, 50.080000000]: Got new plan
+[INFO] [1773716793.704594911, 51.080000000]: Got new plan
+[INFO] [1773716794.705519349, 52.080000000]: Got new plan
+[INFO] [1773716795.706906944, 53.080000000]: Got new plan
+[INFO] [1773716796.714098620, 54.080000000]: Got new plan
+[INFO] [1773716797.714843791, 55.080000000]: Got new plan
+[INFO] [1773716798.716888699, 56.080000000]: Got new plan
+[INFO] [1773716799.718939617, 57.081000000]: Got new plan
+[INFO] [1773716800.719537817, 58.080000000]: Got new plan
+[INFO] [1773716801.720294388, 59.080000000]: Got new plan
+[INFO] [1773716802.742431079, 60.080000000]: Got new plan
+[INFO] [1773716803.737521185, 61.080000000]: Got new plan
+[INFO] [1773716804.739063198, 62.080000000]: Got new plan
+[INFO] [1773716805.740269059, 63.080000000]: Got new plan
+[INFO] [1773716806.749145163, 64.080000000]: Got new plan
+[INFO] [1773716806.948884259, 64.280000000]: Got new plan
+[INFO] [1773716807.549296387, 64.880000000]: Got new plan
+[INFO] [1773716808.450302642, 65.780000000]: Got new plan
+[INFO] [1773716809.457144457, 66.780000000]: Got new plan
+[INFO] [1773716810.254710334, 67.580000000]: Got new plan
+[INFO] [1773716811.255724961, 68.580000000]: Got new plan
+[INFO] [1773716812.258835610, 69.581000000]: Got new plan
+[INFO] [1773716813.261218516, 70.580000000]: Got new plan
+[INFO] [1773716814.262547270, 71.580000000]: Got new plan
+[[WARN] [1773716823.094717375, 80.382000000]: DWA planner failed to produce path.
+[WARN] [1773716843.059434993, 100.182000000]: DWA planner failed to produce path.
+[WARN] [1773716843.658475206, 100.782000000]: DWA planner failed to produce path.
+[WARN] [1773716844.259239627, 101.381000000]: DWA planner failed to produce path.
+[WARN] [1773716844.460587355, 101.582000000]: DWA planner failed to produce path.
+[WARN] [1773716845.762212024, 102.882000000]: DWA planner failed to produce path.
+[WARN] [1773716848.678306916, 105.782000000]: DWA planner failed to produce path.
+[WARN] [1773716852.006272946, 109.082000000]: DWA planner failed to produce path.
+[WARN] [1773716860.642551308, 117.681000000]: DWA planner failed to produce path.
+[WARN] [1773716860.744379761, 117.783000000]: DWA planner failed to produce path.
+[WARN] [1773716860.944424117, 117.983000000]: DWA planner failed to produce path.
+[WARN] [1773716876.444544928, 133.386000000]: DWA planner failed to produce path.
+[WARN] [1773716876.537061588, 133.485000000]: DWA planner failed to produce path.
+[WARN] [1773716876.635786931, 133.586000000]: DWA planner failed to produce path.
+[WARN] [1773716876.734654108, 133.685000000]: DWA planner failed to produce path.
+[WARN] [1773716876.834406703, 133.785000000]: DWA planner failed to produce path.
+[WARN] [1773716876.934034027, 133.885000000]: DWA planner failed to produce path.
+[WARN] [1773716877.033097651, 133.985000000]: DWA planner failed to produce path.
+[WARN] [1773716877.134181638, 134.086000000]: DWA planner failed to produce path.
+[WARN] [1773716877.233634610, 134.185000000]: DWA planner failed to produce path.
+[WARN] [1773716877.334129802, 134.286000000]: DWA planner failed to produce path.
+INFO] [1773716815.263796210, 72.580000000]: Got new plan
+[INFO] [1773716816.268997982, 73.580000000]: Got new plan
+[INFO] [1773716817.270032298, 74.580000000]: Got new plan
+[INFO] [1773716818.270765870, 75.580000000]: Got new plan
+[INFO] [1773716819.272096090, 76.580000000]: Got new plan
+[INFO] [1773716820.276157311, 77.580000000]: Got new plan
+[INFO] [1773716821.277323810, 78.580000000]: Got new plan
+[INFO] [1773716822.279554996, 79.581000000]: Got new plan
+[INFO] [1773716823.192945052, 80.480000000]: Got new plan
+[INFO] [1773716824.193907918, 81.480000000]: Got new plan
+[INFO] [1773716825.195419273, 82.480000000]: Got new plan
+[INFO] [1773716826.238977859, 83.481000000]: Got new plan
+[INFO] [1773716827.235582256, 84.480000000]: Got new plan
+[INFO] [1773716828.236284904, 85.480000000]: Got new plan
+[INFO] [1773716829.237863883, 86.480000000]: Got new plan
+[INFO] [1773716830.289242891, 87.481000000]: Got new plan
+[INFO] [1773716831.292028055, 88.481000000]: Got new plan
+[INFO] [1773716832.292524857, 89.480000000]: Got new plan
+[INFO] [1773716833.293678507, 90.480000000]: Got new plan
+[INFO] [1773716834.296508136, 91.481000000]: Got new plan
+[INFO] [1773716835.297218650, 92.480000000]: Got new plan
+[INFO] [1773716836.320748089, 93.481000000]: Got new plan
+[INFO] [1773716837.318173174, 94.480000000]: Got new plan
+[INFO] [1773716838.320363724, 95.480000000]: Got new plan
+[INFO] [1773716839.320232988, 96.480000000]: Got new plan
+[INFO] [1773716840.348791125, 97.480000000]: Got new plan
+[INFO] [1773716841.350393689, 98.481000000]: Got new plan
+[INFO] [1773716842.351717354, 99.480000000]: Got new plan
+[INFO] [1773716843.156820882, 100.280000000]: Got new plan
+[INFO] [1773716843.756545268, 100.880000000]: Got new plan
+[INFO] [1773716844.358013132, 101.480000000]: Got new plan
+[INFO] [1773716844.558290685, 101.680000000]: Got new plan
+[INFO] [1773716845.560643632, 102.681000000]: Got new plan
+[INFO] [1773716845.860449444, 102.981000000]: Got new plan
+[INFO] [1773716846.872900682, 103.980000000]: Got new plan
+[INFO] [1773716847.874248159, 104.980000000]: Got new plan
+[INFO] [1773716848.776065398, 105.880000000]: Got new plan
+[INFO] [1773716849.801762497, 106.880000000]: Got new plan
+[INFO] [1773716850.802847194, 107.880000000]: Got new plan
+[INFO] [1773716851.804033034, 108.880000000]: Got new plan
+[INFO] [1773716852.105025386, 109.181000000]: Got new plan
+[INFO] [1773716853.109058769, 110.180000000]: Got new plan
+[INFO] [1773716854.110432628, 111.180000000]: Got new plan
+[INFO] [1773716855.111270659, 112.180000000]: Got new plan
+[INFO] [1773716856.112882764, 113.180000000]: Got new plan
+[INFO] [1773716857.121540283, 114.180000000]: Got new plan
+[INFO] [1773716858.123493661, 115.180000000]: Got new plan
+[INFO] [1773716859.124420115, 116.180000000]: Got new plan
+[INFO] [1773716860.141486493, 117.180000000]: Got new plan
+[INFO] [1773716860.741749412, 117.781000000]: Got new plan
+[INFO] [1773716860.841631036, 117.880000000]: Got new plan
+[INFO] [1773716861.042154564, 118.080000000]: Got new plan
+[INFO] [1773716862.043720370, 119.080000000]: Got new plan
+[INFO] [1773716863.068053172, 120.081000000]: Got new plan
+[INFO] [1773716864.049398083, 121.081000000]: Got new plan
+[INFO] [1773716871.805441665, 128.784000000]: Got new plan
+[INFO] [1773716872.805533828, 129.783000000]: Got new plan
+[INFO] [1773716873.821090705, 130.783000000]: Got new plan
+[INFO] [1773716874.823469652, 131.784000000]: Got new plan
+[INFO] [1773716875.825017983, 132.784000000]: Got new plan
+[INFO] [1773716876.534703602, 133.483000000]: Got new plan
+[INFO] [1773716876.633481373, 133.584000000]: Got new plan
+[INFO] [1773716876.732473018, 133.683000000]: Got new plan
+[INFO] [1773716876.831489609, 133.783000000]: Got new plan
+[INFO] [1773716876.931854131, 133.883000000]: Got new plan
+[INFO] [1773716877.030893012, 133.983000000]: Got new plan
+[INFO] [1773716877.132062390, 134.084000000]: Got new plan
+[INFO] [1773716877.231423930, 134.183000000]: Got new plan
+[INFO] [1773716877.331824459, 134.283000000]: Got new plan
+[INFO] [1773716877.431887581, 134.383000000]: Got new [WARN] [1773716877.434520788, 134.385000000]: DWA planner failed to produce path.
+[WARN] [1773716877.533795928, 134.485000000]: DWA planner failed to produce path.
+[WARN] [1773716877.633878942, 134.585000000]: DWA planner failed to produce path.
+[WARN] [1773716877.734702641, 134.685000000]: DWA planner failed to produce path.
+[WARN] [1773716877.836230488, 134.786000000]: DWA planner failed to produce path.
+[WARN] [1773716877.936265196, 134.886000000]: DWA planner failed to produce path.
+[WARN] [1773716878.036285093, 134.986000000]: DWA planner failed to produce path.
+[WARN] [1773716878.136539589, 135.086000000]: DWA planner failed to produce path.
+[WARN] [1773716878.237602984, 135.187000000]: DWA planner failed to produce path.
+[WARN] [1773716878.336934714, 135.286000000]: DWA planner failed to produce path.
+[WARN] [1773716878.436600476, 135.386000000]: DWA planner failed to produce path.
+[WARN] [1773716878.536215430, 135.485000000]: DWA planner failed to produce path.
+[WARN] [1773716878.636814159, 135.585000000]: DWA planner failed to produce path.
+[WARN] [1773716878.736754555, 135.685000000]: DWA planner failed to produce path.
+[WARN] [1773716878.838556994, 135.787000000]: DWA planner failed to produce path.
+[WARN] [1773716878.937828119, 135.886000000]: DWA planner failed to produce path.
+[WARN] [1773716879.037881494, 135.986000000]: DWA planner failed to produce path.
+[WARN] [1773716879.137193241, 136.085000000]: DWA planner failed to produce path.
+[WARN] [1773716879.237828581, 136.185000000]: DWA planner failed to produce path.
+[WARN] [1773716879.338309122, 136.286000000]: DWA planner failed to produce path.
+[WARN] [1773716879.439927015, 136.387000000]: DWA planner failed to produce path.
+[WARN] [1773716879.538445649, 136.485000000]: DWA planner failed to produce path.
+[WARN] [1773716879.638798855, 136.586000000]: DWA planner failed to produce path.
+[WARN] [1773716879.766136652, 136.684000000]: DWA planner failed to produce path.
+[WARN] [1773716879.859757059, 136.785000000]: DWA planner failed to produce path.
+[WARN] [1773716879.957068807, 136.886000000]: DWA planner failed to produce path.
+[WARN] [1773716880.055638329, 136.985000000]: DWA planner failed to produce path.
+[WARN] [1773716880.155146085, 137.085000000]: DWA planner failed to produce path.
+[WARN] [1773716880.255716230, 137.186000000]: DWA planner failed to produce path.
+[WARN] [1773716880.355733609, 137.285000000]: DWA planner failed to produce path.
+[WARN] [1773716880.456441684, 137.386000000]: DWA planner failed to produce path.
+[WARN] [1773716880.557037212, 137.486000000]: DWA planner failed to produce path.
+[WARN] [1773716880.656751933, 137.585000000]: DWA planner failed to produce path.
+[WARN] [1773716880.756501506, 137.685000000]: DWA planner failed to produce path.
+[WARN] [1773716880.856798147, 137.785000000]: DWA planner failed to produce path.
+[WARN] [1773716880.957009201, 137.886000000]: DWA planner failed to produce path.
+[WARN] [1773716881.057012397, 137.985000000]: DWA planner failed to produce path.
+[WARN] [1773716881.157212647, 138.085000000]: DWA planner failed to produce path.
+[WARN] [1773716881.257355199, 138.185000000]: DWA planner failed to produce path.
+[WARN] [1773716881.357456512, 138.285000000]: DWA planner failed to produce path.
+[WARN] [1773716881.457931916, 138.385000000]: DWA planner failed to produce path.
+[WARN] [1773716881.557910710, 138.485000000]: DWA planner failed to produce path.
+[WARN] [1773716881.657779844, 138.585000000]: DWA planner failed to produce path.
+[WARN] [1773716881.757278342, 138.685000000]: DWA planner failed to produce path.
+[WARN] [1773716881.857938782, 138.785000000]: DWA planner failed to produce path.
+[WARN] [1773716881.957438919, 138.885000000]: DWA planner failed to produce path.
+[WARN] [1773716882.058306980, 138.985000000]: DWA planner failed to produce path.
+[WARN] [1773716882.159637803, 139.086000000]: DWA planner failed to produce path.
+[WARN] [1773716882.259995448, 139.186000000]: DWA planner failed to produce path.
+[WARN] [1773716882.358959413, 139.285000000]: DWA planner failed to produce path.
+[WARN] [1773716882.459121121, 139.385000000]: DWA planner failed to produce path.
+[WARN] [1773716882.558901970, 139.485000000]: DWA planner failed to produce path.
+[WARN] [1773716882.659093680, 139.585000000]: DWA planner failed to produce path.
+[WARN] [1773716882.760866670, 139.686000000]: DWA planner failed to produce path.
+[WARN] [1773716882.860389258, 139.785000000]: DWA planner failed to produce path.
+[WARN] [1773716882.960010045, 139.885000000]: DWA planner failed to produce path.
+[WARN] [1773716883.067936736, 139.983000000]: DWA planner failed to produce path.
+[WARN] [1773716883.176250673, 140.086000000]: DWA planner failed to produce path.
+[WARN] [1773716883.270559731, 140.185000000]: DWA planner failed to produce path.
+[WARN] [1773716883.369408360, 140.286000000]: DWA planner failed to produce path.
+[WARN] [1773716883.469144357, 140.385000000]: DWA planner failed to produce path.
+[WARN] [1773716883.569360884, 140.486000000]: DWA planner failed to produce path.
+[WARN] [1773716883.667848458, 140.585000000]: DWA planner failed to produce path.
+[WARN] [1773716883.767678931, 140.685000000]: DWA planner failed to produce path.
+[WARN] [1773716883.869725257, 140.786000000]: DWA planner failed to produce path.
+[WARN] [1773716883.969247788, 140.885000000]: DWA planner failed to produce path.
+[WARN] [1773716884.070723685, 140.986000000]: DWA planner failed to produce path.
+[WARN] [1773716884.170984042, 141.086000000]: DWA planner failed to produce path.
+[WARN] [1773716884.270122867, 141.185000000]: DWA planner failed to produce path.
+[WARN] [1773716884.370369443, 141.285000000]: DWA planner failed to produce path.
+plan
+[INFO] [1773716877.531656773, 134.483000000]: Got new plan
+[INFO] [1773716877.631740407, 134.583000000]: Got new plan
+[INFO] [1773716877.732413667, 134.683000000]: Got new plan
+[INFO] [1773716877.833941193, 134.784000000]: Got new plan
+[INFO] [1773716877.933800392, 134.884000000]: Got new plan
+[INFO] [1773716878.033635441, 134.983000000]: Got new plan
+[INFO] [1773716878.133720256, 135.083000000]: Got new plan
+[INFO] [1773716878.234472662, 135.183000000]: Got new plan
+[INFO] [1773716878.333984273, 135.283000000]: Got new plan
+[INFO] [1773716878.434216910, 135.383000000]: Got new plan
+[INFO] [1773716878.533939699, 135.483000000]: Got new plan
+[INFO] [1773716878.634710308, 135.583000000]: Got new plan
+[INFO] [1773716878.734323788, 135.683000000]: Got new plan
+[INFO] [1773716878.835426596, 135.784000000]: Got new plan
+[INFO] [1773716878.935349602, 135.883000000]: Got new plan
+[INFO] [1773716879.035684694, 135.984000000]: Got new plan
+[INFO] [1773716879.135012220, 136.083000000]: Got new plan
+[INFO] [1773716879.235698979, 136.183000000]: Got new plan
+[INFO] [1773716879.336146694, 136.284000000]: Got new plan
+[INFO] [1773716879.436854158, 136.383000000]: Got new plan
+[INFO] [1773716879.536303381, 136.483000000]: Got new plan
+[INFO] [1773716879.636151263, 136.583000000]: Got new plan
+[INFO] [1773716879.762152178, 136.683000000]: Got new plan
+[INFO] [1773716879.857608108, 136.783000000]: Got new plan
+[INFO] [1773716879.954755184, 136.884000000]: Got new plan
+[INFO] [1773716880.053043712, 136.983000000]: Got new plan
+[INFO] [1773716880.152883541, 137.083000000]: Got new plan
+[INFO] [1773716880.253030207, 137.183000000]: Got new plan
+[INFO] [1773716880.353406943, 137.283000000]: Got new plan
+[INFO] [1773716880.454020598, 137.383000000]: Got new plan
+[INFO] [1773716880.554730100, 137.484000000]: Got new plan
+[INFO] [1773716880.654275118, 137.583000000]: Got new plan
+[INFO] [1773716880.754360252, 137.683000000]: Got new plan
+[INFO] [1773716880.854155305, 137.783000000]: Got new plan
+[INFO] [1773716880.954637979, 137.883000000]: Got new plan
+[INFO] [1773716881.054685613, 137.983000000]: Got new plan
+[INFO] [1773716881.154910598, 138.083000000]: Got new plan
+[INFO] [1773716881.254915889, 138.183000000]: Got new plan
+[INFO] [1773716881.355016855, 138.283000000]: Got new plan
+[INFO] [1773716881.455669966, 138.383000000]: Got new plan
+[INFO] [1773716881.555741971, 138.483000000]: Got new plan
+[INFO] [1773716881.655660854, 138.583000000]: Got new plan
+[INFO] [1773716881.755110796, 138.683000000]: Got new plan
+[INFO] [1773716881.855738444, 138.783000000]: Got new plan
+[INFO] [1773716881.955304754, 138.883000000]: Got new plan
+[INFO] [1773716882.056162202, 138.983000000]: Got new plan
+[INFO] [1773716882.156841102, 139.083000000]: Got new plan
+[INFO] [1773716882.257538953, 139.184000000]: Got new plan
+[INFO] [1773716882.356524380, 139.283000000]: Got new plan
+[INFO] [1773716882.456768422, 139.383000000]: Got new plan
+[INFO] [1773716882.556623160, 139.483000000]: Got new plan
+[INFO] [1773716882.657000089, 139.583000000]: Got new plan
+[INFO] [1773716882.758556374, 139.684000000]: Got new plan
+[INFO] [1773716882.858229188, 139.783000000]: Got new plan
+[INFO] [1773716882.957780162, 139.883000000]: Got new plan
+[INFO] [1773716883.064148389, 139.983000000]: Got new plan
+[INFO] [1773716883.173449197, 140.083000000]: Got new plan
+[INFO] [1773716883.268407401, 140.183000000]: Got new plan
+[INFO] [1773716883.367144090, 140.283000000]: Got new plan
+[INFO] [1773716883.466629851, 140.383000000]: Got new plan
+[INFO] [1773716883.566828890, 140.484000000]: Got new plan
+[INFO] [1773716883.665706352, 140.583000000]: Got new plan
+[INFO] [1773716883.765494615, 140.683000000]: Got new plan
+[INFO] [1773716883.867439803, 140.783000000]: Got new plan
+[INFO] [1773716883.967074485, 140.883000000]: Got new plan
+[INFO] [1773716884.067716186, 140.983000000]: Got new plan
+[INFO] [1773716884.168559678, 141.084000000]: Got new plan
+[INFO] [1773716884.267972134, 141.183000000]: Got new plan
+[INFO] [1773716884.368274837, 141.283000000]: Got new plan
+[INFO] [1773716884.4[WARN] [1773716884.471175790, 141.386000000]: DWA planner failed to produce path.
+[WARN] [1773716884.571061508, 141.486000000]: DWA planner failed to produce path.
+[WARN] [1773716884.671099979, 141.586000000]: DWA planner failed to produce path.
+[WARN] [1773716884.771392509, 141.686000000]: DWA planner failed to produce path.
+[WARN] [1773716884.870299955, 141.786000000]: DWA planner failed to produce path.
+[WARN] [1773716884.969856709, 141.885000000]: DWA planner failed to produce path.
+[WARN] [1773716885.071024574, 141.985000000]: DWA planner failed to produce path.
+[WARN] [1773716885.170519742, 142.085000000]: DWA planner failed to produce path.
+[WARN] [1773716885.271165772, 142.185000000]: DWA planner failed to produce path.
+[WARN] [1773716885.371401131, 142.286000000]: DWA planner failed to produce path.
+[WARN] [1773716885.470933866, 142.385000000]: DWA planner failed to produce path.
+[WARN] [1773716885.571110460, 142.485000000]: DWA planner failed to produce path.
+[WARN] [1773716885.672794794, 142.586000000]: DWA planner failed to produce path.
+[WARN] [1773716885.772101047, 142.686000000]: DWA planner failed to produce path.
+[WARN] [1773716885.872287030, 142.786000000]: DWA planner failed to produce path.
+[WARN] [1773716885.971788879, 142.885000000]: DWA planner failed to produce path.
+[WARN] [1773716886.071916862, 142.985000000]: DWA planner failed to produce path.
+[WARN] [1773716886.173148252, 143.086000000]: DWA planner failed to produce path.
+[WARN] [1773716886.273439630, 143.186000000]: DWA planner failed to produce path.
+[WARN] [1773716886.373519180, 143.286000000]: DWA planner failed to produce path.
+[WARN] [1773716886.480511635, 143.389000000]: DWA planner failed to produce path.
+[WARN] [1773716886.575522210, 143.486000000]: DWA planner failed to produce path.
+[WARN] [1773716886.674264826, 143.585000000]: DWA planner failed to produce path.
+[WARN] [1773716886.774546381, 143.685000000]: DWA planner failed to produce path.
+[WARN] [1773716886.875292876, 143.785000000]: DWA planner failed to produce path.
+[WARN] [1773716886.975369962, 143.886000000]: DWA planner failed to produce path.
+[WARN] [1773716887.074655715, 143.985000000]: DWA planner failed to produce path.
+[WARN] [1773716887.175054800, 144.086000000]: DWA planner failed to produce path.
+[WARN] [1773716887.275579400, 144.187000000]: DWA planner failed to produce path.
+[WARN] [1773716887.374034515, 144.285000000]: DWA planner failed to produce path.
+[WARN] [1773716887.474508671, 144.386000000]: DWA planner failed to produce path.
+[WARN] [1773716887.574442712, 144.485000000]: DWA planner failed to produce path.
+[WARN] [1773716887.676429131, 144.586000000]: DWA planner failed to produce path.
+[WARN] [1773716887.775588414, 144.685000000]: DWA planner failed to produce path.
+[WARN] [1773716887.875116764, 144.785000000]: DWA planner failed to produce path.
+[WARN] [1773716887.976775971, 144.887000000]: DWA planner failed to produce path.
+[WARN] [1773716888.076765369, 144.987000000]: DWA planner failed to produce path.
+[WARN] [1773716888.175382794, 145.085000000]: DWA planner failed to produce path.
+[WARN] [1773716888.276761172, 145.186000000]: DWA planner failed to produce path.
+[WARN] [1773716888.377211789, 145.286000000]: DWA planner failed to produce path.
+[WARN] [1773716888.476850745, 145.386000000]: DWA planner failed to produce path.
+[WARN] [1773716888.576119719, 145.485000000]: DWA planner failed to produce path.
+[WARN] [1773716888.676650709, 145.585000000]: DWA planner failed to produce path.
+[WARN] [1773716888.778151271, 145.687000000]: DWA planner failed to produce path.
+[WARN] [1773716888.877728113, 145.786000000]: DWA planner failed to produce path.
+[WARN] [1773716888.977411081, 145.885000000]: DWA planner failed to produce path.
+[WARN] [1773716889.077718620, 145.985000000]: DWA planner failed to produce path.
+[WARN] [1773716889.177876012, 146.086000000]: DWA planner failed to produce path.
+[WARN] [1773716889.277851997, 146.185000000]: DWA planner failed to produce path.
+[WARN] [1773716889.378359080, 146.285000000]: DWA planner failed to produce path.
+[WARN] [1773716889.478183462, 146.385000000]: DWA planner failed to produce path.
+[WARN] [1773716889.577625243, 146.485000000]: DWA planner failed to produce path.
+[WARN] [1773716889.678329680, 146.585000000]: DWA planner failed to produce path.
+[WARN] [1773716889.802644426, 146.683000000]: DWA planner failed to produce path.
+[WARN] [1773716889.905731226, 146.785000000]: DWA planner failed to produce path.
+[WARN] [1773716890.004500692, 146.887000000]: DWA planner failed to produce path.
+[WARN] [1773716890.102374052, 146.985000000]: DWA planner failed to produce path.
+[WARN] [1773716890.201893724, 147.085000000]: DWA planner failed to produce path.
+[WARN] [1773716890.301967221, 147.185000000]: DWA planner failed to produce path.
+[WARN] [1773716890.403646173, 147.286000000]: DWA planner failed to produce path.
+[WARN] [1773716890.502621910, 147.385000000]: DWA planner failed to produce path.
+[WARN] [1773716890.602852089, 147.485000000]: DWA planner failed to produce path.
+[WARN] [1773716890.702044717, 147.585000000]: DWA planner failed to produce path.
+[WARN] [1773716890.802333161, 147.685000000]: DWA planner failed to produce path.
+[WARN] [1773716890.903284163, 147.785000000]: DWA planner failed to produce path.
+[WARN] [1773716891.002625018, 147.885000000]: DWA planner failed to produce path.
+[WARN] [1773716891.103097555, 147.986000000]: DWA planner failed to produce path.
+[WARN] [1773716891.203051747, 148.085000000]: DWA planner failed to produce path.
+[WARN] [1773716891.303643818, 148.186000000]: DWA planner failed to produce path.
+68973074, 141.384000000]: Got new plan
+[INFO] [1773716884.568114099, 141.483000000]: Got new plan
+[INFO] [1773716884.668376431, 141.583000000]: Got new plan
+[INFO] [1773716884.768581316, 141.683000000]: Got new plan
+[INFO] [1773716884.867986421, 141.784000000]: Got new plan
+[INFO] [1773716884.967542675, 141.883000000]: Got new plan
+[INFO] [1773716885.068915910, 141.983000000]: Got new plan
+[INFO] [1773716885.168341766, 142.083000000]: Got new plan
+[INFO] [1773716885.268931941, 142.183000000]: Got new plan
+[INFO] [1773716885.369158360, 142.283000000]: Got new plan
+[INFO] [1773716885.468510235, 142.383000000]: Got new plan
+[INFO] [1773716885.568775695, 142.483000000]: Got new plan
+[INFO] [1773716885.669147306, 142.583000000]: Got new plan
+[INFO] [1773716885.769913144, 142.684000000]: Got new plan
+[INFO] [1773716885.869995782, 142.784000000]: Got new plan
+[INFO] [1773716885.969528300, 142.883000000]: Got new plan
+[INFO] [1773716886.069799217, 142.983000000]: Got new plan
+[INFO] [1773716886.170972402, 143.084000000]: Got new plan
+[INFO] [1773716886.270812564, 143.183000000]: Got new plan
+[INFO] [1773716886.370982674, 143.283000000]: Got new plan
+[INFO] [1773716886.476321525, 143.384000000]: Got new plan
+[INFO] [1773716886.573401621, 143.484000000]: Got new plan
+[INFO] [1773716886.672117763, 143.583000000]: Got new plan
+[INFO] [1773716886.772370963, 143.683000000]: Got new plan
+[INFO] [1773716886.872955775, 143.783000000]: Got new plan
+[INFO] [1773716886.972384442, 143.883000000]: Got new plan
+[INFO] [1773716887.072501919, 143.983000000]: Got new plan
+[INFO] [1773716887.172185628, 144.083000000]: Got new plan
+[INFO] [1773716887.272933188, 144.184000000]: Got new plan
+[INFO] [1773716887.371858408, 144.283000000]: Got new plan
+[INFO] [1773716887.472444572, 144.383000000]: Got new plan
+[INFO] [1773716887.572280857, 144.483000000]: Got new plan
+[INFO] [1773716887.672812221, 144.583000000]: Got new plan
+[INFO] [1773716887.773308348, 144.683000000]: Got new plan
+[INFO] [1773716887.872708374, 144.783000000]: Got new plan
+[INFO] [1773716887.973277452, 144.884000000]: Got new plan
+[INFO] [1773716888.073242090, 144.983000000]: Got new plan
+[INFO] [1773716888.173170095, 145.083000000]: Got new plan
+[INFO] [1773716888.274461324, 145.184000000]: Got new plan
+[INFO] [1773716888.374904110, 145.284000000]: Got new plan
+[INFO] [1773716888.474536034, 145.383000000]: Got new plan
+[INFO] [1773716888.573840127, 145.483000000]: Got new plan
+[INFO] [1773716888.674393543, 145.583000000]: Got new plan
+[INFO] [1773716888.774787731, 145.683000000]: Got new plan
+[INFO] [1773716888.875527648, 145.784000000]: Got new plan
+[INFO] [1773716888.975273852, 145.883000000]: Got new plan
+[INFO] [1773716889.075586507, 145.983000000]: Got new plan
+[INFO] [1773716889.174931193, 146.083000000]: Got new plan
+[INFO] [1773716889.275582467, 146.183000000]: Got new plan
+[INFO] [1773716889.376153744, 146.283000000]: Got new plan
+[INFO] [1773716889.475688866, 146.383000000]: Got new plan
+[INFO] [1773716889.575348251, 146.483000000]: Got new plan
+[INFO] [1773716889.676193961, 146.583000000]: Got new plan
+[INFO] [1773716889.798119966, 146.683000000]: Got new plan
+[INFO] [1773716889.903406128, 146.783000000]: Got new plan
+[INFO] [1773716890.001549241, 146.884000000]: Got new plan
+[INFO] [1773716890.100095299, 146.983000000]: Got new plan
+[INFO] [1773716890.199452437, 147.083000000]: Got new plan
+[INFO] [1773716890.299499540, 147.183000000]: Got new plan
+[INFO] [1773716890.401233453, 147.284000000]: Got new plan
+[INFO] [1773716890.500349041, 147.383000000]: Got new plan
+[INFO] [1773716890.600617302, 147.483000000]: Got new plan
+[INFO] [1773716890.699928097, 147.583000000]: Got new plan
+[INFO] [1773716890.800227563, 147.683000000]: Got new plan
+[INFO] [1773716890.901149699, 147.783000000]: Got new plan
+[INFO] [1773716891.000038498, 147.883000000]: Got new plan
+[INFO] [1773716891.100926183, 147.984000000]: Got new plan
+[INFO] [1773716891.200763329, 148.083000000]: Got new plan
+[INFO] [1773716891.301331821, 148.183000000]: Got new plan
+[INFO] [1773716891.400854156, 148.283000000]:[WARN] [1773716891.403131365, 148.285000000]: DWA planner failed to produce path.
+[WARN] [1773716891.505840475, 148.387000000]: DWA planner failed to produce path.
+[WARN] [1773716891.604616621, 148.485000000]: DWA planner failed to produce path.
+[WARN] [1773716891.705512922, 148.586000000]: DWA planner failed to produce path.
+[WARN] [1773716891.804758648, 148.685000000]: DWA planner failed to produce path.
+[WARN] [1773716891.905113370, 148.786000000]: DWA planner failed to produce path.
+[WARN] [1773716892.004809247, 148.886000000]: DWA planner failed to produce path.
+[WARN] [1773716892.104137162, 148.985000000]: DWA planner failed to produce path.
+[WARN] [1773716892.204514186, 149.085000000]: DWA planner failed to produce path.
+[WARN] [1773716892.305269680, 149.185000000]: DWA planner failed to produce path.
+[WARN] [1773716892.405930129, 149.286000000]: DWA planner failed to produce path.
+[WARN] [1773716892.505752377, 149.386000000]: DWA planner failed to produce path.
+[WARN] [1773716892.605588433, 149.486000000]: DWA planner failed to produce path.
+[WARN] [1773716892.705725166, 149.585000000]: DWA planner failed to produce path.
+[WARN] [1773716892.805416937, 149.685000000]: DWA planner failed to produce path.
+[WARN] [1773716892.906417667, 149.785000000]: DWA planner failed to produce path.
+[WARN] [1773716893.005926917, 149.885000000]: DWA planner failed to produce path.
+[WARN] [1773716893.107298510, 149.986000000]: DWA planner failed to produce path.
+[WARN] [1773716893.224536688, 150.088000000]: DWA planner failed to produce path.
+[WARN] [1773716893.315393395, 150.186000000]: DWA planner failed to produce path.
+[WARN] [1773716893.412890491, 150.285000000]: DWA planner failed to produce path.
+[WARN] [1773716893.511779624, 150.385000000]: DWA planner failed to produce path.
+[WARN] [1773716893.611890630, 150.485000000]: DWA planner failed to produce path.
+[WARN] [1773716893.713258949, 150.586000000]: DWA planner failed to produce path.
+[WARN] [1773716893.812190780, 150.686000000]: DWA planner failed to produce path.
+[WARN] [1773716893.912530289, 150.786000000]: DWA planner failed to produce path.
+[WARN] [1773716894.012656894, 150.886000000]: DWA planner failed to produce path.
+[WARN] [1773716894.112000215, 150.985000000]: DWA planner failed to produce path.
+[WARN] [1773716894.211310168, 151.085000000]: DWA planner failed to produce path.
+[WARN] [1773716894.312278157, 151.185000000]: DWA planner failed to produce path.
+[WARN] [1773716894.412858999, 151.286000000]: DWA planner failed to produce path.
+[WARN] [1773716894.513058842, 151.385000000]: DWA planner failed to produce path.
+[WARN] [1773716894.614808928, 151.486000000]: DWA planner failed to produce path.
+[WARN] [1773716894.714044479, 151.586000000]: DWA planner failed to produce path.
+[WARN] [1773716894.813051287, 151.685000000]: DWA planner failed to produce path.
+[WARN] [1773716894.914253104, 151.786000000]: DWA planner failed to produce path.
+[WARN] [1773716895.014293976, 151.886000000]: DWA planner failed to produce path.
+[WARN] [1773716895.114231852, 151.985000000]: DWA planner failed to produce path.
+[WARN] [1773716895.214557525, 152.086000000]: DWA planner failed to produce path.
+[WARN] [1773716895.315202672, 152.186000000]: DWA planner failed to produce path.
+[WARN] [1773716895.415354915, 152.286000000]: DWA planner failed to produce path.
+[WARN] [1773716895.514156224, 152.385000000]: DWA planner failed to produce path.
+[WARN] [1773716895.615020903, 152.485000000]: DWA planner failed to produce path.
+[WARN] [1773716895.715488029, 152.585000000]: DWA planner failed to produce path.
+[WARN] [1773716895.815976212, 152.686000000]: DWA planner failed to produce path.
+[WARN] [1773716895.915770956, 152.785000000]: DWA planner failed to produce path.
+[WARN] [1773716896.016132269, 152.886000000]: DWA planner failed to produce path.
+[WARN] [1773716896.116370433, 152.986000000]: DWA planner failed to produce path.
+[WARN] [1773716896.215381654, 153.085000000]: DWA planner failed to produce path.
+[WARN] [1773716896.316704015, 153.186000000]: DWA planner failed to produce path.
+[WARN] [1773716896.416509613, 153.285000000]: DWA planner failed to produce path.
+[WARN] [1773716896.548309888, 153.383000000]: DWA planner failed to produce path.
+[WARN] [1773716896.639784559, 153.483000000]: Clearing both costmaps outside a square (3.00m) large centered on the robot.
+[WARN] [1773716896.835082607, 153.685000000]: DWA planner failed to produce path.
+[WARN] [1773716896.932336273, 153.784000000]: Rotate recovery behavior started.
+[ERROR] [1773716896.932535026, 153.784000000]: Rotate recovery can't rotate in place because there is a potential collision. Cost: -1.00
+[WARN] [1773716897.134368666, 153.985000000]: DWA planner failed to produce path.
+[WARN] [1773716897.232495565, 154.083000000]: Clearing both costmaps outside a square (1.84m) large centered on the robot.
+[WARN] [1773716897.435859906, 154.286000000]: DWA planner failed to produce path.
+[WARN] [1773716897.533202657, 154.383000000]: Rotate recovery behavior started.
+[ERROR] [1773716897.533292158, 154.383000000]: Rotate recovery can't rotate in place because there is a potential collision. Cost: -1.00
+[WARN] [1773716897.736345269, 154.586000000]: DWA planner failed to produce path.
+[ERROR] [1773716897.833531499, 154.684000000]: Aborting because a valid control could not be found. Even after executing all recovery behaviors
+[WARN] [1773716904.977661453, 161.794000000]: DWA planner failed to produce path.
+[WARN] [1773716905.077697730, 161.893000000]: DWA planner failed to produce path.
+[WARN] [1773716905.177867747, 161.994000000]: DWA planner failed to produce path.
+[WARN] [1773716905.278488231, 162.094000000]: DWA planner failed to produce path.
+[WARN] [1773716905.378174498, 162.194000000]: DWA planner failed to produce path.
+[WARN] [1773716905.478821733, 162.294000000]: DWA planner failed to produce path.
+[WARN] [1773716905.578365064, 162.393000000]: DWA planner failed to produce path.
+[WARN] [1773716905.679578852, 162.494000000]: DWA planner failed to produce path.
+[WARN] [1773716905.780535673, 162.595000000]: DWA planner failed to produce path.
+[WARN] [1773716905.879357900, 162.693000000]: DWA planner failed to produce path.
+[WARN] [1773716905.980149046, 162.794000000]: DWA planner failed to produce path.
+[WARN] [1773716906.082345621, 162.896000000]: DWA planner failed to produce path.
+[WARN] [1773716906.181987191, 162.995000000]: DWA planner failed to produce path.
+[WARN] [1773716906.280572257, 163.094000000]: DWA planner failed to produce path.
+ Got new plan
+[INFO] [1773716891.502645872, 148.384000000]: Got new plan
+[INFO] [1773716891.602312201, 148.483000000]: Got new plan
+[INFO] [1773716891.703250065, 148.584000000]: Got new plan
+[INFO] [1773716891.802581772, 148.683000000]: Got new plan
+[INFO] [1773716891.902877908, 148.784000000]: Got new plan
+[INFO] [1773716892.002383842, 148.883000000]: Got new plan
+[INFO] [1773716892.101756344, 148.983000000]: Got new plan
+[INFO] [1773716892.202340358, 149.083000000]: Got new plan
+[INFO] [1773716892.303068321, 149.183000000]: Got new plan
+[INFO] [1773716892.403659720, 149.284000000]: Got new plan
+[INFO] [1773716892.503323615, 149.383000000]: Got new plan
+[INFO] [1773716892.603023597, 149.483000000]: Got new plan
+[INFO] [1773716892.703394224, 149.583000000]: Got new plan
+[INFO] [1773716892.803227718, 149.683000000]: Got new plan
+[INFO] [1773716892.903811317, 149.783000000]: Got new plan
+[INFO] [1773716893.003810856, 149.883000000]: Got new plan
+[INFO] [1773716893.104840003, 149.984000000]: Got new plan
+[INFO] [1773716893.220483344, 150.083000000]: Got new plan
+[INFO] [1773716893.313176125, 150.183000000]: Got new plan
+[INFO] [1773716893.410779634, 150.283000000]: Got new plan
+[INFO] [1773716893.509425925, 150.383000000]: Got new plan
+[INFO] [1773716893.609762445, 150.483000000]: Got new plan
+[INFO] [1773716893.710814806, 150.584000000]: Got new plan
+[INFO] [1773716893.809906824, 150.683000000]: Got new plan
+[INFO] [1773716893.909964040, 150.783000000]: Got new plan
+[INFO] [1773716894.010551461, 150.884000000]: Got new plan
+[INFO] [1773716894.109847494, 150.983000000]: Got new plan
+[INFO] [1773716894.209174107, 151.083000000]: Got new plan
+[INFO] [1773716894.309593993, 151.183000000]: Got new plan
+[INFO] [1773716894.410681667, 151.283000000]: Got new plan
+[INFO] [1773716894.510904357, 151.383000000]: Got new plan
+[INFO] [1773716894.611779715, 151.483000000]: Got new plan
+[INFO] [1773716894.710964400, 151.583000000]: Got new plan
+[INFO] [1773716894.810852360, 151.683000000]: Got new plan
+[INFO] [1773716894.910923900, 151.783000000]: Got new plan
+[INFO] [1773716895.011901185, 151.883000000]: Got new plan
+[INFO] [1773716895.111711715, 151.983000000]: Got new plan
+[INFO] [1773716895.212177306, 152.083000000]: Got new plan
+[INFO] [1773716895.312490282, 152.184000000]: Got new plan
+[INFO] [1773716895.412557209, 152.284000000]: Got new plan
+[INFO] [1773716895.512056272, 152.383000000]: Got new plan
+[INFO] [1773716895.612713353, 152.483000000]: Got new plan
+[INFO] [1773716895.713089052, 152.583000000]: Got new plan
+[INFO] [1773716895.813355747, 152.683000000]: Got new plan
+[INFO] [1773716895.913589019, 152.783000000]: Got new plan
+[INFO] [1773716896.013944716, 152.883000000]: Got new plan
+[INFO] [1773716896.113665696, 152.983000000]: Got new plan
+[INFO] [1773716896.212905012, 153.083000000]: Got new plan
+[INFO] [1773716896.314160681, 153.183000000]: Got new plan
+[INFO] [1773716896.414063958, 153.283000000]: Got new plan
+[INFO] [1773716896.542610869, 153.383000000]: Got new plan
+[INFO] [1773716896.832823504, 153.683000000]: Got new plan
+[INFO] [1773716897.132029809, 153.983000000]: Got new plan
+[INFO] [1773716897.433438991, 154.284000000]: Got new plan
+[INFO] [1773716897.733635379, 154.584000000]: Got new plan
+[INFO] [1773716904.974958367, 161.791000000]: Got new plan
+[INFO] [1773716905.075058063, 161.891000000]: Got new plan
+[INFO] [1773716905.175438194, 161.992000000]: Got new plan
+[INFO] [1773716905.275429892, 162.091000000]: Got new plan
+[INFO] [1773716905.375734738, 162.191000000]: Got new plan
+[INFO] [1773716905.476183883, 162.291000000]: Got new plan
+[INFO] [1773716905.576164032, 162.391000000]: Got new plan
+[INFO] [1773716905.676875490, 162.491000000]: Got new plan
+[INFO] [1773716905.777502528, 162.591000000]: Got new plan
+[INFO] [1773716905.877186542, 162.691000000]: Got new plan
+[INFO] [1773716905.977994075, 162.792000000]: Got new plan
+[INFO] [1773716906.078541934, 162.892000000]: Got new plan
+[INFO] [1773716906.178180711, 162.991000000]: Got new plan
+[INFO] [1773716906.277785035, 163.091000000]: Got new plan
+[INFO] [177[WARN] [1773716906.380876602, 163.194000000]: DWA planner failed to produce path.
+[WARN] [1773716906.483552841, 163.297000000]: DWA planner failed to produce path.
+[WARN] [1773716906.581659259, 163.394000000]: DWA planner failed to produce path.
+[WARN] [1773716906.680859452, 163.493000000]: DWA planner failed to produce path.
+[WARN] [1773716906.781711650, 163.594000000]: DWA planner failed to produce path.
+[WARN] [1773716906.930186390, 163.696000000]: DWA planner failed to produce path.
+[WARN] [1773716907.017044037, 163.795000000]: DWA planner failed to produce path.
+[WARN] [1773716907.112583348, 163.895000000]: DWA planner failed to produce path.
+[WARN] [1773716907.210050251, 163.995000000]: DWA planner failed to produce path.
+[WARN] [1773716907.310764256, 164.095000000]: DWA planner failed to produce path.
+[WARN] [1773716907.411990391, 164.196000000]: DWA planner failed to produce path.
+[WARN] [1773716907.513550504, 164.297000000]: DWA planner failed to produce path.
+[WARN] [1773716907.611024760, 164.394000000]: DWA planner failed to produce path.
+[WARN] [1773716907.710670803, 164.494000000]: DWA planner failed to produce path.
+[WARN] [1773716907.810660146, 164.594000000]: DWA planner failed to produce path.
+[WARN] [1773716907.910914880, 164.694000000]: DWA planner failed to produce path.
+[WARN] [1773716908.013421206, 164.796000000]: DWA planner failed to produce path.
+[WARN] [1773716908.112539931, 164.895000000]: DWA planner failed to produce path.
+[WARN] [1773716908.212107366, 164.994000000]: DWA planner failed to produce path.
+[WARN] [1773716908.311426548, 165.093000000]: DWA planner failed to produce path.
+[WARN] [1773716908.412537813, 165.194000000]: DWA planner failed to produce path.
+[WARN] [1773716908.516702270, 165.296000000]: DWA planner failed to produce path.
+[WARN] [1773716908.620702221, 165.399000000]: DWA planner failed to produce path.
+[WARN] [1773716908.719053374, 165.497000000]: DWA planner failed to produce path.
+[WARN] [1773716908.818533086, 165.596000000]: DWA planner failed to produce path.
+[WARN] [1773716908.917833805, 165.695000000]: DWA planner failed to produce path.
+[WARN] [1773716909.017279606, 165.794000000]: DWA planner failed to produce path.
+[WARN] [1773716909.117170530, 165.894000000]: DWA planner failed to produce path.
+[WARN] [1773716909.217266242, 165.993000000]: DWA planner failed to produce path.
+[WARN] [1773716909.318364065, 166.094000000]: DWA planner failed to produce path.
+[WARN] [1773716909.418705262, 166.194000000]: DWA planner failed to produce path.
+[WARN] [1773716909.520413467, 166.296000000]: DWA planner failed to produce path.
+[WARN] [1773716909.619291185, 166.394000000]: DWA planner failed to produce path.
+[WARN] [1773716909.720617715, 166.495000000]: DWA planner failed to produce path.
+[WARN] [1773716909.819552448, 166.593000000]: DWA planner failed to produce path.
+[WARN] [1773716909.919633531, 166.694000000]: DWA planner failed to produce path.
+[WARN] [1773716910.018884856, 166.793000000]: DWA planner failed to produce path.
+[WARN] [1773716910.119294025, 166.893000000]: DWA planner failed to produce path.
+[WARN] [1773716910.221089694, 166.995000000]: DWA planner failed to produce path.
+[WARN] [1773716910.360613644, 167.097000000]: DWA planner failed to produce path.
+[WARN] [1773716910.444708397, 167.195000000]: DWA planner failed to produce path.
+[WARN] [1773716910.538221603, 167.294000000]: DWA planner failed to produce path.
+[WARN] [1773716910.635590668, 167.393000000]: DWA planner failed to produce path.
+[WARN] [1773716910.737122995, 167.495000000]: DWA planner failed to produce path.
+[WARN] [1773716910.835589706, 167.594000000]: DWA planner failed to produce path.
+[WARN] [1773716910.935832819, 167.694000000]: DWA planner failed to produce path.
+[WARN] [1773716911.035780011, 167.794000000]: DWA planner failed to produce path.
+[WARN] [1773716911.136979054, 167.894000000]: DWA planner failed to produce path.
+[WARN] [1773716911.237355727, 167.994000000]: DWA planner failed to produce path.
+[WARN] [1773716911.337589412, 168.094000000]: DWA planner failed to produce path.
+[WARN] [1773716911.437074395, 168.194000000]: DWA planner failed to produce path.
+[WARN] [1773716911.536756092, 168.294000000]: DWA planner failed to produce path.
+[WARN] [1773716911.637341515, 168.394000000]: DWA planner failed to produce path.
+[WARN] [1773716911.736690247, 168.493000000]: DWA planner failed to produce path.
+[WARN] [1773716911.836492307, 168.593000000]: DWA planner failed to produce path.
+[WARN] [1773716911.937455008, 168.693000000]: DWA planner failed to produce path.
+[WARN] [1773716912.038835303, 168.794000000]: DWA planner failed to produce path.
+[WARN] [1773716912.138794643, 168.894000000]: DWA planner failed to produce path.
+[WARN] [1773716912.238112095, 168.994000000]: DWA planner failed to produce path.
+[WARN] [1773716912.339533679, 169.095000000]: DWA planner failed to produce path.
+[WARN] [1773716912.441085267, 169.196000000]: DWA planner failed to produce path.
+[WARN] [1773716912.538193609, 169.293000000]: DWA planner failed to produce path.
+[WARN] [1773716912.639890635, 169.395000000]: DWA planner failed to produce path.
+[WARN] [1773716912.739049684, 169.494000000]: DWA planner failed to produce path.
+[WARN] [1773716912.838115809, 169.593000000]: DWA planner failed to produce path.
+[WARN] [1773716912.940944621, 169.695000000]: DWA planner failed to produce path.
+[WARN] [1773716913.040536263, 169.795000000]: DWA planner failed to produce path.
+[WARN] [1773716913.139980409, 169.894000000]: DWA planner failed to produce path.
+[WARN] [1773716913.239837959, 169.994000000]: DWA planner failed to produce path.
+3716906.378084184, 163.191000000]: Got new plan
+[INFO] [1773716906.478409518, 163.292000000]: Got new plan
+[INFO] [1773716906.579313516, 163.392000000]: Got new plan
+[INFO] [1773716906.678781344, 163.491000000]: Got new plan
+[INFO] [1773716906.779058168, 163.591000000]: Got new plan
+[INFO] [1773716906.926400077, 163.691000000]: Got new plan
+[INFO] [1773716907.013346643, 163.791000000]: Got new plan
+[INFO] [1773716907.108041216, 163.891000000]: Got new plan
+[INFO] [1773716907.206610493, 163.991000000]: Got new plan
+[INFO] [1773716907.305752616, 164.091000000]: Got new plan
+[INFO] [1773716907.406886851, 164.191000000]: Got new plan
+[INFO] [1773716907.508079232, 164.292000000]: Got new plan
+[INFO] [1773716907.608013213, 164.391000000]: Got new plan
+[INFO] [1773716907.707931936, 164.491000000]: Got new plan
+[INFO] [1773716907.808141552, 164.591000000]: Got new plan
+[INFO] [1773716907.908037510, 164.691000000]: Got new plan
+[INFO] [1773716908.009165055, 164.792000000]: Got new plan
+[INFO] [1773716908.108436599, 164.891000000]: Got new plan
+[INFO] [1773716908.209583055, 164.991000000]: Got new plan
+[INFO] [1773716908.309289060, 165.091000000]: Got new plan
+[INFO] [1773716908.409425231, 165.191000000]: Got new plan
+[INFO] [1773716908.512664603, 165.292000000]: Got new plan
+[INFO] [1773716908.612549061, 165.391000000]: Got new plan
+[INFO] [1773716908.713313569, 165.491000000]: Got new plan
+[INFO] [1773716908.814227471, 165.592000000]: Got new plan
+[INFO] [1773716908.914398629, 165.691000000]: Got new plan
+[INFO] [1773716909.014981812, 165.792000000]: Got new plan
+[INFO] [1773716909.114634502, 165.891000000]: Got new plan
+[INFO] [1773716909.214749534, 165.991000000]: Got new plan
+[INFO] [1773716909.315587788, 166.091000000]: Got new plan
+[INFO] [1773716909.415795749, 166.191000000]: Got new plan
+[INFO] [1773716909.515892979, 166.291000000]: Got new plan
+[INFO] [1773716909.615818276, 166.391000000]: Got new plan
+[INFO] [1773716909.715719382, 166.491000000]: Got new plan
+[INFO] [1773716909.817143241, 166.591000000]: Got new plan
+[INFO] [1773716909.916686000, 166.691000000]: Got new plan
+[INFO] [1773716910.016713147, 166.791000000]: Got new plan
+[INFO] [1773716910.116860888, 166.891000000]: Got new plan
+[INFO] [1773716910.217919627, 166.991000000]: Got new plan
+[INFO] [1773716910.355616314, 167.091000000]: Got new plan
+[INFO] [1773716910.441374713, 167.191000000]: Got new plan
+[INFO] [1773716910.535855909, 167.291000000]: Got new plan
+[INFO] [1773716910.633021827, 167.391000000]: Got new plan
+[INFO] [1773716910.732684124, 167.491000000]: Got new plan
+[INFO] [1773716910.832858287, 167.592000000]: Got new plan
+[INFO] [1773716910.933351470, 167.692000000]: Got new plan
+[INFO] [1773716911.032945149, 167.791000000]: Got new plan
+[INFO] [1773716911.134046704, 167.891000000]: Got new plan
+[INFO] [1773716911.234960063, 167.991000000]: Got new plan
+[INFO] [1773716911.334083639, 168.091000000]: Got new plan
+[INFO] [1773716911.434534471, 168.192000000]: Got new plan
+[INFO] [1773716911.534186953, 168.291000000]: Got new plan
+[INFO] [1773716911.634837139, 168.392000000]: Got new plan
+[INFO] [1773716911.734434668, 168.491000000]: Got new plan
+[INFO] [1773716911.834335572, 168.591000000]: Got new plan
+[INFO] [1773716911.935310842, 168.691000000]: Got new plan
+[INFO] [1773716912.035883990, 168.792000000]: Got new plan
+[INFO] [1773716912.135815211, 168.891000000]: Got new plan
+[INFO] [1773716912.235095848, 168.991000000]: Got new plan
+[INFO] [1773716912.335525567, 169.091000000]: Got new plan
+[INFO] [1773716912.436229569, 169.191000000]: Got new plan
+[INFO] [1773716912.535870539, 169.291000000]: Got new plan
+[INFO] [1773716912.636040779, 169.391000000]: Got new plan
+[INFO] [1773716912.736630100, 169.492000000]: Got new plan
+[INFO] [1773716912.835901840, 169.591000000]: Got new plan
+[INFO] [1773716912.936971205, 169.691000000]: Got new plan
+[INFO] [1773716913.036941648, 169.791000000]: Got new plan
+[INFO] [1773716913.136758434, 169.891000000]: Got new plan
+[INFO] [1773716913.237069567, 169.991000000]: Got new plan
+[INFO] [1773716913.338516900, 170.09[WARN] [1773716913.341918205, 170.095000000]: DWA planner failed to produce path.
+[WARN] [1773716913.443228470, 170.196000000]: DWA planner failed to produce path.
+[WARN] [1773716913.540901288, 170.293000000]: DWA planner failed to produce path.
+[WARN] [1773716913.641819646, 170.394000000]: DWA planner failed to produce path.
+[WARN] [1773716913.750368904, 170.491000000]: DWA planner failed to produce path.
+[WARN] [1773716913.852839235, 170.593000000]: DWA planner failed to produce path.
+[WARN] [1773716913.946435806, 170.693000000]: DWA planner failed to produce path.
+[WARN] [1773716914.044914591, 170.793000000]: DWA planner failed to produce path.
+[WARN] [1773716914.144052509, 170.893000000]: DWA planner failed to produce path.
+[WARN] [1773716914.244307387, 170.993000000]: DWA planner failed to produce path.
+[WARN] [1773716914.344854533, 171.094000000]: DWA planner failed to produce path.
+[WARN] [1773716914.445997820, 171.194000000]: DWA planner failed to produce path.
+[WARN] [1773716914.550024082, 171.298000000]: DWA planner failed to produce path.
+[WARN] [1773716914.645906903, 171.394000000]: DWA planner failed to produce path.
+[WARN] [1773716914.745092572, 171.493000000]: DWA planner failed to produce path.
+[WARN] [1773716914.845039606, 171.593000000]: DWA planner failed to produce path.
+[WARN] [1773716914.945682071, 171.694000000]: DWA planner failed to produce path.
+[WARN] [1773716915.045658063, 171.793000000]: DWA planner failed to produce path.
+[WARN] [1773716915.147768797, 171.895000000]: DWA planner failed to produce path.
+[WARN] [1773716915.246705686, 171.994000000]: DWA planner failed to produce path.
+[WARN] [1773716915.347373300, 172.095000000]: DWA planner failed to produce path.
+[WARN] [1773716915.447134512, 172.194000000]: DWA planner failed to produce path.
+[WARN] [1773716915.548373193, 172.294000000]: DWA planner failed to produce path.
+[WARN] [1773716915.649746977, 172.395000000]: DWA planner failed to produce path.
+[WARN] [1773716915.748981893, 172.494000000]: DWA planner failed to produce path.
+[WARN] [1773716915.849210450, 172.594000000]: DWA planner failed to produce path.
+[WARN] [1773716915.950550490, 172.695000000]: DWA planner failed to produce path.
+[WARN] [1773716916.052427915, 172.797000000]: DWA planner failed to produce path.
+[WARN] [1773716916.149701470, 172.894000000]: DWA planner failed to produce path.
+[WARN] [1773716916.250827120, 172.995000000]: DWA planner failed to produce path.
+[WARN] [1773716916.351110168, 173.095000000]: DWA planner failed to produce path.
+[WARN] [1773716916.451354640, 173.195000000]: DWA planner failed to produce path.
+[WARN] [1773716916.550970533, 173.294000000]: DWA planner failed to produce path.
+[WARN] [1773716916.649851044, 173.393000000]: DWA planner failed to produce path.
+[WARN] [1773716916.750882323, 173.494000000]: DWA planner failed to produce path.
+[WARN] [1773716916.852795083, 173.595000000]: DWA planner failed to produce path.
+[WARN] [1773716916.952067884, 173.694000000]: DWA planner failed to produce path.
+[WARN] [1773716917.051563885, 173.794000000]: DWA planner failed to produce path.
+[WARN] [1773716917.174838234, 173.892000000]: DWA planner failed to produce path.
+[WARN] [1773716917.274349706, 173.996000000]: DWA planner failed to produce path.
+[WARN] [1773716917.365526707, 174.094000000]: DWA planner failed to produce path.
+[WARN] [1773716917.463499496, 174.194000000]: DWA planner failed to produce path.
+[WARN] [1773716917.562370969, 174.294000000]: DWA planner failed to produce path.
+[WARN] [1773716917.661903974, 174.393000000]: DWA planner failed to produce path.
+[WARN] [1773716917.761746490, 174.494000000]: DWA planner failed to produce path.
+[WARN] [1773716917.862966340, 174.595000000]: DWA planner failed to produce path.
+[WARN] [1773716917.962878641, 174.694000000]: DWA planner failed to produce path.
+[WARN] [1773716918.063245585, 174.795000000]: DWA planner failed to produce path.
+[WARN] [1773716918.162399101, 174.894000000]: DWA planner failed to produce path.
+[WARN] [1773716918.262185507, 174.994000000]: DWA planner failed to produce path.
+[WARN] [1773716918.363002644, 175.094000000]: DWA planner failed to produce path.
+[WARN] [1773716918.462887533, 175.194000000]: DWA planner failed to produce path.
+[WARN] [1773716918.562573830, 175.293000000]: DWA planner failed to produce path.
+[WARN] [1773716918.663060359, 175.393000000]: DWA planner failed to produce path.
+[WARN] [1773716918.765281946, 175.494000000]: DWA planner failed to produce path.
+[WARN] [1773716918.867424984, 175.596000000]: DWA planner failed to produce path.
+[WARN] [1773716918.966613885, 175.695000000]: DWA planner failed to produce path.
+[WARN] [1773716919.065443080, 175.794000000]: DWA planner failed to produce path.
+[WARN] [1773716919.165464868, 175.893000000]: DWA planner failed to produce path.
+[WARN] [1773716919.268016981, 175.996000000]: DWA planner failed to produce path.
+[WARN] [1773716919.365485158, 176.093000000]: DWA planner failed to produce path.
+[WARN] [1773716919.466757295, 176.194000000]: DWA planner failed to produce path.
+[WARN] [1773716919.566600572, 176.294000000]: DWA planner failed to produce path.
+[WARN] [1773716919.668557994, 176.395000000]: DWA planner failed to produce path.
+[WARN] [1773716919.767258561, 176.494000000]: DWA planner failed to produce path.
+[WARN] [1773716919.868921337, 176.595000000]: DWA planner failed to produce path.
+[WARN] [1773716919.969808872, 176.695000000]: DWA planner failed to produce path.
+[WARN] [1773716920.067773392, 176.794000000]: DWA planner failed to produce path.
+[WARN] [1773716920.167815990, 176.893000000]: DWA planner failed to produce path.
+[WARN] [1773716920.267517910, 176.993000000]: DWA planner failed to produce path.
+2000000]: Got new plan
+[INFO] [1773716913.438869275, 170.191000000]: Got new plan
+[INFO] [1773716913.538363701, 170.291000000]: Got new plan
+[INFO] [1773716913.639184000, 170.391000000]: Got new plan
+[INFO] [1773716913.745897240, 170.491000000]: Got new plan
+[INFO] [1773716913.850440864, 170.591000000]: Got new plan
+[INFO] [1773716913.943860547, 170.691000000]: Got new plan
+[INFO] [1773716914.042440526, 170.791000000]: Got new plan
+[INFO] [1773716914.141836871, 170.891000000]: Got new plan
+[INFO] [1773716914.242071020, 170.991000000]: Got new plan
+[INFO] [1773716914.342413870, 171.091000000]: Got new plan
+[INFO] [1773716914.443064619, 171.191000000]: Got new plan
+[INFO] [1773716914.543342648, 171.292000000]: Got new plan
+[INFO] [1773716914.643393815, 171.392000000]: Got new plan
+[INFO] [1773716914.742779926, 171.491000000]: Got new plan
+[INFO] [1773716914.842848213, 171.591000000]: Got new plan
+[INFO] [1773716914.943538086, 171.692000000]: Got new plan
+[INFO] [1773716915.043418096, 171.791000000]: Got new plan
+[INFO] [1773716915.143976956, 171.891000000]: Got new plan
+[INFO] [1773716915.243989520, 171.991000000]: Got new plan
+[INFO] [1773716915.344027856, 172.091000000]: Got new plan
+[INFO] [1773716915.444182543, 172.191000000]: Got new plan
+[INFO] [1773716915.545925046, 172.291000000]: Got new plan
+[INFO] [1773716915.645370134, 172.391000000]: Got new plan
+[INFO] [1773716915.746502145, 172.492000000]: Got new plan
+[INFO] [1773716915.846343429, 172.591000000]: Got new plan
+[INFO] [1773716915.946857660, 172.691000000]: Got new plan
+[INFO] [1773716916.046634196, 172.791000000]: Got new plan
+[INFO] [1773716916.146968856, 172.891000000]: Got new plan
+[INFO] [1773716916.247460732, 172.992000000]: Got new plan
+[INFO] [1773716916.348084823, 173.092000000]: Got new plan
+[INFO] [1773716916.447853346, 173.191000000]: Got new plan
+[INFO] [1773716916.547360775, 173.291000000]: Got new plan
+[INFO] [1773716916.647435470, 173.391000000]: Got new plan
+[INFO] [1773716916.748317097, 173.491000000]: Got new plan
+[INFO] [1773716916.848859479, 173.591000000]: Got new plan
+[INFO] [1773716916.949505042, 173.692000000]: Got new plan
+[INFO] [1773716917.048734099, 173.791000000]: Got new plan
+[INFO] [1773716917.165520044, 173.891000000]: Got new plan
+[INFO] [1773716917.270199479, 173.991000000]: Got new plan
+[INFO] [1773716917.363020300, 174.092000000]: Got new plan
+[INFO] [1773716917.461063982, 174.192000000]: Got new plan
+[INFO] [1773716917.559604002, 174.291000000]: Got new plan
+[INFO] [1773716917.659533836, 174.391000000]: Got new plan
+[INFO] [1773716917.758918331, 174.491000000]: Got new plan
+[INFO] [1773716917.859559367, 174.592000000]: Got new plan
+[INFO] [1773716917.960139403, 174.692000000]: Got new plan
+[INFO] [1773716918.059442811, 174.791000000]: Got new plan
+[INFO] [1773716918.159601201, 174.891000000]: Got new plan
+[INFO] [1773716918.259662368, 174.991000000]: Got new plan
+[INFO] [1773716918.360375119, 175.092000000]: Got new plan
+[INFO] [1773716918.460265679, 175.191000000]: Got new plan
+[INFO] [1773716918.560076685, 175.291000000]: Got new plan
+[INFO] [1773716918.660576001, 175.391000000]: Got new plan
+[INFO] [1773716918.762531156, 175.492000000]: Got new plan
+[INFO] [1773716918.862776110, 175.592000000]: Got new plan
+[INFO] [1773716918.962313427, 175.691000000]: Got new plan
+[INFO] [1773716919.062669262, 175.791000000]: Got new plan
+[INFO] [1773716919.162974583, 175.891000000]: Got new plan
+[INFO] [1773716919.263415507, 175.991000000]: Got new plan
+[INFO] [1773716919.362934880, 176.091000000]: Got new plan
+[INFO] [1773716919.464064015, 176.191000000]: Got new plan
+[INFO] [1773716919.563898295, 176.291000000]: Got new plan
+[INFO] [1773716919.664798982, 176.391000000]: Got new plan
+[INFO] [1773716919.764979233, 176.491000000]: Got new plan
+[INFO] [1773716919.865923539, 176.592000000]: Got new plan
+[INFO] [1773716919.965602432, 176.691000000]: Got new plan
+[INFO] [1773716920.065141788, 176.791000000]: Got new plan
+[INFO] [1773716920.165277020, 176.891000000]: Got new plan
+[INFO] [1773716920.265125186, 176.991000000]: Got new plan
+[I[WARN] [1773716920.370459063, 177.096000000]: DWA planner failed to produce path.
+[WARN] [1773716920.468610299, 177.194000000]: DWA planner failed to produce path.
+[WARN] [1773716920.596803570, 177.299000000]: DWA planner failed to produce path.
+[WARN] [1773716920.682561174, 177.395000000]: DWA planner failed to produce path.
+[WARN] [1773716920.776040267, 177.494000000]: DWA planner failed to produce path.
+[WARN] [1773716920.873830585, 177.594000000]: DWA planner failed to produce path.
+[WARN] [1773716920.973857952, 177.694000000]: DWA planner failed to produce path.
+[WARN] [1773716921.072637589, 177.793000000]: DWA planner failed to produce path.
+[WARN] [1773716921.175863274, 177.895000000]: DWA planner failed to produce path.
+[WARN] [1773716921.274005543, 177.994000000]: DWA planner failed to produce path.
+[WARN] [1773716921.373182503, 178.093000000]: DWA planner failed to produce path.
+[WARN] [1773716921.473971168, 178.194000000]: DWA planner failed to produce path.
+[WARN] [1773716921.573541327, 178.293000000]: DWA planner failed to produce path.
+[WARN] [1773716921.673546126, 178.393000000]: DWA planner failed to produce path.
+[WARN] [1773716921.774561976, 178.494000000]: DWA planner failed to produce path.
+[WARN] [1773716921.874425870, 178.593000000]: DWA planner failed to produce path.
+[WARN] [1773716921.974838858, 178.694000000]: DWA planner failed to produce path.
+[WARN] [1773716922.074202185, 178.793000000]: DWA planner failed to produce path.
+[WARN] [1773716922.174393509, 178.893000000]: DWA planner failed to produce path.
+[WARN] [1773716922.274805484, 178.993000000]: DWA planner failed to produce path.
+[WARN] [1773716922.374780429, 179.093000000]: DWA planner failed to produce path.
+[WARN] [1773716922.475868054, 179.194000000]: DWA planner failed to produce path.
+[WARN] [1773716922.575676977, 179.294000000]: DWA planner failed to produce path.
+[WARN] [1773716922.676131219, 179.394000000]: DWA planner failed to produce path.
+[WARN] [1773716922.778328657, 179.495000000]: DWA planner failed to produce path.
+[WARN] [1773716922.876416890, 179.594000000]: DWA planner failed to produce path.
+[WARN] [1773716922.977312844, 179.694000000]: DWA planner failed to produce path.
+[WARN] [1773716923.075820821, 179.793000000]: DWA planner failed to produce path.
+[WARN] [1773716923.176486769, 179.894000000]: DWA planner failed to produce path.
+[WARN] [1773716923.277434319, 179.994000000]: DWA planner failed to produce path.
+[WARN] [1773716923.377635332, 180.094000000]: DWA planner failed to produce path.
+[WARN] [1773716923.478874470, 180.195000000]: DWA planner failed to produce path.
+[WARN] [1773716923.580037856, 180.296000000]: DWA planner failed to produce path.
+[WARN] [1773716923.680016065, 180.395000000]: DWA planner failed to produce path.
+[WARN] [1773716923.779238872, 180.495000000]: DWA planner failed to produce path.
+[WARN] [1773716923.879643175, 180.594000000]: DWA planner failed to produce path.
+[WARN] [1773716923.986285151, 180.691000000]: DWA planner failed to produce path.
+[WARN] [1773716924.098373726, 180.795000000]: DWA planner failed to produce path.
+[WARN] [1773716924.191336777, 180.895000000]: DWA planner failed to produce path.
+[WARN] [1773716924.288410640, 180.994000000]: DWA planner failed to produce path.
+[WARN] [1773716924.386248056, 181.093000000]: DWA planner failed to produce path.
+[WARN] [1773716924.485871308, 181.193000000]: DWA planner failed to produce path.
+[WARN] [1773716924.586744127, 181.294000000]: DWA planner failed to produce path.
+[WARN] [1773716924.688867352, 181.395000000]: DWA planner failed to produce path.
+[WARN] [1773716924.787325360, 181.494000000]: DWA planner failed to produce path.
+[WARN] [1773716924.887047216, 181.593000000]: DWA planner failed to produce path.
+[WARN] [1773716924.987799504, 181.693000000]: DWA planner failed to produce path.
+[WARN] [1773716925.085294733, 181.791000000]: Clearing both costmaps outside a square (3.00m) large centered on the robot.
+[WARN] [1773716925.288779080, 181.994000000]: DWA planner failed to produce path.
+[WARN] [1773716925.385534056, 182.091000000]: Rotate recovery behavior started.
+[ERROR] [1773716925.385728558, 182.091000000]: Rotate recovery can't rotate in place because there is a potential collision. Cost: -1.00
+[WARN] [1773716925.588909128, 182.294000000]: DWA planner failed to produce path.
+[WARN] [1773716925.686229439, 182.391000000]: Clearing both costmaps outside a square (1.84m) large centered on the robot.
+[WARN] [1773716925.890444825, 182.595000000]: DWA planner failed to produce path.
+[WARN] [1773716925.986456310, 182.691000000]: Rotate recovery behavior started.
+[ERROR] [1773716925.986530100, 182.691000000]: Rotate recovery can't rotate in place because there is a potential collision. Cost: -1.00
+[WARN] [1773716926.189216633, 182.893000000]: DWA planner failed to produce path.
+[ERROR] [1773716926.288114552, 182.992000000]: Aborting because a valid control could not be found. Even after executing all recovery behaviors
+[WARN] [1773716933.506326646, 190.102000000]: DWA planner failed to produce path.
+[WARN] [1773716933.608327881, 190.204000000]: DWA planner failed to produce path.
+[WARN] [1773716933.706783640, 190.302000000]: DWA planner failed to produce path.
+[WARN] [1773716933.807758023, 190.402000000]: DWA planner failed to produce path.
+[WARN] [1773716933.909966101, 190.504000000]: DWA planner failed to produce path.
+[WARN] [1773716934.007350315, 190.601000000]: DWA planner failed to produce path.
+[WARN] [1773716934.107480740, 190.701000000]: DWA planner failed to produce path.
+[WARN] [1773716934.208462379, 190.802000000]: DWA planner failed to produce path.
+[WARN] [1773716934.320103656, 190.907000000]: DWA planner failed to produce path.
+[WARN] [1773716934.434946890, 191.003000000]: DWA planner failed to produce path.
+[WARN] [1773716934.525786455, 191.102000000]: DWA planner failed to produce path.
+[WARN] [1773716934.625495425, 191.204000000]: DWA planner failed to produce path.
+[WARN] [1773716934.723070665, 191.303000000]: DWA planner failed to produce path.
+[WARN] [1773716934.821561836, 191.402000000]: DWA planner failed to produce path.
+[WARN] [1773716934.923489275, 191.504000000]: DWA planner failed to produce path.
+[WARN] [1773716935.021615619, 191.601000000]: DWA planner failed to produce path.
+[WARN] [1773716935.122076794, 191.702000000]: DWA planner failed to produce path.
+[WARN] [1773716935.221478307, 191.801000000]: DWA planner failed to produce path.
+NFO] [1773716920.365693288, 177.091000000]: Got new plan
+[INFO] [1773716920.465768678, 177.191000000]: Got new plan
+[INFO] [1773716920.592442418, 177.298000000]: Got new plan
+[INFO] [1773716920.679713103, 177.391000000]: Got new plan
+[INFO] [1773716920.773598265, 177.492000000]: Got new plan
+[INFO] [1773716920.871310380, 177.591000000]: Got new plan
+[INFO] [1773716920.971363075, 177.692000000]: Got new plan
+[INFO] [1773716921.070192782, 177.791000000]: Got new plan
+[INFO] [1773716921.172090814, 177.891000000]: Got new plan
+[INFO] [1773716921.271176323, 177.991000000]: Got new plan
+[INFO] [1773716921.370665575, 178.091000000]: Got new plan
+[INFO] [1773716921.471760580, 178.192000000]: Got new plan
+[INFO] [1773716921.571242556, 178.291000000]: Got new plan
+[INFO] [1773716921.671219788, 178.391000000]: Got new plan
+[INFO] [1773716921.771664669, 178.491000000]: Got new plan
+[INFO] [1773716921.872216228, 178.591000000]: Got new plan
+[INFO] [1773716921.972098614, 178.691000000]: Got new plan
+[INFO] [1773716922.071741977, 178.791000000]: Got new plan
+[INFO] [1773716922.172119596, 178.891000000]: Got new plan
+[INFO] [1773716922.272487913, 178.991000000]: Got new plan
+[INFO] [1773716922.372479500, 179.091000000]: Got new plan
+[INFO] [1773716922.472753507, 179.191000000]: Got new plan
+[INFO] [1773716922.572782147, 179.291000000]: Got new plan
+[INFO] [1773716922.673351326, 179.392000000]: Got new plan
+[INFO] [1773716922.773977179, 179.491000000]: Got new plan
+[INFO] [1773716922.873606036, 179.591000000]: Got new plan
+[INFO] [1773716922.973464146, 179.691000000]: Got new plan
+[INFO] [1773716923.073114201, 179.791000000]: Got new plan
+[INFO] [1773716923.173938271, 179.891000000]: Got new plan
+[INFO] [1773716923.274260911, 179.991000000]: Got new plan
+[INFO] [1773716923.375304011, 180.092000000]: Got new plan
+[INFO] [1773716923.475662228, 180.191000000]: Got new plan
+[INFO] [1773716923.575681931, 180.291000000]: Got new plan
+[INFO] [1773716923.676192121, 180.392000000]: Got new plan
+[INFO] [1773716923.776073936, 180.492000000]: Got new plan
+[INFO] [1773716923.877059312, 180.592000000]: Got new plan
+[INFO] [1773716923.981943741, 180.691000000]: Got new plan
+[INFO] [1773716924.095717731, 180.792000000]: Got new plan
+[INFO] [1773716924.187598429, 180.891000000]: Got new plan
+[INFO] [1773716924.285961694, 180.991000000]: Got new plan
+[INFO] [1773716924.383453391, 181.091000000]: Got new plan
+[INFO] [1773716924.483662863, 181.191000000]: Got new plan
+[INFO] [1773716924.583832564, 181.291000000]: Got new plan
+[INFO] [1773716924.685483726, 181.392000000]: Got new plan
+[INFO] [1773716924.784526581, 181.491000000]: Got new plan
+[INFO] [1773716924.884628064, 181.591000000]: Got new plan
+[INFO] [1773716924.985662069, 181.691000000]: Got new plan
+[INFO] [1773716925.286078074, 181.992000000]: Got new plan
+[INFO] [1773716925.586694724, 182.291000000]: Got new plan
+[INFO] [1773716925.886977481, 182.591000000]: Got new plan
+[INFO] [1773716926.186703166, 182.891000000]: Got new plan
+[INFO] [1773716933.503521070, 190.099000000]: Got new plan
+[INFO] [1773716933.604218470, 190.200000000]: Got new plan
+[INFO] [1773716933.703889633, 190.299000000]: Got new plan
+[INFO] [1773716933.804327568, 190.399000000]: Got new plan
+[INFO] [1773716933.905452297, 190.499000000]: Got new plan
+[INFO] [1773716934.004891318, 190.599000000]: Got new plan
+[INFO] [1773716934.105124210, 190.699000000]: Got new plan
+[INFO] [1773716934.205886213, 190.799000000]: Got new plan
+[INFO] [1773716934.314353410, 190.902000000]: Got new plan
+[INFO] [1773716934.431613023, 190.999000000]: Got new plan
+[INFO] [1773716934.523649912, 191.100000000]: Got new plan
+[INFO] [1773716934.621237122, 191.200000000]: Got new plan
+[INFO] [1773716934.719607057, 191.300000000]: Got new plan
+[INFO] [1773716934.818998585, 191.400000000]: Got new plan
+[INFO] [1773716934.919056499, 191.499000000]: Got new plan
+[INFO] [1773716935.019001754, 191.599000000]: Got new plan
+[INFO] [1773716935.119851532, 191.700000000]: Got new plan
+[INFO] [1773716935.219295073, 191.799000000]: Got new plan
+[INFO] [1773716935.32009349[WARN] [1773716935.322303821, 191.901000000]: DWA planner failed to produce path.
+[WARN] [1773716935.422556407, 192.002000000]: DWA planner failed to produce path.
+[WARN] [1773716935.522546043, 192.102000000]: DWA planner failed to produce path.
+[WARN] [1773716935.623961588, 192.202000000]: DWA planner failed to produce path.
+[WARN] [1773716935.723409816, 192.302000000]: DWA planner failed to produce path.
+[WARN] [1773716935.823642177, 192.402000000]: DWA planner failed to produce path.
+[WARN] [1773716935.924770945, 192.503000000]: DWA planner failed to produce path.
+[WARN] [1773716936.025264323, 192.604000000]: DWA planner failed to produce path.
+[WARN] [1773716936.124551538, 192.702000000]: DWA planner failed to produce path.
+[WARN] [1773716936.224524685, 192.802000000]: DWA planner failed to produce path.
+[WARN] [1773716936.326506705, 192.903000000]: DWA planner failed to produce path.
+[WARN] [1773716936.426119459, 193.003000000]: DWA planner failed to produce path.
+[WARN] [1773716936.525763857, 193.102000000]: DWA planner failed to produce path.
+[WARN] [1773716936.625208814, 193.201000000]: DWA planner failed to produce path.
+[WARN] [1773716936.724418385, 193.301000000]: DWA planner failed to produce path.
+[WARN] [1773716936.824908179, 193.401000000]: DWA planner failed to produce path.
+[WARN] [1773716936.924550731, 193.501000000]: DWA planner failed to produce path.
+[WARN] [1773716937.027598144, 193.602000000]: DWA planner failed to produce path.
+[WARN] [1773716937.127509674, 193.702000000]: DWA planner failed to produce path.
+[WARN] [1773716937.229244293, 193.804000000]: DWA planner failed to produce path.
+[WARN] [1773716937.327226909, 193.902000000]: DWA planner failed to produce path.
+[WARN] [1773716937.427397783, 194.001000000]: DWA planner failed to produce path.
+[WARN] [1773716937.528289138, 194.102000000]: DWA planner failed to produce path.
+[WARN] [1773716937.628011892, 194.202000000]: DWA planner failed to produce path.
+[WARN] [1773716937.733690398, 194.299000000]: DWA planner failed to produce path.
+[WARN] [1773716937.848500299, 194.402000000]: DWA planner failed to produce path.
+[WARN] [1773716937.943929175, 194.503000000]: DWA planner failed to produce path.
+[WARN] [1773716938.042516719, 194.603000000]: DWA planner failed to produce path.
+[WARN] [1773716938.140554564, 194.701000000]: DWA planner failed to produce path.
+[WARN] [1773716938.240294976, 194.801000000]: DWA planner failed to produce path.
+[WARN] [1773716938.345307508, 194.906000000]: DWA planner failed to produce path.
+[WARN] [1773716938.441142729, 195.002000000]: DWA planner failed to produce path.
+[WARN] [1773716938.541376584, 195.102000000]: DWA planner failed to produce path.
+[WARN] [1773716938.641986642, 195.202000000]: DWA planner failed to produce path.
+[WARN] [1773716938.741793527, 195.301000000]: DWA planner failed to produce path.
+[WARN] [1773716938.842396170, 195.401000000]: DWA planner failed to produce path.
+[WARN] [1773716938.942111503, 195.501000000]: DWA planner failed to produce path.
+[WARN] [1773716939.043616183, 195.602000000]: DWA planner failed to produce path.
+[WARN] [1773716939.144294410, 195.703000000]: DWA planner failed to produce path.
+[WARN] [1773716939.243914629, 195.802000000]: DWA planner failed to produce path.
+[WARN] [1773716939.343513863, 195.902000000]: DWA planner failed to produce path.
+[WARN] [1773716939.444147732, 196.002000000]: DWA planner failed to produce path.
+[WARN] [1773716939.543861661, 196.101000000]: DWA planner failed to produce path.
+[WARN] [1773716939.643971506, 196.202000000]: DWA planner failed to produce path.
+[WARN] [1773716939.746410015, 196.304000000]: DWA planner failed to produce path.
+[WARN] [1773716939.851396851, 196.405000000]: DWA planner failed to produce path.
+[WARN] [1773716939.951490154, 196.505000000]: DWA planner failed to produce path.
+[WARN] [1773716940.051072165, 196.604000000]: DWA planner failed to produce path.
+[WARN] [1773716940.149945641, 196.703000000]: DWA planner failed to produce path.
+[WARN] [1773716940.248909662, 196.802000000]: DWA planner failed to produce path.
+[WARN] [1773716940.350534111, 196.902000000]: DWA planner failed to produce path.
+[WARN] [1773716940.449970077, 197.001000000]: DWA planner failed to produce path.
+[WARN] [1773716940.553563828, 197.105000000]: DWA planner failed to produce path.
+[WARN] [1773716940.653015491, 197.204000000]: DWA planner failed to produce path.
+[WARN] [1773716940.754126950, 197.305000000]: DWA planner failed to produce path.
+[WARN] [1773716940.855384883, 197.405000000]: DWA planner failed to produce path.
+[WARN] [1773716940.954396643, 197.504000000]: DWA planner failed to produce path.
+[WARN] [1773716941.055582583, 197.603000000]: DWA planner failed to produce path.
+[WARN] [1773716941.157078881, 197.704000000]: DWA planner failed to produce path.
+[WARN] [1773716941.296537460, 197.810000000]: DWA planner failed to produce path.
+[WARN] [1773716941.402050225, 197.904000000]: DWA planner failed to produce path.
+[WARN] [1773716941.502794765, 198.004000000]: DWA planner failed to produce path.
+[WARN] [1773716941.599783807, 198.102000000]: DWA planner failed to produce path.
+[WARN] [1773716941.698820709, 198.201000000]: DWA planner failed to produce path.
+[WARN] [1773716941.801780546, 198.305000000]: DWA planner failed to produce path.
+[WARN] [1773716941.900122986, 198.402000000]: DWA planner failed to produce path.
+[WARN] [1773716941.999521841, 198.501000000]: DWA planner failed to produce path.
+[WARN] [1773716942.099380335, 198.601000000]: DWA planner failed to produce path.
+[WARN] [1773716942.201183276, 198.702000000]: DWA planner failed to produce path.
+1, 191.899000000]: Got new plan
+[INFO] [1773716935.420126637, 191.999000000]: Got new plan
+[INFO] [1773716935.519958960, 192.099000000]: Got new plan
+[INFO] [1773716935.620905764, 192.199000000]: Got new plan
+[INFO] [1773716935.720938038, 192.299000000]: Got new plan
+[INFO] [1773716935.820803174, 192.399000000]: Got new plan
+[INFO] [1773716935.920856148, 192.499000000]: Got new plan
+[INFO] [1773716936.021157971, 192.599000000]: Got new plan
+[INFO] [1773716936.121373950, 192.699000000]: Got new plan
+[INFO] [1773716936.222113279, 192.800000000]: Got new plan
+[INFO] [1773716936.322965197, 192.900000000]: Got new plan
+[INFO] [1773716936.422169753, 192.999000000]: Got new plan
+[INFO] [1773716936.522666913, 193.099000000]: Got new plan
+[INFO] [1773716936.622581801, 193.199000000]: Got new plan
+[INFO] [1773716936.722344424, 193.299000000]: Got new plan
+[INFO] [1773716936.822642577, 193.399000000]: Got new plan
+[INFO] [1773716936.922462454, 193.499000000]: Got new plan
+[INFO] [1773716937.024863079, 193.600000000]: Got new plan
+[INFO] [1773716937.124465617, 193.699000000]: Got new plan
+[INFO] [1773716937.224718334, 193.799000000]: Got new plan
+[INFO] [1773716937.324529764, 193.899000000]: Got new plan
+[INFO] [1773716937.425195956, 193.999000000]: Got new plan
+[INFO] [1773716937.526049450, 194.100000000]: Got new plan
+[INFO] [1773716937.625473998, 194.199000000]: Got new plan
+[INFO] [1773716937.729067013, 194.299000000]: Got new plan
+[INFO] [1773716937.845707498, 194.399000000]: Got new plan
+[INFO] [1773716937.940733559, 194.499000000]: Got new plan
+[INFO] [1773716938.039552683, 194.600000000]: Got new plan
+[INFO] [1773716938.138222732, 194.699000000]: Got new plan
+[INFO] [1773716938.237423563, 194.799000000]: Got new plan
+[INFO] [1773716938.338249760, 194.899000000]: Got new plan
+[INFO] [1773716938.438131195, 194.999000000]: Got new plan
+[INFO] [1773716938.538757557, 195.099000000]: Got new plan
+[INFO] [1773716938.639190253, 195.199000000]: Got new plan
+[INFO] [1773716938.739657048, 195.299000000]: Got new plan
+[INFO] [1773716938.840257865, 195.399000000]: Got new plan
+[INFO] [1773716938.939973914, 195.499000000]: Got new plan
+[INFO] [1773716939.040925617, 195.600000000]: Got new plan
+[INFO] [1773716939.140381389, 195.699000000]: Got new plan
+[INFO] [1773716939.241181408, 195.799000000]: Got new plan
+[INFO] [1773716939.340988866, 195.899000000]: Got new plan
+[INFO] [1773716939.441519185, 196.000000000]: Got new plan
+[INFO] [1773716939.541675405, 196.099000000]: Got new plan
+[INFO] [1773716939.641517430, 196.199000000]: Got new plan
+[INFO] [1773716939.741039341, 196.299000000]: Got new plan
+[INFO] [1773716939.844532706, 196.399000000]: Got new plan
+[INFO] [1773716939.946406973, 196.500000000]: Got new plan
+[INFO] [1773716940.046137778, 196.599000000]: Got new plan
+[INFO] [1773716940.146409647, 196.700000000]: Got new plan
+[INFO] [1773716940.246395624, 196.799000000]: Got new plan
+[INFO] [1773716940.347584921, 196.899000000]: Got new plan
+[INFO] [1773716940.447607763, 196.999000000]: Got new plan
+[INFO] [1773716940.548501514, 197.099000000]: Got new plan
+[INFO] [1773716940.648771546, 197.200000000]: Got new plan
+[INFO] [1773716940.748414132, 197.299000000]: Got new plan
+[INFO] [1773716940.848882044, 197.399000000]: Got new plan
+[INFO] [1773716940.949491326, 197.499000000]: Got new plan
+[INFO] [1773716941.051707078, 197.599000000]: Got new plan
+[INFO] [1773716941.152848040, 197.699000000]: Got new plan
+[INFO] [1773716941.286646800, 197.804000000]: Got new plan
+[INFO] [1773716941.396010658, 197.899000000]: Got new plan
+[INFO] [1773716941.497201035, 197.999000000]: Got new plan
+[INFO] [1773716941.596681513, 198.099000000]: Got new plan
+[INFO] [1773716941.696141379, 198.199000000]: Got new plan
+[INFO] [1773716941.795965707, 198.299000000]: Got new plan
+[INFO] [1773716941.896324482, 198.399000000]: Got new plan
+[INFO] [1773716941.997039712, 198.499000000]: Got new plan
+[INFO] [1773716942.097209502, 198.599000000]: Got new plan
+[INFO] [1773716942.198733027, 198.700000000]: Got new plan
+[INFO] [1773716942.298364804, 198.799000000]: Got ne[WARN] [1773716942.300638360, 198.801000000]: DWA planner failed to produce path.
+[WARN] [1773716942.401442802, 198.902000000]: DWA planner failed to produce path.
+[WARN] [1773716942.502067824, 199.002000000]: DWA planner failed to produce path.
+[WARN] [1773716942.600350697, 199.101000000]: DWA planner failed to produce path.
+[WARN] [1773716942.701443799, 199.202000000]: DWA planner failed to produce path.
+[WARN] [1773716942.802462820, 199.302000000]: DWA planner failed to produce path.
+[WARN] [1773716942.905062630, 199.404000000]: DWA planner failed to produce path.
+[WARN] [1773716943.005015238, 199.504000000]: DWA planner failed to produce path.
+[WARN] [1773716943.101479916, 199.601000000]: DWA planner failed to produce path.
+[WARN] [1773716943.202039672, 199.701000000]: DWA planner failed to produce path.
+[WARN] [1773716943.302830484, 199.802000000]: DWA planner failed to produce path.
+[WARN] [1773716943.405646892, 199.904000000]: DWA planner failed to produce path.
+[WARN] [1773716943.503397888, 200.002000000]: DWA planner failed to produce path.
+[WARN] [1773716943.602819663, 200.102000000]: DWA planner failed to produce path.
+[WARN] [1773716943.703196547, 200.201000000]: DWA planner failed to produce path.
+[WARN] [1773716943.802913381, 200.301000000]: DWA planner failed to produce path.
+[WARN] [1773716943.903145734, 200.401000000]: DWA planner failed to produce path.
+[WARN] [1773716944.007982817, 200.505000000]: DWA planner failed to produce path.
+[WARN] [1773716944.107220272, 200.604000000]: DWA planner failed to produce path.
+[WARN] [1773716944.205725004, 200.702000000]: DWA planner failed to produce path.
+[WARN] [1773716944.304617342, 200.801000000]: DWA planner failed to produce path.
+[WARN] [1773716944.405768317, 200.902000000]: DWA planner failed to produce path.
+[WARN] [1773716944.506656878, 201.003000000]: DWA planner failed to produce path.
+[WARN] [1773716944.606650524, 201.102000000]: DWA planner failed to produce path.
+[WARN] [1773716944.706746163, 201.202000000]: DWA planner failed to produce path.
+[WARN] [1773716944.826871874, 201.301000000]: DWA planner failed to produce path.
+[WARN] [1773716944.929456818, 201.401000000]: DWA planner failed to produce path.
+[WARN] [1773716945.025820962, 201.501000000]: DWA planner failed to produce path.
+[WARN] [1773716945.127373537, 201.604000000]: DWA planner failed to produce path.
+[WARN] [1773716945.225326526, 201.702000000]: DWA planner failed to produce path.
+[WARN] [1773716945.326878178, 201.803000000]: DWA planner failed to produce path.
+[WARN] [1773716945.427932029, 201.904000000]: DWA planner failed to produce path.
+[WARN] [1773716945.524535483, 202.001000000]: DWA planner failed to produce path.
+[WARN] [1773716945.624601530, 202.101000000]: DWA planner failed to produce path.
+[WARN] [1773716945.724405611, 202.201000000]: DWA planner failed to produce path.
+[WARN] [1773716945.826168480, 202.302000000]: DWA planner failed to produce path.
+[WARN] [1773716945.925876807, 202.402000000]: DWA planner failed to produce path.
+[WARN] [1773716946.026259306, 202.502000000]: DWA planner failed to produce path.
+[WARN] [1773716946.127915369, 202.603000000]: DWA planner failed to produce path.
+[WARN] [1773716946.226703448, 202.702000000]: DWA planner failed to produce path.
+[WARN] [1773716946.326702267, 202.801000000]: DWA planner failed to produce path.
+[WARN] [1773716946.428347585, 202.902000000]: DWA planner failed to produce path.
+[WARN] [1773716946.528056696, 203.002000000]: DWA planner failed to produce path.
+[WARN] [1773716946.628902243, 203.103000000]: DWA planner failed to produce path.
+[WARN] [1773716946.727898859, 203.201000000]: DWA planner failed to produce path.
+[WARN] [1773716946.827893957, 203.301000000]: DWA planner failed to produce path.
+[WARN] [1773716946.928348315, 203.401000000]: DWA planner failed to produce path.
+[WARN] [1773716947.027959646, 203.501000000]: DWA planner failed to produce path.
+[WARN] [1773716947.129258110, 203.602000000]: DWA planner failed to produce path.
+[WARN] [1773716947.228586766, 203.702000000]: DWA planner failed to produce path.
+[WARN] [1773716947.329030449, 203.802000000]: DWA planner failed to produce path.
+[WARN] [1773716947.429623560, 203.902000000]: DWA planner failed to produce path.
+[WARN] [1773716947.530154690, 204.002000000]: DWA planner failed to produce path.
+[WARN] [1773716947.630616530, 204.102000000]: DWA planner failed to produce path.
+[WARN] [1773716947.731002408, 204.202000000]: DWA planner failed to produce path.
+[WARN] [1773716947.830277151, 204.302000000]: DWA planner failed to produce path.
+[WARN] [1773716947.930661412, 204.402000000]: DWA planner failed to produce path.
+[WARN] [1773716948.029860674, 204.501000000]: DWA planner failed to produce path.
+[WARN] [1773716948.130863486, 204.602000000]: DWA planner failed to produce path.
+[WARN] [1773716948.249069823, 204.699000000]: DWA planner failed to produce path.
+[WARN] [1773716948.354938773, 204.802000000]: DWA planner failed to produce path.
+[WARN] [1773716948.451591706, 204.901000000]: DWA planner failed to produce path.
+[WARN] [1773716948.550680871, 205.002000000]: DWA planner failed to produce path.
+[WARN] [1773716948.650958492, 205.102000000]: DWA planner failed to produce path.
+[WARN] [1773716948.751367793, 205.202000000]: DWA planner failed to produce path.
+[WARN] [1773716948.851527595, 205.302000000]: DWA planner failed to produce path.
+[WARN] [1773716948.951355771, 205.402000000]: DWA planner failed to produce path.
+[WARN] [1773716949.050727837, 205.502000000]: DWA planner failed to produce path.
+[WARN] [1773716949.150583763, 205.601000000]: DWA planner failed to produce path.
+[WARN] [1773716949.251544035, 205.702000000]: DWA planner failed to produce path.
+w plan
+[INFO] [1773716942.398538975, 198.899000000]: Got new plan
+[INFO] [1773716942.498559219, 198.999000000]: Got new plan
+[INFO] [1773716942.597835074, 199.099000000]: Got new plan
+[INFO] [1773716942.698951250, 199.199000000]: Got new plan
+[INFO] [1773716942.799385189, 199.299000000]: Got new plan
+[INFO] [1773716942.900501897, 199.400000000]: Got new plan
+[INFO] [1773716943.000209703, 199.499000000]: Got new plan
+[INFO] [1773716943.099118140, 199.599000000]: Got new plan
+[INFO] [1773716943.199759466, 199.699000000]: Got new plan
+[INFO] [1773716943.300456465, 199.799000000]: Got new plan
+[INFO] [1773716943.400614418, 199.899000000]: Got new plan
+[INFO] [1773716943.500952569, 200.000000000]: Got new plan
+[INFO] [1773716943.599564233, 200.099000000]: Got new plan
+[INFO] [1773716943.700839459, 200.199000000]: Got new plan
+[INFO] [1773716943.800728673, 200.299000000]: Got new plan
+[INFO] [1773716943.900860401, 200.399000000]: Got new plan
+[INFO] [1773716944.002182348, 200.499000000]: Got new plan
+[INFO] [1773716944.102288594, 200.599000000]: Got new plan
+[INFO] [1773716944.202737519, 200.699000000]: Got new plan
+[INFO] [1773716944.302384197, 200.799000000]: Got new plan
+[INFO] [1773716944.403339235, 200.900000000]: Got new plan
+[INFO] [1773716944.503711822, 201.000000000]: Got new plan
+[INFO] [1773716944.603993715, 201.099000000]: Got new plan
+[INFO] [1773716944.703674116, 201.199000000]: Got new plan
+[INFO] [1773716944.822661016, 201.299000000]: Got new plan
+[INFO] [1773716944.926920082, 201.399000000]: Got new plan
+[INFO] [1773716945.023227157, 201.499000000]: Got new plan
+[INFO] [1773716945.122573742, 201.599000000]: Got new plan
+[INFO] [1773716945.222731424, 201.700000000]: Got new plan
+[INFO] [1773716945.323453771, 201.799000000]: Got new plan
+[INFO] [1773716945.423182831, 201.899000000]: Got new plan
+[INFO] [1773716945.522281144, 201.999000000]: Got new plan
+[INFO] [1773716945.622442978, 202.099000000]: Got new plan
+[INFO] [1773716945.722195997, 202.199000000]: Got new plan
+[INFO] [1773716945.823789820, 202.299000000]: Got new plan
+[INFO] [1773716945.922415476, 202.399000000]: Got new plan
+[INFO] [1773716946.022727278, 202.499000000]: Got new plan
+[INFO] [1773716946.124862732, 202.600000000]: Got new plan
+[INFO] [1773716946.223712360, 202.699000000]: Got new plan
+[INFO] [1773716946.324191298, 202.799000000]: Got new plan
+[INFO] [1773716946.424968058, 202.899000000]: Got new plan
+[INFO] [1773716946.525049954, 202.999000000]: Got new plan
+[INFO] [1773716946.625110424, 203.099000000]: Got new plan
+[INFO] [1773716946.725446105, 203.199000000]: Got new plan
+[INFO] [1773716946.825624888, 203.299000000]: Got new plan
+[INFO] [1773716946.925870482, 203.399000000]: Got new plan
+[INFO] [1773716947.025801262, 203.499000000]: Got new plan
+[INFO] [1773716947.126604810, 203.599000000]: Got new plan
+[INFO] [1773716947.225728916, 203.699000000]: Got new plan
+[INFO] [1773716947.326563697, 203.799000000]: Got new plan
+[INFO] [1773716947.426620168, 203.899000000]: Got new plan
+[INFO] [1773716947.527013375, 203.999000000]: Got new plan
+[INFO] [1773716947.627927498, 204.100000000]: Got new plan
+[INFO] [1773716947.727790756, 204.199000000]: Got new plan
+[INFO] [1773716947.827459397, 204.299000000]: Got new plan
+[INFO] [1773716947.928060898, 204.399000000]: Got new plan
+[INFO] [1773716948.027349241, 204.499000000]: Got new plan
+[INFO] [1773716948.127985925, 204.599000000]: Got new plan
+[INFO] [1773716948.241691575, 204.699000000]: Got new plan
+[INFO] [1773716948.351905020, 204.799000000]: Got new plan
+[INFO] [1773716948.449154729, 204.899000000]: Got new plan
+[INFO] [1773716948.547988219, 204.999000000]: Got new plan
+[INFO] [1773716948.647886759, 205.099000000]: Got new plan
+[INFO] [1773716948.748447123, 205.199000000]: Got new plan
+[INFO] [1773716948.848741916, 205.299000000]: Got new plan
+[INFO] [1773716948.949009532, 205.400000000]: Got new plan
+[INFO] [1773716949.048625658, 205.500000000]: Got new plan
+[INFO] [1773716949.148409756, 205.599000000]: Got new plan
+[INFO] [1773716949.248851743, 205.699000000]: Got new plan
+[INFO] [1773716949[WARN] [1773716949.351662417, 205.802000000]: DWA planner failed to produce path.
+[WARN] [1773716949.451670023, 205.902000000]: DWA planner failed to produce path.
+[WARN] [1773716949.554440521, 206.003000000]: DWA planner failed to produce path.
+[WARN] [1773716949.653658579, 206.102000000]: DWA planner failed to produce path.
+[WARN] [1773716949.754572901, 206.202000000]: DWA planner failed to produce path.
+[WARN] [1773716949.855067552, 206.302000000]: DWA planner failed to produce path.
+[WARN] [1773716949.954229040, 206.401000000]: DWA planner failed to produce path.
+[WARN] [1773716950.058700991, 206.506000000]: DWA planner failed to produce path.
+[WARN] [1773716950.159431505, 206.606000000]: DWA planner failed to produce path.
+[WARN] [1773716950.259293246, 206.705000000]: DWA planner failed to produce path.
+[WARN] [1773716950.356341447, 206.802000000]: DWA planner failed to produce path.
+[WARN] [1773716950.456337419, 206.902000000]: DWA planner failed to produce path.
+[WARN] [1773716950.556523509, 207.002000000]: DWA planner failed to produce path.
+[WARN] [1773716950.656451567, 207.101000000]: DWA planner failed to produce path.
+[WARN] [1773716950.757115318, 207.202000000]: DWA planner failed to produce path.
+[WARN] [1773716950.859158209, 207.304000000]: DWA planner failed to produce path.
+[WARN] [1773716950.958000278, 207.402000000]: DWA planner failed to produce path.
+[WARN] [1773716951.060598164, 207.503000000]: DWA planner failed to produce path.
+[WARN] [1773716951.161503723, 207.604000000]: DWA planner failed to produce path.
+[WARN] [1773716951.259285744, 207.702000000]: DWA planner failed to produce path.
+[WARN] [1773716951.359861731, 207.802000000]: DWA planner failed to produce path.
+[WARN] [1773716951.460013691, 207.902000000]: DWA planner failed to produce path.
+[WARN] [1773716951.560661005, 208.002000000]: DWA planner failed to produce path.
+[WARN] [1773716951.685646653, 208.107000000]: DWA planner failed to produce path.
+[WARN] [1773716951.773418968, 208.202000000]: DWA planner failed to produce path.
+[WARN] [1773716951.870112278, 208.301000000]: DWA planner failed to produce path.
+[WARN] [1773716951.971120363, 208.403000000]: DWA planner failed to produce path.
+[WARN] [1773716952.070402749, 208.503000000]: DWA planner failed to produce path.
+[WARN] [1773716952.172448460, 208.604000000]: DWA planner failed to produce path.
+[WARN] [1773716952.273815440, 208.705000000]: DWA planner failed to produce path.
+[WARN] [1773716952.370642752, 208.802000000]: DWA planner failed to produce path.
+[WARN] [1773716952.470021292, 208.901000000]: DWA planner failed to produce path.
+[WARN] [1773716952.570346323, 209.001000000]: DWA planner failed to produce path.
+[WARN] [1773716952.670364463, 209.101000000]: DWA planner failed to produce path.
+[WARN] [1773716952.772060844, 209.202000000]: DWA planner failed to produce path.
+[WARN] [1773716952.871919761, 209.302000000]: DWA planner failed to produce path.
+[WARN] [1773716952.973026107, 209.402000000]: DWA planner failed to produce path.
+[WARN] [1773716953.071860962, 209.501000000]: DWA planner failed to produce path.
+[WARN] [1773716953.173143649, 209.602000000]: DWA planner failed to produce path.
+[WARN] [1773716953.272613898, 209.702000000]: DWA planner failed to produce path.
+[WARN] [1773716953.372861064, 209.802000000]: DWA planner failed to produce path.
+[WARN] [1773716953.474251151, 209.902000000]: DWA planner failed to produce path.
+[WARN] [1773716953.573978350, 210.002000000]: DWA planner failed to produce path.
+[WARN] [1773716953.670638431, 210.099000000]: Clearing both costmaps outside a square (3.00m) large centered on the robot.
+[WARN] [1773716953.874496155, 210.302000000]: DWA planner failed to produce path.
+[WARN] [1773716953.971137726, 210.399000000]: Rotate recovery behavior started.
+[ERROR] [1773716953.971338815, 210.399000000]: Rotate recovery can't rotate in place because there is a potential collision. Cost: -1.00
+[WARN] [1773716954.177967469, 210.603000000]: DWA planner failed to produce path.
+[WARN] [1773716954.273680079, 210.699000000]: Clearing both costmaps outside a square (1.84m) large centered on the robot.
+[WARN] [1773716954.478211140, 210.902000000]: DWA planner failed to produce path.
+[WARN] [1773716954.575988606, 210.999000000]: Rotate recovery behavior started.
+[ERROR] [1773716954.576184129, 210.999000000]: Rotate recovery can't rotate in place because there is a potential collision. Cost: -1.00
+[WARN] [1773716954.778685978, 211.201000000]: DWA planner failed to produce path.
+[ERROR] [1773716954.876662640, 211.299000000]: Aborting because a valid control could not be found. Even after executing all recovery behaviors
+[WARN] [1773716962.038343614, 218.407000000]: DWA planner failed to produce path.
+[WARN] [1773716962.133931476, 218.506000000]: DWA planner failed to produce path.
+[WARN] [1773716962.233564558, 218.607000000]: DWA planner failed to produce path.
+[INFO] [1773716738.357955275]: Loading map from image "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/maps/exp4_task67_tuned_run2.pgm"
+[INFO] [1773716740.968078615, 0.228000000]: Read a 576 X 576 map @ 0.050 m/cell
+terminate called after throwing an instance of 'boost::wrapexcept<boost::lock_error>'
+  what():  boost: mutex lock failed in pthread_mutex_lock: Invalid argument
+.348810630, 205.799000000]: Got new plan
+[INFO] [1773716949.448680816, 205.899000000]: Got new plan
+[INFO] [1773716949.550263556, 205.999000000]: Got new plan
+[INFO] [1773716949.650286519, 206.099000000]: Got new plan
+[INFO] [1773716949.752029324, 206.200000000]: Got new plan
+[INFO] [1773716949.852416258, 206.299000000]: Got new plan
+[INFO] [1773716949.951806267, 206.399000000]: Got new plan
+[INFO] [1773716950.051914092, 206.499000000]: Got new plan
+[INFO] [1773716950.152843023, 206.599000000]: Got new plan
+[INFO] [1773716950.252799340, 206.699000000]: Got new plan
+[INFO] [1773716950.353418153, 206.799000000]: Got new plan
+[INFO] [1773716950.453350337, 206.899000000]: Got new plan
+[INFO] [1773716950.553590776, 206.999000000]: Got new plan
+[INFO] [1773716950.653858183, 207.099000000]: Got new plan
+[INFO] [1773716950.754072810, 207.199000000]: Got new plan
+[INFO] [1773716950.854230368, 207.299000000]: Got new plan
+[INFO] [1773716950.954521114, 207.399000000]: Got new plan
+[INFO] [1773716951.056091662, 207.499000000]: Got new plan
+[INFO] [1773716951.156957882, 207.599000000]: Got new plan
+[INFO] [1773716951.256278025, 207.699000000]: Got new plan
+[INFO] [1773716951.356859600, 207.799000000]: Got new plan
+[INFO] [1773716951.457254794, 207.899000000]: Got new plan
+[INFO] [1773716951.557226290, 207.999000000]: Got new plan
+[INFO] [1773716951.677675504, 208.100000000]: Got new plan
+[INFO] [1773716951.770787557, 208.199000000]: Got new plan
+[INFO] [1773716951.867923929, 208.299000000]: Got new plan
+[INFO] [1773716951.967614547, 208.400000000]: Got new plan
+[INFO] [1773716952.066638406, 208.499000000]: Got new plan
+[INFO] [1773716952.167289213, 208.599000000]: Got new plan
+[INFO] [1773716952.268344811, 208.699000000]: Got new plan
+[INFO] [1773716952.367849432, 208.799000000]: Got new plan
+[INFO] [1773716952.467604553, 208.899000000]: Got new plan
+[INFO] [1773716952.568138895, 208.999000000]: Got new plan
+[INFO] [1773716952.668130742, 209.099000000]: Got new plan
+[INFO] [1773716952.768616156, 209.199000000]: Got new plan
+[INFO] [1773716952.869090479, 209.299000000]: Got new plan
+[INFO] [1773716952.969869379, 209.399000000]: Got new plan
+[INFO] [1773716953.069529747, 209.499000000]: Got new plan
+[INFO] [1773716953.170229483, 209.599000000]: Got new plan
+[INFO] [1773716953.270105500, 209.699000000]: Got new plan
+[INFO] [1773716953.370624352, 209.799000000]: Got new plan
+[INFO] [1773716953.471862862, 209.900000000]: Got new plan
+[INFO] [1773716953.571210835, 209.999000000]: Got new plan
+[INFO] [1773716953.871986225, 210.300000000]: Got new plan
+[INFO] [1773716954.173911757, 210.599000000]: Got new plan
+[INFO] [1773716954.475451206, 210.899000000]: Got new plan
+[INFO] [1773716954.776473439, 211.199000000]: Got new plan
+[INFO] [1773716962.034781415, 218.404000000]: Got new plan
+[INFO] [1773716962.131619676, 218.504000000]: Got new plan
+[INFO] [1773716962.230338685, 218.604000000]: Got new plan
+[INFO] [1773716738.402314468]: Subscribed to map topic.
+[INFO] [1773716740.969181787, 0.229000000]: Received a 576 X 576 map @ 0.050 m/pix
+
+[INFO] [1773716740.976329812, 0.236000000]: Initializing likelihood field model; this can take some time on large maps...
+[INFO] [1773716740.990713297, 0.251000000]: Done initializing likelihood field model.
+[INFO] [1773716760.653929851, 18.178000000]: Setting pose (18.178000): 0.000 0.000 0.000
+[WARN] [1773716864.648705, 121.679000]: [AMCL Verifier] WP1_south: navigation TIMEOUT (state=1)
+[WARN] [1773716897.834100, 154.684000]: [AMCL Verifier] WP2_north: navigation FAILED (state=4)
+[ERROR] [1773716897.935436, 154.785000]: Received comm state PREEMPTING when in simple state DONE with SimpleActionClient in NS /move_base
+[WARN] [1773716926.288969, 182.992000]: [AMCL Verifier] WP3_west: navigation FAILED (state=4)
+[ERROR] [1773716926.289339, 182.993000]: Received comm state PREEMPTING when in simple state DONE with SimpleActionClient in NS /move_base
+[WARN] [1773716954.877567, 211.300000]: [AMCL Verifier] WP4_east_s: navigation FAILED (state=4)
+[ERROR] [1773716954.963496, 211.386000]: Received comm state PREEMPTING when in simple state DONE with SimpleActionClient in NS /move_base
+[WARN] [1773716962.864305, 218.641000]: [AMCL Verifier] WP5_north2: navigation TIMEOUT (state=1)
+[INFO] [1773716738.809414, 0.000000]: [AMCL Verifier] Waiting for move_base action server...
+[INFO] [1773716744.605167, 2.169000]: [AMCL Verifier] Connected to move_base.
+[INFO] [1773716744.607147, 2.171000]: [AMCL Verifier] Waiting 15 s for AMCL + move_base to initialize...
+[INFO] [1773716759.646491, 17.172000]: [AMCL Verifier] Waiting for Gazebo ground truth and AMCL pose...
+[INFO] [1773716760.649034, 18.173000]: [AMCL Verifier] Published initial pose (0, 0, 0°).
+[INFO] [1773716760.697860, 18.222000]: [AMCL Verifier] Converged in 1.1 s (err=0.015 m)
+[INFO] [1773716763.156894, 20.674000]: [AMCL Verifier] Gentle spin to help AMCL converge...
+[INFO] [1773716774.227912, 31.675000]: [AMCL Verifier] Initial error: pos=0.313 m, yaw=1.1°
+[INFO] [1773716774.229204, 31.678000]: 
+[AMCL Verifier] === Navigating to WP1_south (0.0, -1.5) ===
+[INFO] [1773716869.698847, 126.680000]: [AMCL Verifier] WP1_south: FAILED | pos_err=0.064 m, yaw_err=4.0°, spread=0.148
+[INFO] [1773716871.703141, 128.682000]: 
+[AMCL Verifier] === Navigating to WP2_north (0.0, 1.5) ===
+[INFO] [1773716902.852161, 159.686000]: [AMCL Verifier] WP2_north: FAILED | pos_err=0.082 m, yaw_err=4.0°, spread=0.148
+[INFO] [1773716904.870309, 161.687000]: 
+[AMCL Verifier] === Navigating to WP3_west (-1.5, 0.0) ===
+[INFO] [1773716931.390805, 187.994000]: [AMCL Verifier] WP3_west: FAILED | pos_err=0.082 m, yaw_err=4.0°, spread=0.148
+[INFO] [1773716933.399811, 189.996000]: 
+[AMCL Verifier] === Navigating to WP4_east_s (1.5, -0.5) ===
+[INFO] [1773716959.905184, 216.301000]: [AMCL Verifier] WP4_east_s: FAILED | pos_err=0.082 m, yaw_err=4.0°, spread=0.148
+[INFO] [1773716961.934667, 218.302000]: 
+[AMCL Verifier] === Navigating to WP5_north2 (0.0, 2.5) ===
+[INFO] [1773716738.767525, 0.000000]: [ScanBodyFilter] body box x=[-0.35, 0.35] y=[-0.30, 0.30]  lidar@(-0.232, 0.000)
+[31m[rviz-12] escalating to SIGTERM[0m
+[31m[gazebo-2] escalating to SIGTERM[0m
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/launch/auto_amcl_verify_unitree.launch http://localhost:11311
+[1msetting /run_id to 2c30744e-21ae-11f1-9f66-00155d28b090[0m
+[1mprocess[rosout-1]: started with pid [10488][0m
+started core service [/rosout]
+[1mprocess[gazebo-2]: started with pid [10495][0m
+[1mprocess[robot_state_publisher-3]: started with pid [10499][0m
+[1mprocess[joint_state_publisher-4]: started with pid [10501][0m
+[1mprocess[spawn_p3at-5]: started with pid [10502][0m
+[1mprocess[spawn_target-6]: started with pid [10503][0m
+[1mprocess[map_server-7]: started with pid [10504][0m
+[1mprocess[amcl-8]: started with pid [10505][0m
+[1mprocess[move_base-9]: started with pid [10506][0m
+[1mprocess[rplidar_scan_body_filter-10]: started with pid [10507][0m
+[1mprocess[amcl_verifier-11]: started with pid [10508][0m
+[1mprocess[rviz-12]: started with pid [10532][0m
+[1m[spawn_target-6] process has finished cleanly
+log file: /home/yuchen/.ros/log/2c30744e-21ae-11f1-9f66-00155d28b090/spawn_target-6*.log[0m
+[1m[spawn_p3at-5] process has finished cleanly
+log file: /home/yuchen/.ros/log/2c30744e-21ae-11f1-9f66-00155d28b090/spawn_p3at-5*.log[0m
+[rviz-12] killing on exit
+[amcl_verifier-11] killing on exit
+[rplidar_scan_body_filter-10] killing on exit
+[move_base-9] killing on exit
+[amcl-8] killing on exit
+[map_server-7] killing on exit
+[joint_state_publisher-4] killing on exit
+[robot_state_publisher-3] killing on exit
+[gazebo-2] killing on exit
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

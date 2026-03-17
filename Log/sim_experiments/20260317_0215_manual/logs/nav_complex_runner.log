@@ -1,0 +1,12 @@
+Warning: TF_REPEATED_DATA ignoring data with redundant timestamp for frame odom (parent map) at time 0.340000 according to authority /slam_gmapping
+         at line 277 in /tmp/binarydeb/ros-noetic-tf2-0.7.10/src/buffer_core.cpp
+[INFO] [1773713992.646740, 0.000000]: Waiting for move_base server...
+[INFO] [1773713997.188722, 1.732000]: Waiting for TF map -> base_link ...
+[INFO] [1773713997.190719, 1.734000]: Warmup 10.0s for map/costmap stabilization...
+[INFO] [1773714007.209552, 11.734000]: [NavExp] Goal 1/5 WP1_south -> (0.00, -1.50)
+[INFO] [1773714073.294916, 77.707000]: [NavExp] Goal 2/5 WP2_north -> (0.00, 1.50)
+[INFO] [1773714144.887576, 149.137000]: [NavExp] Goal 3/5 WP3_west -> (-1.50, 0.00)
+[INFO] [1773714326.117644, 330.046000]: [NavExp] Goal 4/5 WP4_east_s -> (1.50, -0.50)
+[INFO] [1773714353.403832, 357.289000]: [NavExp] Goal 5/5 WP5_return -> (0.00, 0.00)
+[INFO] [1773714369.708464, 373.561000]: [NavExp] Metrics saved to /home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/Log/sim_experiments/20260317_0215_manual/metrics/exp2_complex_nav.json
+[INFO] [1773714369.710138, 373.567000]: [NavExp] success 80.0% (4/5), mean error 0.153m

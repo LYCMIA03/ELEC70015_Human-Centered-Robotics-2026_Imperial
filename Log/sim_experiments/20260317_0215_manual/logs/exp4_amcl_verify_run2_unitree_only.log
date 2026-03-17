@@ -1,0 +1,345 @@
+... logging to /home/yuchen/.ros/log/069ecdf6-21af-11f1-ba56-00155d28b090/roslaunch-LYCMIA03DELL-15883.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/p3at_lms_navigation/launch/auto_amcl_verify_unitree.launch
+[1mstarted roslaunch server http://LYCMIA03DELL:43361/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /amcl/base_frame_id: base_footprint
+ * /amcl/first_map_only: False
+ * /amcl/global_frame_id: map
+ * /amcl/initial_pose_a: 0.0
+ * /amcl/initial_pose_x: 0.0
+ * /amcl/initial_pose_y: 0.0
+ * /amcl/kld_err: 0.02
+ * /amcl/kld_z: 0.99
+ * /amcl/laser_max_beams: 240
+ * /amcl/laser_max_range: 30.0
+ * /amcl/laser_min_range: 0.05
+ * /amcl/laser_model_type: likelihood_field
+ * /amcl/max_particles: 3000
+ * /amcl/min_particles: 500
+ * /amcl/odom_alpha1: 0.1
+ * /amcl/odom_alpha2: 0.1
+ * /amcl/odom_alpha3: 0.2
+ * /amcl/odom_alpha4: 0.2
+ * /amcl/odom_frame_id: odom
+ * /amcl/odom_model_type: diff
+ * /amcl/recovery_alpha_fast: 0.1
+ * /amcl/recovery_alpha_slow: 0.001
+ * /amcl/resample_interval: 1
+ * /amcl/transform_tolerance: 0.3
+ * /amcl/update_min_a: 0.15
+ * /amcl/update_min_d: 0.1
+ * /amcl/use_map_topic: True
+ * /amcl_verifier/convergence_threshold: 0.3
+ * /amcl_verifier/goal_timeout: 90.0
+ * /amcl_verifier/initial_wait: 15.0
+ * /amcl_verifier/json_report_path: /home/yuchen/work...
+ * /amcl_verifier/report_path: /home/yuchen/work...
+ * /amcl_verifier/settle_time: 5.0
+ * /amcl_verifier/waypoints: [{'name': 'WP1_so...
+ * /gazebo/enable_ros_network: True
+ * /move_base/DWAPlannerROS/acc_lim_theta: 0.75
+ * /move_base/DWAPlannerROS/acc_lim_x: 0.35
+ * /move_base/DWAPlannerROS/acc_lim_y: 0.0
+ * /move_base/DWAPlannerROS/forward_point_distance: 0.25
+ * /move_base/DWAPlannerROS/goal_distance_bias: 24.0
+ * /move_base/DWAPlannerROS/latch_xy_goal_tolerance: True
+ * /move_base/DWAPlannerROS/max_vel_theta: 0.45
+ * /move_base/DWAPlannerROS/max_vel_trans: 0.26
+ * /move_base/DWAPlannerROS/max_vel_x: 0.26
+ * /move_base/DWAPlannerROS/max_vel_y: 0.0
+ * /move_base/DWAPlannerROS/min_vel_theta: 0.0
+ * /move_base/DWAPlannerROS/min_vel_trans: 0.02
+ * /move_base/DWAPlannerROS/min_vel_x: -0.1
+ * /move_base/DWAPlannerROS/min_vel_y: 0.0
+ * /move_base/DWAPlannerROS/occdist_scale: 0.08
+ * /move_base/DWAPlannerROS/oscillation_reset_dist: 0.1
+ * /move_base/DWAPlannerROS/path_distance_bias: 32.0
+ * /move_base/DWAPlannerROS/sim_granularity: 0.025
+ * /move_base/DWAPlannerROS/sim_time: 3.0
+ * /move_base/DWAPlannerROS/stop_time_buffer: 0.4
+ * /move_base/DWAPlannerROS/vtheta_samples: 40
+ * /move_base/DWAPlannerROS/vx_samples: 20
+ * /move_base/DWAPlannerROS/vy_samples: 1
+ * /move_base/DWAPlannerROS/xy_goal_tolerance: 0.15
+ * /move_base/DWAPlannerROS/yaw_goal_tolerance: 0.3
+ * /move_base/NavfnROS/allow_unknown: True
+ * /move_base/NavfnROS/default_tolerance: 0.15
+ * /move_base/NavfnROS/visualize_potential: False
+ * /move_base/base_global_planner: navfn/NavfnROS
+ * /move_base/base_local_planner: dwa_local_planner...
+ * /move_base/clearing_rotation_allowed: True
+ * /move_base/controller_frequency: 10.0
+ * /move_base/controller_patience: 20.0
+ * /move_base/global_costmap/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/global_costmap/footprint_padding: 0.05
+ * /move_base/global_costmap/global_frame: map
+ * /move_base/global_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/global_costmap/inflation_layer/inflation_radius: 0.3
+ * /move_base/global_costmap/inflation_radius: 0.3
+ * /move_base/global_costmap/obstacle_layer/observation_sources: unitree_scan_sensor
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/clearing: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/data_type: LaserScan
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/inf_is_valid: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/marking: True
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/obstacle_range: 6.0
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/raytrace_range: 8.0
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/sensor_frame: unitree_lidar
+ * /move_base/global_costmap/obstacle_layer/unitree_scan_sensor/topic: unitree/scan
+ * /move_base/global_costmap/obstacle_range: 6.0
+ * /move_base/global_costmap/plugins: [{'name': 'static...
+ * /move_base/global_costmap/publish_frequency: 1.0
+ * /move_base/global_costmap/raytrace_range: 8.0
+ * /move_base/global_costmap/robot_base_frame: base_link
+ * /move_base/global_costmap/static_layer/map_topic: /map
+ * /move_base/global_costmap/static_layer/subscribe_to_updates: True
+ * /move_base/global_costmap/static_layer/track_unknown_space: False
+ * /move_base/global_costmap/static_map: True
+ * /move_base/global_costmap/transform_tolerance: 0.5
+ * /move_base/global_costmap/update_frequency: 2.0
+ * /move_base/local_costmap/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/footprint: [[0.32, 0.27], [0...
+ * /move_base/local_costmap/footprint_padding: 0.05
+ * /move_base/local_costmap/global_frame: odom
+ * /move_base/local_costmap/height: 10.0
+ * /move_base/local_costmap/inflation_layer/cost_scaling_factor: 5.0
+ * /move_base/local_costmap/inflation_layer/inflation_radius: 0.3
+ * /move_base/local_costmap/inflation_radius: 0.3
+ * /move_base/local_costmap/obstacle_layer/observation_sources: unitree_scan_sensor
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/clearing: False
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/data_type: LaserScan
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/inf_is_valid: True
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/marking: True
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/obstacle_range: 2.5
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/raytrace_range: 3.0
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/sensor_frame: laser
+ * /move_base/local_costmap/obstacle_layer/rplidar_scan_sensor/topic: rplidar/scan_filt...
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/clearing: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/data_type: LaserScan
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/inf_is_valid: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/marking: True
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/obstacle_range: 6.0
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/raytrace_range: 8.0
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/sensor_frame: unitree_lidar
+ * /move_base/local_costmap/obstacle_layer/unitree_scan_sensor/topic: unitree/scan
+ * /move_base/local_costmap/obstacle_range: 6.0
+ * /move_base/local_costmap/plugins: [{'name': 'obstac...
+ * /move_base/local_costmap/publish_frequency: 5.0
+ * /move_base/local_costmap/raytrace_range: 8.0
+ * /move_base/local_costmap/resolution: 0.05
+ * /move_base/local_costmap/robot_base_frame: base_link
+ * /move_base/local_costmap/rolling_window: True
+ * /move_base/local_costmap/static_map: False
+ * /move_base/local_costmap/transform_tolerance: 0.5
+ * /move_base/local_costmap/update_frequency: 10.0
+ * /move_base/local_costmap/width: 10.0
+ * /move_base/max_planning_retries: 5
+ * /move_base/planner_frequency: 1.0
+ * /move_base/planner_patience: 15.0
+ * /move_base/recovery_behavior_enabled: True
+ * /move_base/shutdown_costmaps: False
+ * /robot_description: <?xml version="1....
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /use_sim_time: True
+
+NODES
+  /
+    amcl (amcl/amcl)
+    amcl_verifier (p3at_lms_navigation/amcl_verifier.py)
+    gazebo (gazebo_ros/gzserver)
+    joint_state_publisher (joint_state_publisher/joint_state_publisher)
+    map_server (map_server/map_server)
+    move_base (move_base/move_base)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    rviz (rviz/rviz)
+    spawn_p3at (gazebo_ros/spawn_model)
+    spawn_target (gazebo_ros/spawn_model)
+
+auto-starting new master
+[WARN] [1773717108.207316513, 0.150000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_x>, defaults to 0.000100
+[WARN] [1773717108.207383414, 0.150000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_y>, defaults to 0.000100
+[WARN] [1773717108.207394299, 0.150000000]: GazeboRosSkidSteerDrive Plugin (ns = //) missing <covariance_yaw>, defaults to 0.010000
+[ERROR] [1773717108.450153359, 0.370000000]: Client [/rviz] wants topic /unitree/cloud to have datatype/md5sum [sensor_msgs/PointCloud2/1158d486dd51d683ce2f1be655c3c181], but our version has [sensor_msgs/PointCloud/d8e9c3f5afbdd8a130fd1d2763945fca]. Dropping connection.
+[WARN] [1773717108.814999844, 0.732000000]: global_costmap: Pre-Hydro parameter "static_map" unused since "plugins" is provided
+[WARN] [1773717109.166987587, 1.084000000]: local_costmap: Pre-Hydro parameter "static_map" unused since "plugins" is provided
+[WARN] [1773717141.150207013, 32.903000000]: DWA planner failed to produce path.
+[WARN] [1773717142.352174932, 34.104000000]: DWA planner failed to produce path.
+[WARN] [1773717143.060691886, 34.804000000]: DWA planner failed to produce path.
+[WARN] [1773717143.959452141, 35.703000000]: DWA planner failed to produce path.
+[WARN] [1773717144.562003865, 36.304000000]: DWA planner failed to produce path.
+[WARN] [1773717146.062046181, 37.803000000]: DWA planner failed to produce path.
+[WARN] [1773717146.563574204, 38.303000000]: DWA planner failed to produce path.
+[WARN] [1773717146.963632794, 38.703000000]: DWA planner failed to produce path.
+[WARN] [1773717147.667944218, 39.403000000]: DWA planner failed to produce path.
+[WARN] [1773717148.067708594, 39.803000000]: DWA planner failed to produce path.
+[WARN] [1773717152.074436720, 43.803000000]: DWA planner failed to produce path.
+[WARN] [1773717152.978687542, 44.704000000]: DWA planner failed to produce path.
+[WARN] [1773717155.396547690, 47.103000000]: DWA planner failed to produce path.
+[WARN] [1773717155.696841125, 47.403000000]: DWA planner failed to produce path.
+[WARN] [1773717156.497909690, 48.203000000]: DWA planner failed to produce path.
+[INFO] [1773717108.817001468, 0.734000000]: global_costmap: Using plugin "static_layer"
+[INFO] [1773717108.822786684, 0.740000000]: Requesting the map...
+[INFO] [1773717109.025463797, 0.942000000]: Resizing costmap to 576 X 576 at 0.050000 m/pix
+[INFO] [1773717109.125056344, 1.042000000]: Received a 576 X 576 map at 0.050000 m/pix
+[INFO] [1773717109.125126450, 1.042000000]: Subscribing to updates
+[INFO] [1773717109.129042129, 1.046000000]: global_costmap: Using plugin "obstacle_layer"
+[INFO] [1773717109.131894595, 1.049000000]:     Subscribed to Topics: unitree_scan_sensor
+[INFO] [1773717109.141371261, 1.058000000]: global_costmap: Using plugin "inflation_layer"
+[INFO] [1773717109.167763963, 1.085000000]: local_costmap: Using plugin "obstacle_layer"
+[INFO] [1773717109.170615424, 1.088000000]:     Subscribed to Topics: unitree_scan_sensor
+[INFO] [1773717109.179335209, 1.097000000]: local_costmap: Using plugin "inflation_layer"
+[INFO] [1773717109.201816332, 1.119000000]: Created local_planner dwa_local_planner/DWAPlannerROS
+[INFO] [1773717109.204719837, 1.122000000]: Sim period is set to 0.10
+[INFO] [1773717109.710692916, 1.627000000]: Recovery behavior will clear layer 'obstacles'
+[INFO] [1773717109.713936905, 1.630000000]: Recovery behavior will clear layer 'obstacles'
+[INFO] [1773717109.731859073, 1.648000000]: odom received!
+[INFO] [1773717139.637194340, 31.401000000]: Got new plan
+[INFO] [1773717140.651185023, 32.401000000]: Got new plan
+[INFO] [1773717141.249028608, 33.001000000]: Got new plan
+[INFO] [1773717142.249739898, 34.002000000]: Got new plan
+[INFO] [1773717142.449406129, 34.201000000]: Got new plan
+[INFO] [1773717143.156213200, 34.901000000]: Got new plan
+[INFO] [1773717144.057750868, 35.801000000]: Got new plan
+[INFO] [1773717144.659083094, 36.402000000]: Got new plan
+[INFO] [1773717145.660206419, 37.402000000]: Got new plan
+[INFO] [1773717146.159935661, 37.901000000]: Got new plan
+[INFO] [1773717146.661586932, 38.401000000]: Got new plan
+[INFO] [1773717147.061864381, 38.801000000]: Got new plan
+[INFO] [1773717147.765528525, 39.501000000]: Got new plan
+[INFO] [1773717148.166086513, 39.902000000]: Got new plan
+[INFO] [1773717149.167701271, 40.901000000]: Got new plan
+[INFO] [1773717150.168657313, 41.901000000]: Got new plan
+[INFO] [1773717151.170593525, 42.901000000]: Got new plan
+[INFO] [1773717152.182644368, 43.901000000]: Got new plan
+[INFO] [1773717153.076337960, 44.801000000]: Got new plan
+[INFO] [1773717154.077824194, 45.801000000]: Got new plan
+[INFO] [1773717155.093281145, 46.801000000]: Got new plan
+[INFO] [1773717155.495006853, 47.202000000]: Got new plan
+[INFO] [1773717155.795214295, 47.501000000]: Got new plan
+[INFO] [1773717156.595833820, 48.301000000]: Got new plan
+[INFO] [1773717157.607153367, 49.301000000]: Got new plan
+[INFO] [1773717158.608496682, 50.301000000]: Got new plan
+[INFO] [1773717159.620336629, 51.302000000]: Got new plan
+[INFO] [1773717160.620865808, 52.301000000]: Got new plan
+[INFO] [1773717161.651920631, 53.301000000]: Got new plan
+[INFO] [1773717162.652192195, 54.301000000]: Got new plan
+[INFO] [1773717163.653983878, 55.301000000]: Got new plan
+[INFO] [1773717164.664830356, 56.301000000]: Got new plan
+[INFO] [1773717165.666516693, 57.301000000]: Got new plan
+[INFO] [1773717166.674179379, 58.301000000]: Got new plan
+[INFO] [1773717167.675636698, 59.301000000]: Got new plan
+[INFO] [1773717168.692085857, 60.301000000]: Got new plan
+[INFO] [1773717169.689313654, 61.301000000]: Got new plan
+[INFO] [1773717170.690724597, 62.301000000]: Got new plan
+[INFO] [1773717171.711161687, 63.301000000]: Got new plan
+[INFO] [1773717172.713705552, 64.301000000]: Got new plan
+[INFO] [1773717173.739146266, 65.302000000]: Got new plan
+[INFO] [1773717174.739929590, 66.301000000]: Got new plan
+[INFO] [1773717175.761081195, 67.301000000]: Got new plan
+[INFO] [1773717176.752815865, 68.301000000]: Got new plan
+[INFO] [1773717177.753999054, 69.301000000]: Got new plan
+[INFO] [1773717178.757636681, 70.302000000]: Got new plan
+[INFO] [1773717179.758141170, 71.302000000]: Got new plan
+[INFO] [1773717180.77[WARN] [1773717184.288962017, 75.804000000]: DWA planner failed to produce path.
+[WARN] [1773717184.889573443, 76.403000000]: DWA planner failed to produce path.
+[WARN] [1773717185.497621213, 77.003000000]: DWA planner failed to produce path.
+[WARN] [1773717190.126382789, 81.602000000]: DWA planner failed to produce path.
+[WARN] [1773717205.538550467, 96.903000000]: DWA planner failed to produce path.
+[WARN] [1773717205.940531022, 97.304000000]: DWA planner failed to produce path.
+[WARN] [1773717209.154598676, 100.503000000]: DWA planner failed to produce path.
+[WARN] [1773717210.156323002, 101.503000000]: DWA planner failed to produce path.
+[WARN] [1773717210.757135774, 102.103000000]: DWA planner failed to produce path.
+[WARN] [1773717212.473910655, 103.804000000]: DWA planner failed to produce path.
+[WARN] [1773717213.489838983, 104.804000000]: DWA planner failed to produce path.
+[WARN] [1773717214.990427715, 106.303000000]: DWA planner failed to produce path.
+[WARN] [1773717215.703358329, 107.003000000]: DWA planner failed to produce path.
+[WARN] [1773717216.503148419, 107.803000000]: DWA planner failed to produce path.
+[WARN] [1773717217.504718231, 108.803000000]: DWA planner failed to produce path.
+[WARN] [1773717217.930492720, 109.205000000]: DWA planner failed to produce path.
+[WARN] [1773717218.310899358, 109.603000000]: DWA planner failed to produce path.
+[WARN] [1773717218.811583212, 110.103000000]: DWA planner failed to produce path.
+[WARN] [1773717219.714520676, 111.004000000]: DWA planner failed to produce path.
+[WARN] [1773717221.014570812, 112.303000000]: DWA planner failed to produce path.
+[WARN] [1773717229.223614269, 120.409000000]: DWA planner failed to produce path.
+[WARN] [1773717231.727948495, 122.908000000]: DWA planner failed to produce path.
+[WARN] [1773717233.248909021, 124.408000000]: DWA planner failed to produce path.
+[WARN] [1773717236.168912547, 127.308000000]: DWA planner failed to produce path.
+5393518, 72.301000000]: Got new plan
+[INFO] [1773717181.776370181, 73.301000000]: Got new plan
+[INFO] [1773717182.789540181, 74.301000000]: Got new plan
+[INFO] [1773717183.786084529, 75.302000000]: Got new plan
+[INFO] [1773717184.388108186, 75.901000000]: Got new plan
+[INFO] [1773717184.988371624, 76.501000000]: Got new plan
+[INFO] [1773717185.596080677, 77.101000000]: Got new plan
+[INFO] [1773717186.596497160, 78.101000000]: Got new plan
+[INFO] [1773717187.616529330, 79.101000000]: Got new plan
+[INFO] [1773717188.616009456, 80.101000000]: Got new plan
+[INFO] [1773717189.616937057, 81.101000000]: Got new plan
+[INFO] [1773717190.224436837, 81.701000000]: Got new plan
+[INFO] [1773717191.225735710, 82.701000000]: Got new plan
+[INFO] [1773717192.243816714, 83.701000000]: Got new plan
+[INFO] [1773717193.241999979, 84.701000000]: Got new plan
+[INFO] [1773717194.243024355, 85.701000000]: Got new plan
+[INFO] [1773717195.273068609, 86.702000000]: Got new plan
+[INFO] [1773717196.274101743, 87.701000000]: Got new plan
+[INFO] [1773717197.295239733, 88.702000000]: Got new plan
+[INFO] [1773717198.295322574, 89.701000000]: Got new plan
+[INFO] [1773717199.307848055, 90.701000000]: Got new plan
+[INFO] [1773717200.307828409, 91.702000000]: Got new plan
+[INFO] [1773717201.307782461, 92.701000000]: Got new plan
+[INFO] [1773717202.314328166, 93.701000000]: Got new plan
+[INFO] [1773717203.316454898, 94.702000000]: Got new plan
+[INFO] [1773717204.335103109, 95.701000000]: Got new plan
+[INFO] [1773717205.336320863, 96.701000000]: Got new plan
+[INFO] [1773717205.637362133, 97.001000000]: Got new plan
+[INFO] [1773717206.037971546, 97.401000000]: Got new plan
+[INFO] [1773717207.041533254, 98.401000000]: Got new plan
+[INFO] [1773717208.042711481, 99.401000000]: Got new plan
+[INFO] [1773717209.052548895, 100.402000000]: Got new plan
+[INFO] [1773717209.251838197, 100.601000000]: Got new plan
+[INFO] [1773717210.254986504, 101.601000000]: Got new plan
+[INFO] [1773717210.881874599, 102.202000000]: Got new plan
+[INFO] [1773717211.870005775, 103.201000000]: Got new plan
+[INFO] [1773717212.571204728, 103.901000000]: Got new plan
+[INFO] [1773717213.585974976, 104.901000000]: Got new plan
+[INFO] [1773717214.587408915, 105.901000000]: Got new plan
+[INFO] [1773717215.088376194, 106.401000000]: Got new plan
+[INFO] [1773717215.800493328, 107.101000000]: Got new plan
+[INFO] [1773717216.601847058, 107.902000000]: Got new plan
+[INFO] [1773717217.602978069, 108.901000000]: Got new plan
+[INFO] [1773717218.015817854, 109.301000000]: Got new plan
+[INFO] [1773717218.410175203, 109.701000000]: Got new plan
+[INFO] [1773717218.909518914, 110.201000000]: Got new plan
+[INFO] [1773717219.811993096, 111.101000000]: Got new plan
+[INFO] [1773717220.813319894, 112.101000000]: Got new plan
+[INFO] [1773717221.113298564, 112.401000000]: Got new plan
+[INFO] [1773717221.314338911, 112.602000000]: Goal reached
+[INFO] [1773717228.536980616, 119.709000000]: Got new plan
+[INFO] [1773717229.320400263, 120.506000000]: Got new plan
+[INFO] [1773717230.324811282, 121.507000000]: Got new plan
+[INFO] [1773717231.325653610, 122.506000000]: Got new plan
+[INFO] [1773717231.825846620, 123.006000000]: Got new plan
+[INFO] [1773717232.845810586, 124.006000000]: Got new plan
+[INFO] [1773717233.346471449, 124.506000000]: Got new plan
+[INFO] [1773717234.377917197, 125.506000000]: Got new plan
+[INFO] [1773717235.366206336, 126.507000000]: Got new plan
+[INFO] [1773717236.267045360, 127.406000000]: Got new plan
+[INFO] [1773717237.279676930, 128.406000000]: Got new plan
+[INFO] [1773717238.281541405, 129.406000000]: Got new plan
+[INFO] [1773717239.285884282, 130.407000000]: Got new plan
+[INFO] [1773717240.285579177, 131.406000000]: Got new plan
+[INFO] [1773717241.288080519, 132.406000000]: Got new plan
+[INFO] [1773717242.296444647, 133.406000000]: Got new plan
+[INFO] [1773717243.297396434, 134.406000000]: Got new plan
+[INFO] [1773717244.304649136, 135.406000000]: Got new plan
+[INFO] [1773717245.306634748, 136.407000000]: Got new plan
+[INFO] [1773717246.316583020, 137.406000000]: Got new plan
+[INFO] [1773717247

@@ -1,0 +1,1371 @@
+{
+  "experiment_type": "target_following",
+  "config": {
+    "robot_model": "p3at",
+    "target_model": "target",
+    "duration_s": 180.0,
+    "warmup_s": 8.0,
+    "standoff_m": 0.8,
+    "tolerance_m": 0.35
+  },
+  "timestamps": {
+    "run_start_unix_s": 1773715099.2650294,
+    "run_end_unix_s": 1773715279.286847
+  },
+  "summary": {
+    "sample_count": 187233,
+    "missing_model_samples": 510,
+    "sample_dropout_rate": 0.0027164794426423355,
+    "distance_mean_m": 2.7035862934771906,
+    "distance_std_m": 1.021192996973529,
+    "distance_min_m": 0.3504012309695109,
+    "distance_max_m": 8.000351898574888,
+    "distance_median_m": 2.8093060997879733,
+    "standoff_target_m": 0.8,
+    "standoff_rmse_m": 2.160202748304437,
+    "within_tolerance_rate": 0.08559922663205738,
+    "robot_speed_mean_mps": 0.00582938599301959,
+    "target_speed_mean_mps": 0.38014929798347713,
+    "result_true_count": 0,
+    "result_false_count": 3,
+    "status_time_s": {
+      "EXPLORING": 0.5091369152069092,
+      "TRACKING": 140.5790660381317,
+      "CLOSE_APPROACH": 45.26506543159485
+    },
+    "status_time_ratio": {
+      "EXPLORING": 0.0027321061745760747,
+      "TRACKING": 0.7543686636488176,
+      "CLOSE_APPROACH": 0.2428992301766063
+    },
+    "run_duration_s": 180.02181768417358
+  },
+  "status_events": [
+    {
+      "time_unix_s": 1773715092.9335828,
+      "status": "EXPLORING"
+    },
+    {
+      "time_unix_s": 1773715093.4427197,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715093.941427,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715094.4420083,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715095.1933277,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715095.6939294,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715096.348572,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715096.8500044,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715097.3496487,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715098.1511714,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715098.651853,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715099.1520758,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715099.6524243,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715100.5567877,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715101.0579033,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715101.5588915,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715102.2594733,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715102.759371,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715103.2603786,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715103.7614834,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715104.2617543,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715104.7629578,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715105.2635036,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715105.7639534,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715106.2645104,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715106.9198627,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715107.4192023,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715107.9200842,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715108.7209928,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715109.2221692,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715109.7227225,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715110.5266325,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715111.0278232,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715111.5279703,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715112.3290176,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715112.829403,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715113.3298824,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715114.438378,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715115.039966,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715115.6406977,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715116.243358,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715116.8446918,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715117.4452324,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715118.0464005,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715118.6470885,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715119.2489827,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715119.8521113,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715120.453224,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715121.053066,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715121.6542327,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715122.2552512,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715122.8563905,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715123.457867,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715124.0603604,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715124.6608033,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715125.2615342,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715125.863671,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715126.4635491,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715127.0655875,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715127.66674,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715128.2691948,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715128.8688982,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715129.5288389,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715130.0302196,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715130.5304167,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715131.1828523,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715131.6834133,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715132.1840918,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715132.9900146,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715133.4892983,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715133.990144,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715134.791864,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715135.2927685,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715135.7941418,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715136.59672,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715137.0969713,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715137.5974734,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715138.25021,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715138.7498105,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715139.2509081,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715140.1054096,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715140.6047592,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715141.1060798,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715141.7578542,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715142.2579167,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715142.758568,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715143.2594347,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715143.7607327,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715144.2610657,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715144.7616034,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715145.2627244,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715145.7629955,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715146.263519,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715146.7636366,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715147.4686975,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715147.9689803,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715148.4713411,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715149.37494,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715149.8741796,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715150.3756835,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715151.180359,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715151.6805658,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715152.1812384,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715152.9840667,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715153.4880598,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715154.0354261,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715154.790657,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715155.2910278,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715155.7914839,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715156.5943916,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715157.095732,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715157.5963492,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715158.4506793,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715158.9509885,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715159.452332,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715159.9520118,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715160.6083393,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715161.1088896,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715161.6087146,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715162.1093087,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715162.6102583,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715163.1113029,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715163.6118338,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715164.1125913,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715164.612803,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715165.1167915,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715165.6174817,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715166.117834,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715166.8192594,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715167.3197517,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715167.8199215,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715168.6247447,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715169.1255069,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715169.6261282,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715170.3778796,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715170.8777597,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715171.378737,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715172.0837758,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715172.583947,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715173.085177,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715173.5858023,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715174.1904027,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715174.6912205,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715175.1916447,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715175.6919754,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715176.193384,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715176.692995,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715177.1940067,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715177.6943069,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715178.1951962,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715179.306621,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715179.9062328,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715180.5072706,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715181.109521,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715181.710489,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715182.3108308,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715182.9133325,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715183.514139,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715184.1158419,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715184.717226,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715185.3194225,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715185.9202952,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715186.5214226,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715187.1231022,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715187.7250333,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715188.325128,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715188.9278688,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715189.5294235,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715190.1281283,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715190.730894,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715191.332094,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715191.933734,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715192.5340133,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715193.1363695,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715193.737608,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715194.3947363,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715194.8953454,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715195.3966599,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715196.1483903,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715196.649427,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715197.1496918,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715197.9530005,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715198.453187,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715198.9549756,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715199.7573225,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715200.2578373,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715200.758337,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715201.5632417,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715202.0627077,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715202.563922,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715203.3673282,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715203.8674595,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715204.368043,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715204.86896,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715205.3699622,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715205.8704095,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715206.371046,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715206.8715541,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715207.3724704,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715207.872623,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715208.4774265,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715208.9783547,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715209.4791353,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715209.9794252,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715210.4840443,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715210.9853158,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715211.485632,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715212.387374,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715212.8871303,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715213.3884954,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715213.892451,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715214.392438,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715214.8928185,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715215.444126,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715215.9450173,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715216.4461522,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715216.9504945,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715217.4513643,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715217.951295,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715218.5529945,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715219.0541596,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715219.555183,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715220.0570185,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715220.9636457,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715221.4636672,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715221.9650936,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715222.4655728,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715223.2203774,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715223.7205846,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715224.221649,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715224.9227316,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715225.4235942,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715225.923305,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715226.7295299,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715227.2289398,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715227.7302778,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715228.2308848,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715228.731298,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715229.2318926,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715229.7324994,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715230.233676,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715230.7340145,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715231.2353995,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715231.7375524,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715232.8444152,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715233.444749,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715234.0468273,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715234.6492317,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715235.2495599,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715235.849935,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715236.4527879,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715237.0528,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715237.6543324,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715238.2558954,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715238.8569062,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715239.4577532,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715240.0603633,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715240.6618412,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715241.2633436,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715241.8632686,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715242.4655135,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715243.0652928,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715243.666114,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715244.2693825,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715244.871246,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715245.470176,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715246.0719945,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715246.6743937,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715247.2746546,
+      "status": "CLOSE_APPROACH"
+    },
+    {
+      "time_unix_s": 1773715247.9309046,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715248.4324498,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715248.9331522,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715249.4335656,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715249.9346333,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715250.4353404,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715251.040741,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715251.5442858,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715252.0919962,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715252.8433971,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715253.3443544,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715253.8440387,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715254.3450477,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715254.8499315,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715255.3506913,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715256.1522818,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715256.6525507,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715257.1530497,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715257.9599924,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715258.460778,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715258.9615326,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715259.4624624,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715259.962619,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715260.4635737,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715261.1194854,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715261.6188962,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715262.11948,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715262.62035,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715263.1209397,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715263.6218464,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715264.3266308,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715264.826659,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715265.3288167,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715265.8283021,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715266.3829954,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715266.8839586,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715267.3846388,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715267.990122,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715268.488947,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715268.9897761,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715269.844337,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715270.3455832,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715270.8474605,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715271.598099,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715272.0983515,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715272.599308,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715273.100916,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715273.60187,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715274.102872,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715274.6037552,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715275.104957,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715275.6049762,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715276.1057827,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715276.605848,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715277.3109767,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715277.81108,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715278.3120794,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715278.8129525,
+      "status": "TRACKING"
+    },
+    {
+      "time_unix_s": 1773715279.320095,
+      "status": "TRACKING"
+    }
+  ],
+  "result_events": [
+    {
+      "time_unix_s": 1773715129.072584,
+      "result": false
+    },
+    {
+      "time_unix_s": 1773715193.9390898,
+      "result": false
+    },
+    {
+      "time_unix_s": 1773715247.4762383,
+      "result": false
+    }
+  ]
+}
