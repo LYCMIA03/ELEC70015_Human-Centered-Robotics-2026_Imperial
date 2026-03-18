@@ -73,17 +73,10 @@ rospack find p3at_lms_navigation
 
 ### 1) Launch Gazebo + Navigation Stack
 
-Unitree stack (primary, recommended):
+Unitree stack:
 
 ```bash
 roslaunch p3at_lms_gazebo sim_unitree.launch \
-  world:=$(rospack find p3at_lms_gazebo)/worlds/complex_maze.world
-```
-
-SICK stack (backup):
-
-```bash
-roslaunch p3at_lms_gazebo sim.launch \
   world:=$(rospack find p3at_lms_gazebo)/worlds/complex_maze.world
 ```
 
@@ -93,12 +86,6 @@ Unitree:
 
 ```bash
 roslaunch p3at_lms_navigation mapping_unitree.launch
-```
-
-SICK:
-
-```bash
-roslaunch p3at_lms_navigation mapping.launch
 ```
 
 Save map:
@@ -147,26 +134,12 @@ roslaunch p3at_lms_navigation auto_mapping_unitree.launch \
   gui:=false
 ```
 
-SICK:
-
-```bash
-roslaunch p3at_lms_navigation auto_mapping.launch \
-  exploration_timeout:=300 \
-  gui:=false
-```
-
 ### 6) AMCL Verification on Saved Map
 
 Unitree:
 
 ```bash
 roslaunch p3at_lms_navigation auto_amcl_verify_unitree.launch gui:=true
-```
-
-SICK:
-
-```bash
-roslaunch p3at_lms_navigation auto_amcl_verify.launch gui:=true
 ```
 
 ## One-Click Four Experiments
@@ -352,4 +325,3 @@ For headless CI-style runs:
 ```bash
 bash scripts/run_sim_four_experiments.sh --skip-build
 ```
-
