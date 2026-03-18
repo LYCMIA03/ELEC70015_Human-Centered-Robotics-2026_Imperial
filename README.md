@@ -58,7 +58,8 @@ ROS1 Noetic · Ubuntu 20.04 · Gazebo 11 (Simulation) / Docker (Real Robot).
 16. [Git Workflow](#git-workflow)
 17. [Resources](#resources)
 18. [Status](#status)
-19. [Post-Installation Checklist](#post-installation-checklist)
+19. [Team Contributions](#team-contributions)
+20. [Post-Installation Checklist](#post-installation-checklist)
 
 ---
 
@@ -2456,6 +2457,21 @@ source devel/setup.bash   # or setup.zsh
 - [ ] Full trash collection demo with bin motor — not started
 - [ ] Hand-object detection combined mode — in progress
 - [ ] Multi-target sequential pickup — not started
+
+---
+
+## Team Contributions
+
+This is a high-level summary of the current division of work within the team (in alphabetical order by surname).
+
+- `Haocheng Fan` — computer vision and target detection, report contributor
+- `Yaohan Huang` — computer vision and target detection, report contributor
+- `Quincy Li` — multi-system integration, experiments and testing, report contributor
+- `Zian Lin` — hardware system, robot body / platform design, report contributor
+- `Yuchen Liu` — robot infrastructure (URDF, TF relationships, ROS node communication), ROS simulation, navigation algorithms, real-robot navigation deployment, group management, report editor
+- `Guanxi Lu` — dialogue system (STT, TTS, NLU Classifier, Decision Manager Interface, Hardware I/O), report contributor
+- `Wenxin Tang` — hardware system, rotary distributor motor control, report contributor
+- `Tony Zeng` — hardware system, rotary distributor design, report contributor
 
 ---
 
