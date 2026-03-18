@@ -882,34 +882,36 @@ step "STEP 2 — Start Hand-Object detection (host)"
 if ${LAUNCH_YOLO}; then
   pkill -f "handobj_detection_rgbd.py|handobj_detection_rgbd_remote_15cls.py" 2>/dev/null || true
   info "Starting ${HANDOBJ_DETECTOR_SCRIPT} (UDP → 127.0.0.1:${TRASH_UDP_PORT})..."
-  cd "${HANDOBJ_DIR}"
-  HANDOBJ_CMD=(
-    python3 "${HANDOBJ_DETECTOR_SCRIPT}"
-    --udp-enable
-    --udp-host "127.0.0.1"
-    --udp-port "${TRASH_UDP_PORT}"
-    --udp-frame-id "camera_link"
-    --udp-kind "${TARGET_KIND}"
-    --rotate-180
-    --headless
-    --print-xyz
-  )
-  if [[ -n "${WASTE_SERVER_URL}" ]]; then
-    HANDOBJ_CMD+=(
-      --waste-server "${WASTE_SERVER_URL}"
-      --waste-call-every "${WASTE_CALL_EVERY}"
+  (
+    cd "${HANDOBJ_DIR}"
+    HANDOBJ_CMD=(
+      python3 "${HANDOBJ_DETECTOR_SCRIPT}"
+      --udp-enable
+      --udp-host "127.0.0.1"
+      --udp-port "${TRASH_UDP_PORT}"
+      --udp-frame-id "camera_link"
+      --udp-kind "${TARGET_KIND}"
+      --rotate-180
+      --headless
+      --print-xyz
     )
-    if ${WASTE_ASYNC}; then
-      HANDOBJ_CMD+=(--waste-async)
+    if [[ -n "${WASTE_SERVER_URL}" ]]; then
+      HANDOBJ_CMD+=(
+        --waste-server "${WASTE_SERVER_URL}"
+        --waste-call-every "${WASTE_CALL_EVERY}"
+      )
+      if ${WASTE_ASYNC}; then
+        HANDOBJ_CMD+=(--waste-async)
+      fi
     fi
-  fi
-  if ${HANDOBJ_STREAM_ENABLE}; then
-    HANDOBJ_CMD+=(
-      --stream-enable
-      --stream-port "${HANDOBJ_STREAM_PORT}"
-    )
-  fi
-  "${HANDOBJ_CMD[@]}" > /tmp/handobj.log 2>&1 &
+    if ${HANDOBJ_STREAM_ENABLE}; then
+      HANDOBJ_CMD+=(
+        --stream-enable
+        --stream-port "${HANDOBJ_STREAM_PORT}"
+      )
+    fi
+    exec "${HANDOBJ_CMD[@]}"
+  ) > /tmp/handobj.log 2>&1 &
   YOLO_PID=$!
   sleep 4
   if kill -0 "${YOLO_PID}" 2>/dev/null; then
@@ -969,11 +971,14 @@ if ${LAUNCH_DIALOGUE}; then
         kill "${BRIDGE_PID}" 2>/dev/null || true
         sleep 1
       fi
-      MASTER_HOST=jetson \
-      DIALOGUE_TRIGGER_UDP_PORT=${DIALOGUE_TRIGGER_UDP_PORT} \
-      DIALOGUE_ACTION_UDP_PORT=${DIALOGUE_ACTION_UDP_PORT} \
-      "${SCRIPT_DIR}/start_dialogue_docker_bridges.sh" \
-        > /tmp/dialogue_bridge.log 2>&1 &
+      (
+        cd "${REPO_ROOT}"
+        exec env \
+          MASTER_HOST=jetson \
+          DIALOGUE_TRIGGER_UDP_PORT="${DIALOGUE_TRIGGER_UDP_PORT}" \
+          DIALOGUE_ACTION_UDP_PORT="${DIALOGUE_ACTION_UDP_PORT}" \
+          bash "${SCRIPT_DIR}/start_dialogue_docker_bridges.sh"
+      ) > /tmp/dialogue_bridge.log 2>&1 &
       BRIDGE_PID=$!
       sleep 2
       kill -0 "${BRIDGE_PID}" 2>/dev/null

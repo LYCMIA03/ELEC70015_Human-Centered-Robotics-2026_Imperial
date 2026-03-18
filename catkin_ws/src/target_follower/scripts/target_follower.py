@@ -127,6 +127,18 @@ class TargetFollower:
         # does not terminate too early before camera-depth REACHED.
         self.tracking_near_goal_to_target = bool(
             rospy.get_param("~tracking_near_goal_to_target", True))
+        # Near target, a short detector dropout should not immediately force
+        # LOST if move_base is still executing a valid close-range goal.
+        self.target_timeout_near_grace_s = float(
+            rospy.get_param("~target_timeout_near_grace_s", 2.0))
+        self.target_timeout_near_dist_m = float(
+            rospy.get_param("~target_timeout_near_dist_m", 1.15))
+        self.target_timeout_near_dist_fresh_s = float(
+            rospy.get_param("~target_timeout_near_dist_fresh_s", 2.0))
+        # Recent-dialogue-area suppression should primarily affect exploration;
+        # allow nearby re-tracking from IDLE/LOST/FAILED.
+        self.dialogue_block_allow_near_dist_m = float(
+            rospy.get_param("~dialogue_block_allow_near_dist_m", 2.0))
         self.use_target_orientation = bool(
             rospy.get_param("~use_target_orientation", False))
 
@@ -163,6 +175,10 @@ class TargetFollower:
             rospy.get_param("~retreat_reverse_scan_stale_s", 0.8))
         self.retreat_reverse_rear_sector_deg = float(
             rospy.get_param("~retreat_reverse_rear_sector_deg", 35.0))
+        # Check only a short segment in costmap for reverse retreat; long-range
+        # checks are often over-conservative around inflated cells.
+        self.retreat_reverse_costmap_check_dist = float(
+            rospy.get_param("~retreat_reverse_costmap_check_dist", 0.30))
 
         # ── Auto explore params (active when no target is being tracked) ─────
         self.enable_auto_explore = bool(rospy.get_param("~enable_auto_explore", True))
@@ -302,6 +318,8 @@ class TargetFollower:
         self._target_seen_since    = None
         self._last_target_rx_time  = None
         self._last_cmd_vel_time    = None
+        self._last_reach_dist = None
+        self._last_reach_dist_time = None
 
         self.frontier_planner = FrontierPlanner(
             min_frontier_size=self.explore_min_frontier_size,
@@ -377,6 +395,17 @@ class TargetFollower:
             self.tracking_near_send_rate_hz,
             self.tracking_near_min_update_dist,
             self.tracking_near_goal_to_target,
+        )
+        rospy.loginfo(
+            "target_timeout near_grace=%.1fs near_dist=%.2fm near_dist_fresh=%.1fs",
+            self.target_timeout_near_grace_s,
+            self.target_timeout_near_dist_m,
+            self.target_timeout_near_dist_fresh_s,
+        )
+        rospy.loginfo(
+            "dialogue_block_allow_near_dist=%.2fm reverse_costmap_check_dist=%.2fm",
+            self.dialogue_block_allow_near_dist_m,
+            self.retreat_reverse_costmap_check_dist,
         )
         rospy.loginfo("face_target = %s", self.face_target)
         rospy.loginfo("trash_action_topic = %s", self.trash_action_topic)
@@ -595,9 +624,37 @@ class TargetFollower:
             rospy.get_param("~tracking_near_min_update_dist", self.tracking_near_min_update_dist))
         self.tracking_near_goal_to_target = bool(
             rospy.get_param("~tracking_near_goal_to_target", self.tracking_near_goal_to_target))
+        self.target_timeout_near_grace_s = float(
+            rospy.get_param("~target_timeout_near_grace_s", self.target_timeout_near_grace_s))
+        self.target_timeout_near_dist_m = float(
+            rospy.get_param("~target_timeout_near_dist_m", self.target_timeout_near_dist_m))
+        self.target_timeout_near_dist_fresh_s = float(
+            rospy.get_param("~target_timeout_near_dist_fresh_s", self.target_timeout_near_dist_fresh_s))
+        self.dialogue_block_allow_near_dist_m = float(
+            rospy.get_param("~dialogue_block_allow_near_dist_m", self.dialogue_block_allow_near_dist_m))
+        self.retreat_reverse_costmap_check_dist = float(
+            rospy.get_param("~retreat_reverse_costmap_check_dist", self.retreat_reverse_costmap_check_dist))
         self.enable_close_approach = bool(
             rospy.get_param("~enable_close_approach", self.enable_close_approach))
         self.retreat_distance  = float(rospy.get_param("~retreat_distance",   self.retreat_distance))
+
+    def _should_block_dialogue_area_target(self, tx, ty):
+        if not self._is_recent_dialogue_area(tx, ty):
+            return False
+
+        if self._state in ("EXPLORING", "REACQUIRE_TARGET"):
+            return True
+        if self._state == "TRACKING":
+            return False
+
+        if self._state in ("IDLE", "LOST", "FAILED"):
+            robot_info = self._get_robot_pose_in_global()
+            if robot_info is None:
+                return True
+            rx, ry, _ = robot_info
+            return math.hypot(tx - rx, ty - ry) > self.dialogue_block_allow_near_dist_m
+
+        return True
 
     def _append_path_point_if_needed(self):
         """Record robot path sparsely for revisit suppression and debugging."""
@@ -1156,6 +1213,17 @@ class TargetFollower:
             elif status == GoalStatus.PREEMPTED:
                 rospy.loginfo("[TargetFollower] move_base PREEMPTED (new goal will be sent)")
             elif status in (GoalStatus.ABORTED, GoalStatus.REJECTED):
+                if (
+                    self._last_reach_dist is not None
+                    and self._last_reach_dist <= (self.tracking_near_target_window_m + 0.2)
+                ):
+                    rospy.logwarn(
+                        "[TargetFollower] move_base aborted near target (reach_dist=%.2f) — clear costmaps and retry",
+                        self._last_reach_dist,
+                    )
+                    self._clear_costmaps("tracking_abort_near")
+                    self._set_state("IDLE")
+                    return
                 self._set_state("FAILED")
                 self._publish_result(False)
 
@@ -1318,9 +1386,12 @@ class TargetFollower:
                 self._latest_scan_rear_min_range, required_clearance)
 
         if self.frontier_planner.costmap_data is not None:
+            costmap_check_dist = min(check_distance, max(0.0, self.retreat_reverse_costmap_check_dist))
+            if costmap_check_dist <= 0.0:
+                return True, "ok"
             check_scales = (1.0, 0.5)
             for scale in check_scales:
-                dist = check_distance * scale
+                dist = costmap_check_dist * scale
                 wx = rx - dist * math.cos(current_yaw)
                 wy = ry - dist * math.sin(current_yaw)
                 if not self.frontier_planner._is_costmap_world_safe(wx, wy):
@@ -1528,6 +1599,8 @@ class TargetFollower:
         self._reacquire_start      = None
         self._target_lost_logged   = False
         self._suppress_done_cb     = False
+        self._last_reach_dist      = None
+        self._last_reach_dist_time = None
         self._set_state("IDLE")
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -1669,6 +1742,29 @@ class TargetFollower:
         if self.last_target.header.stamp != rospy.Time(0):
             age = (now - self.last_target.header.stamp).to_sec()
             if age > self.target_timeout_s:
+                stale_over = age - self.target_timeout_s
+                near_tracking_with_recent_depth = False
+                if (
+                    self._state == "TRACKING"
+                    and self._goal_active
+                    and self._active_goal_kind == "TRACKING"
+                    and self._last_reach_dist is not None
+                    and self._last_reach_dist_time is not None
+                    and (now - self._last_reach_dist_time).to_sec() <= self.target_timeout_near_dist_fresh_s
+                    and self._last_reach_dist <= self.target_timeout_near_dist_m
+                    and stale_over <= self.target_timeout_near_grace_s
+                ):
+                    near_tracking_with_recent_depth = True
+
+                if near_tracking_with_recent_depth:
+                    rospy.logwarn_throttle(
+                        1.0,
+                        "Target stale near goal (age=%.2fs); keep TRACKING goal for grace %.1fs",
+                        age,
+                        self.target_timeout_near_grace_s,
+                    )
+                    return
+
                 if not self._target_lost_logged:
                     rospy.logwarn(
                         "Target pose stale (age=%.2fs > %.2fs) — clearing stale target",
@@ -1720,7 +1816,7 @@ class TargetFollower:
 
         # If this target is near a recent dialogue point, skip it for a while
         # to avoid repeatedly asking the same person/object.
-        if self._is_recent_dialogue_area(tx, ty):
+        if self._should_block_dialogue_area_target(tx, ty):
             rospy.loginfo_throttle(
                 2.0,
                 "[TargetFollower] Ignoring target near recent dialogue area (%.2f, %.2f)",
@@ -1775,6 +1871,8 @@ class TargetFollower:
             if self.standoff_distance > 0:
                 # REACHED: use camera depth-z (preferred) or fallback to xy
                 reach_dist = d_cam_z if d_cam_z is not None else d_cam_xy
+                self._last_reach_dist = reach_dist
+                self._last_reach_dist_time = now
                 reach_threshold = self.standoff_distance
                 if reach_dist <= reach_threshold:
                     if self._state not in ("REACHED", "WAITING_ACTION"):

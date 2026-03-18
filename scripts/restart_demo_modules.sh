@@ -41,10 +41,34 @@ EOF
 done
 
 [[ -n "${ONLY_MODULES}" ]] || die "--only is required"
-[[ -f "${RUNTIME_STATE_FILE}" ]] || die "Runtime state file not found: ${RUNTIME_STATE_FILE}. Start demo once first."
+IFS=',' read -r -a MODULES <<< "${ONLY_MODULES}"
 
-# shellcheck disable=SC1090
-source "${RUNTIME_STATE_FILE}"
+RUNTIME_REQUIRED=0
+for module in "${MODULES[@]}"; do
+  case "${module}" in
+    master) ;;
+    *)
+      RUNTIME_REQUIRED=1
+      break
+      ;;
+  esac
+done
+
+if [[ "${RUNTIME_REQUIRED}" -eq 1 ]]; then
+  [[ -f "${RUNTIME_STATE_FILE}" ]] || die "Runtime state file not found: ${RUNTIME_STATE_FILE}. Start demo once first."
+  # shellcheck disable=SC1090
+  source "${RUNTIME_STATE_FILE}"
+else
+  if [[ -f "${SCRIPT_DIR}/deploy.env" ]]; then
+    # shellcheck disable=SC1091
+    source "${SCRIPT_DIR}/deploy.env"
+  fi
+  DOCKER_NAME="${DOCKER_NAME:-ros_noetic}"
+  JETSON_IP="${JETSON_IP:-192.168.50.1}"
+  CATKIN_WS="${CATKIN_WS:-${REPO_ROOT}/catkin_ws}"
+  ROS_MASTER="${ROS_MASTER:-http://${JETSON_IP}:11311}"
+fi
+
 NAV_READINESS_MODE="${NAV_READINESS_MODE:-relaxed}"
 HANDOBJ_DETECTOR_SCRIPT="${HANDOBJ_DETECTOR_SCRIPT:-handobj_detection_rgbd_remote_15cls.py}"
 WASTE_SERVER_URL="${WASTE_SERVER_URL:-}"
@@ -152,6 +176,23 @@ ensure_master() {
     ${DOCKER_EXEC} "pgrep -x rosmaster" >/dev/null 2>&1 || die "Failed to start roscore"
     ok "roscore started"
   fi
+}
+
+restart_master() {
+  if ! docker ps --format '{{.Names}}' | grep -q "^${DOCKER_NAME}$"; then
+    info "Starting docker container '${DOCKER_NAME}'..."
+    docker start "${DOCKER_NAME}" >/dev/null
+    sleep 2
+  fi
+
+  info "Restarting roscore..."
+  ${DOCKER_EXEC} "pkill -f '[r]osmaster' 2>/dev/null || true; \
+                  pkill -f '[r]oscore' 2>/dev/null || true; \
+                  sleep 1" >/dev/null 2>&1 || true
+  _docker_exec_detached "${ROS_ENV} && source /opt/ros/noetic/setup.bash && exec roscore > /tmp/roscore.log 2>&1"
+  sleep 4
+  ${DOCKER_EXEC} "pgrep -x rosmaster" >/dev/null 2>&1 || die "Failed to restart roscore"
+  ok "roscore restarted"
 }
 
 restart_yolo() {
@@ -329,13 +370,10 @@ restart_nav() {
   die "Navigation failed to restart cleanly"
 }
 
-IFS=',' read -r -a MODULES <<< "${ONLY_MODULES}"
-
 for module in "${MODULES[@]}"; do
   case "${module}" in
     master)
-      info "Ensuring master is up..."
-      ensure_master
+      restart_master
       ;;
     yolo)
       ensure_master

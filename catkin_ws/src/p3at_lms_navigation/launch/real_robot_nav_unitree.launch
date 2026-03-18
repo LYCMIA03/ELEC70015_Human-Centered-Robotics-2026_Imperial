@@ -137,7 +137,7 @@
       <param name="send_rate_hz" value="2.0"/>
       <param name="min_update_dist" value="0.25"/>
       <param name="use_target_orientation" value="false"/>
-      <param name="target_timeout" value="2.0"/>
+      <param name="target_timeout_s" value="2.0"/>
       <param name="standoff_distance" value="$(arg standoff_distance)"/>
       <param name="face_target" value="$(arg face_target)"/>
     </node>
