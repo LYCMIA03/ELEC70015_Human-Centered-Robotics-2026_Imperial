@@ -1,0 +1,129 @@
+[INFO] [1773823365.358017, 18.031000]: Waiting for move_base action server...
+[INFO] [1773823365.653288, 18.328000]: Connected to move_base.
+[INFO] [1773823365.654961, 18.330000]: [TargetFollower] STARTING -> IDLE
+[INFO] [1773823365.700916, 18.366000]: standoff_distance = 2.30 m
+[INFO] [1773823365.703268, 18.377000]: close_approach_threshold = 1.50 m
+[INFO] [1773823365.706186, 18.381000]: close_approach_speed = 0.10 m/s
+[INFO] [1773823365.707537, 18.382000]: close_approach_steer_gain = 0.60
+[INFO] [1773823365.708754, 18.383000]: close_approach_max_depth_jump = 0.50 m
+[INFO] [1773823365.710267, 18.385000]: face_target = True
+[INFO] [1773823365.711800, 18.386000]: trash_action_topic = /trash_action
+[INFO] [1773823365.712822, 18.388000]: action_wait_timeout = 45.0 s
+[INFO] [1773823365.714105, 18.389000]: post_accept_cooldown = 15.0 s
+[INFO] [1773823365.715014, 18.390000]: retreat_distance = 1.50 m
+[INFO] [1773823365.715966, 18.391000]: retreat_turn_angle = 100.0 deg
+[INFO] [1773823365.716998, 18.392000]: retreat_reverse_enabled = True
+[INFO] [1773823365.718390, 18.393000]: retreat_reverse_distance = 0.50 m
+[INFO] [1773823365.719483, 18.394000]: enable_auto_explore = True
+[INFO] [1773823365.720263, 18.395000]: explore_target_confirm = 0.8 s
+[INFO] [1773823365.721091, 18.396000]: explore_target_max_gap = 1.0 s
+[INFO] [1773823365.722003, 18.397000]: explore_stuck_timeout = 8.0 s
+[INFO] [1773823365.722930, 18.398000]: explore_min_progress = 0.20 m
+[INFO] [1773823365.723782, 18.399000]: explore_zero_cmd_vel_timeout = 2.0 s
+[INFO] [1773823365.724539, 18.399000]: explore_revisit_window = 120.0 s
+[INFO] [1773823365.725962, 18.401000]: explore_revisit_radius = 1.50 m
+[INFO] [1773823365.726743, 18.402000]: explore_map_topic = /map
+[INFO] [1773823365.727580, 18.403000]: explore_costmap_topic = /move_base/global_costmap/costmap
+[INFO] [1773823365.728290, 18.403000]: explore_scan_topic = /unitree/scan
+[INFO] [1773823365.728999, 18.404000]: explore_short_horizon = 2.20 m
+[INFO] [1773823365.729724, 18.405000]: explore_goal_max_dist = 6.00 m
+[INFO] [1773823365.730579, 18.406000]: explore_require_make_plan = True
+[INFO] [1773823365.731220, 18.406000]: Result topic: /target_follower/result (std_msgs/Bool)
+[INFO] [1773823365.731884, 18.407000]: Status topic: /target_follower/status (std_msgs/String)
+[INFO] [1773823365.736285, 18.411000]: [TargetFollower] IDLE -> EXPLORING
+[INFO] [1773823365.738189, 18.413000]: [TargetFollower] startup scan started for 4.0s
+[INFO] [1773823368.848417, 21.508000]: [TargetFollower] d_base=2.208  d_cam_z=2.000  d_cam_xy=2.001  standoff=2.30
+[INFO] [1773823368.851022, 21.511000]: [TargetFollower] Within standoff (d_cam_z=2.000 <= 2.30) — REACHED
+[INFO] [1773823368.852176, 21.512000]: [TargetFollower] EXPLORING -> REACHED
+[INFO] [1773823368.853544, 21.513000]: [TargetFollower] Published result: REACHED (True)
+[INFO] [1773823368.855606, 21.515000]: [TargetFollower] Dialogue point recorded at (0.00, 0.00), reason=reached
+[INFO] [1773823368.856988, 21.517000]: [TargetFollower] REACHED -> WAITING_ACTION
+[INFO] [1773823368.858036, 21.518000]: [TargetFollower] Waiting for /trash_action (timeout=45.0s)
+[INFO] [1773823374.366467, 26.992000]: [TargetFollower] /trash_action received: False
+[INFO] [1773823374.381696, 27.008000]: [TargetFollower] Trash action REFUSED — retreating immediately
+[INFO] [1773823374.383077, 27.009000]: [TargetFollower] WAITING_ACTION -> RETREATING
+[INFO] [1773823374.384138, 27.010000]: [TargetFollower] Skip reverse retreat: no rear scan coverage
+[INFO] [1773823374.385056, 27.011000]: [TargetFollower] Retreat phase 1 (refused): turning 100.0° (-2.5° → 97.5°) at 0.50 rad/s
+[INFO] [1773823378.123239, 30.708000]: [TargetFollower] Retreat turn complete (error=9.7°) — finishing retreat
+[INFO] [1773823378.125807, 30.709000]: [TargetFollower] Retreat complete (refused) — returning to IDLE and resuming explore
+[INFO] [1773823378.129310, 30.712000]: [TargetFollower] Published result: FAILED/LOST (False)
+[INFO] [1773823378.132728, 30.718000]: [TargetFollower] RETREATING -> IDLE
+[INFO] [1773823378.527003, 31.142000]: [TargetFollower] IDLE -> EXPLORING
+[INFO] [1773823378.528348, 31.144000]: [TargetFollower] Exploring frontier -> goal=(-1.87, 1.47) frontier=(-3.00, 2.31) size=158
+[INFO] [1773823381.560110, 34.158000]: Cancelled active move_base goal
+[INFO] [1773823381.561211, 34.159000]: [TargetFollower] EXPLORING -> IDLE
+[INFO] [1773823381.562527, 34.160000]: [TargetFollower] d_base=2.008  d_cam_z=1.800  d_cam_xy=1.800  standoff=2.30
+[INFO] [1773823381.563384, 34.161000]: [TargetFollower] Within standoff (d_cam_z=1.800 <= 2.30) — REACHED
+[INFO] [1773823381.564143, 34.162000]: [TargetFollower] IDLE -> REACHED
+[INFO] [1773823381.564801, 34.162000]: [TargetFollower] Published result: REACHED (True)
+[INFO] [1773823381.565513, 34.163000]: [TargetFollower] Dialogue point recorded at (-0.40, 0.54), reason=reached
+[INFO] [1773823381.566317, 34.164000]: [TargetFollower] REACHED -> WAITING_ACTION
+[INFO] [1773823381.567033, 34.165000]: [TargetFollower] Waiting for /trash_action (timeout=45.0s)
+[INFO] [1773823381.645180, 34.243000]: [TargetFollower] Suppressed done_cb after manual cancel (status=2)
+[INFO] [1773823387.295082, 39.838000]: [TargetFollower] /trash_action received: True
+[INFO] [1773823387.314935, 39.858000]: [TargetFollower] Trash action ACCEPTED — starting cooldown to ensure trash drop is complete
+[INFO] [1773823387.316442, 39.859000]: [TargetFollower] Published result: FAILED/LOST (False)
+[INFO] [1773823387.317548, 39.860000]: [TargetFollower] WAITING_ACTION -> POST_ACCEPT_COOLDOWN
+[INFO] [1773823387.318570, 39.861000]: [TargetFollower] POST_ACCEPT_COOLDOWN target stale (age=2.60s > 1.20s) — continue to retreat
+[INFO] [1773823387.319927, 39.863000]: [TargetFollower] POST_ACCEPT_COOLDOWN -> RETREATING
+[INFO] [1773823387.321282, 39.863000]: [TargetFollower] Skip reverse retreat: costmap blocks reverse path
+[INFO] [1773823387.322187, 39.865000]: [TargetFollower] Retreat phase 1 (accepted_after_cooldown): turning 100.0° (130.8° → -129.2°) at 0.50 rad/s
+[INFO] [1773823391.132790, 43.658000]: [TargetFollower] Retreat turn complete (error=9.6°) — finishing retreat
+[INFO] [1773823391.134513, 43.659000]: [TargetFollower] Retreat complete (accepted_after_cooldown) — returning to IDLE and resuming explore
+[INFO] [1773823391.136169, 43.661000]: [TargetFollower] Published result: FAILED/LOST (False)
+[INFO] [1773823391.138827, 43.664000]: [TargetFollower] RETREATING -> IDLE
+[INFO] [1773823391.570500, 44.104000]: [TargetFollower] IDLE -> EXPLORING
+[INFO] [1773823391.572350, 44.106000]: [TargetFollower] Exploring frontier -> goal=(-2.20, 1.72) frontier=(-3.00, 2.31) size=158
+[INFO] [1773823404.736189, 57.205000]: [TargetFollower] Explore frontier goal reached
+[INFO] [1773823404.737408, 57.206000]: [TargetFollower] goal_reached scan started for 2.2s
+[INFO] [1773823407.461812, 59.923000]: [TargetFollower] Exploring frontier -> goal=(-2.08, 3.44) frontier=(-1.97, 6.07) size=4126
+[INFO] [1773823418.507411, 70.923000]: [TargetFollower] Explore frontier goal reached
+[INFO] [1773823418.508827, 70.924000]: [TargetFollower] goal_reached scan started for 2.2s
+[INFO] [1773823421.284249, 73.688000]: [TargetFollower] Exploring frontier -> goal=(-2.13, 4.51) frontier=(-2.04, 6.37) size=3813
+[INFO] [1773823428.399828, 80.789000]: [TargetFollower] Explore frontier goal reached
+[INFO] [1773823428.401840, 80.791000]: [TargetFollower] goal_reached scan started for 2.2s
+[INFO] [1773823431.159427, 83.517000]: [TargetFollower] Exploring frontier -> goal=(-2.07, 6.23) frontier=(-2.14, 6.58) size=3541
+[INFO] [1773823440.300007, 92.612000]: [TargetFollower] Explore frontier goal reached
+[INFO] [1773823440.301655, 92.622000]: [TargetFollower] goal_reached scan started for 2.2s
+[INFO] [1773823444.133995, 96.433000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823447.964695, 100.239000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823451.781195, 104.035000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823455.613232, 107.874000]: [TargetFollower] no_frontier scan started for 2.2s
+Warning: TF_REPEATED_DATA ignoring data with redundant timestamp for frame base_footprint (parent odom) at time 164.017000 according to authority /gazebo
+         at line 277 in /tmp/binarydeb/ros-noetic-tf2-0.7.10/src/buffer_core.cpp
+[INFO] [1773823365.274803, 17.947000]: udp_target_bridge listening on 0.0.0.0:16031 -> /trash_detection/target_point
+[WARN] [1773823378.166221, 30.763000]: Target pose stale (age=6.43s > 1.20s) — clearing stale target
+[INFO] [1773823459.437540, 111.672000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823463.425663, 115.623000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823467.246262, 119.437000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823471.066465, 123.250000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823474.880829, 127.015000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823478.669638, 130.825000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823482.486876, 134.589000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823486.295529, 138.395000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823490.080847, 142.160000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823493.887290, 145.972000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823497.786169, 149.841000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823501.689156, 153.730000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823505.508193, 157.535000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823509.320612, 161.346000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823513.182850, 165.155000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823517.011174, 169.000000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823520.858194, 172.813000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823524.707952, 176.645000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823528.666826, 180.545000]: [TargetFollower] no_frontier scan started for 2.2s
+[INFO] [1773823531.449859, 183.343000]: [TargetFollower] Exploring frontier -> goal=(-1.99, 3.76) frontier=(-2.10, 0.70) size=8
+[INFO] [1773823546.932300, 198.746000]: [TargetFollower] Explore frontier goal reached
+[INFO] [1773823546.934717, 198.748000]: [TargetFollower] goal_reached scan started for 2.2s
+[INFO] [1773823547.118943, 198.932000]: [TargetFollower] Exploring frontier -> goal=(-2.92, 2.38) frontier=(-3.00, 2.31) size=158
+[INFO] [1773823365.388242, 18.062000]: Relaying PointStamped /trash_detection/target_point -> PoseStamped /target_pose
+Traceback (most recent call last):
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/target_follower.py", line 1870, in <module>
+    node.spin()
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/target_follower.py", line 1864, in spin
+    r.sleep()
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/timer.py", line 103, in sleep
+    sleep(self._remaining(curr_time))
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/timer.py", line 165, in sleep
+    raise rospy.exceptions.ROSInterruptException("ROS shutdown request")
+rospy.exceptions.ROSInterruptException: ROS shutdown request

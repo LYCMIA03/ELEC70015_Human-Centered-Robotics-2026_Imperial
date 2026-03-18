@@ -1,0 +1,164 @@
+[WARN] [1773818800.750650, 37.516000]: [TargetFollower] Skip startup scan: nearby clearance 1.72m < 0.00m
+[WARN] [1773818803.254184, 40.016000]: [TargetFollower] Skip startup scan: nearby clearance 1.71m < 0.00m
+[WARN] [1773818805.757507, 42.516000]: [TargetFollower] Skip startup scan: nearby clearance 1.71m < 0.00m
+[WARN] [1773818808.266135, 45.016000]: [TargetFollower] Skip startup scan: nearby clearance 1.72m < 0.00m
+[WARN] [1773818810.769204, 47.516000]: [TargetFollower] Skip startup scan: nearby clearance 1.71m < 0.00m
+[WARN] [1773818813.271838, 50.016000]: [TargetFollower] Skip startup scan: nearby clearance 1.72m < 0.00m
+[WARN] [1773818815.776584, 52.516000]: [TargetFollower] Skip startup scan: nearby clearance 1.71m < 0.00m
+[WARN] [1773818818.278503, 55.016000]: [TargetFollower] Skip startup scan: nearby clearance 1.72m < 0.00m
+[WARN] [1773818820.782734, 57.516000]: [TargetFollower] Skip startup scan: nearby clearance 1.73m < 0.00m
+[WARN] [1773818823.285569, 60.016000]: [TargetFollower] Skip startup scan: nearby clearance 1.72m < 0.00m
+[WARN] [1773818825.789024, 62.516000]: [TargetFollower] Skip startup scan: nearby clearance 1.72m < 0.00m
+[WARN] [1773818828.291616, 65.016000]: [TargetFollower] Skip startup scan: nearby clearance 1.72m < 0.00m
+[WARN] [1773818830.794140, 67.516000]: [TargetFollower] Skip startup scan: nearby clearance 1.72m < 0.00m
+[WARN] [1773818833.297202, 70.016000]: [TargetFollower] Skip startup scan: nearby clearance 1.71m < 0.00m
+[WARN] [1773818835.800295, 72.516000]: [TargetFollower] Skip startup scan: nearby clearance 1.71m < 0.00m
+[WARN] [1773818838.303846, 75.016000]: [TargetFollower] Skip startup scan: nearby clearance 1.72m < 0.00m
+[WARN] [1773818840.806996, 77.516000]: [TargetFollower] Skip startup scan: nearby clearance 1.72m < 0.00m
+[WARN] [1773818843.312357, 80.016000]: [TargetFollower] Skip startup scan: nearby clearance 1.72m < 0.00m
+[WARN] [1773818845.815299, 82.516000]: [TargetFollower] Skip startup scan: nearby clearance 1.77m < 0.00m
+[WARN] [1773818848.316985, 85.016000]: [TargetFollower] Skip startup scan: nearby clearance 2.09m < 0.00m
+[WARN] [1773818850.820479, 87.516000]: [TargetFollower] Skip startup scan: nearby clearance 2.35m < 0.00m
+[WARN] [1773818853.323311, 90.016000]: [TargetFollower] Skip startup scan: nearby clearance 2.31m < 0.00m
+[WARN] [1773818855.828866, 92.516000]: [TargetFollower] Skip startup scan: nearby clearance 2.01m < 0.00m
+[WARN] [1773818858.331060, 95.016000]: [TargetFollower] Skip startup scan: nearby clearance 1.71m < 0.00m
+[WARN] [1773818860.833555, 97.516000]: [TargetFollower] Skip startup scan: nearby clearance 1.79m < 0.00m
+[WARN] [1773818863.336991, 100.016000]: [TargetFollower] Skip startup scan: nearby clearance 2.13m < 0.00m
+[WARN] [1773818865.839537, 102.516000]: [TargetFollower] Skip startup scan: nearby clearance 2.36m < 0.00m
+[WARN] [1773818868.341969, 105.016000]: [TargetFollower] Skip startup scan: nearby clearance 2.29m < 0.00m
+[INFO] [1773818799.921223, 36.686000]: Waiting for move_base action server...
+[INFO] [1773818800.135973, 36.901000]: Connected to move_base.
+[INFO] [1773818800.137044, 36.902000]: [TargetFollower] STARTING -> IDLE
+[INFO] [1773818800.169468, 36.935000]: standoff_distance = 0.60 m
+[INFO] [1773818800.179384, 36.945000]: close_approach_threshold = 1.50 m
+[INFO] [1773818800.180144, 36.946000]: close_approach_speed = 0.10 m/s
+[INFO] [1773818800.180975, 36.947000]: close_approach_steer_gain = 0.60
+[INFO] [1773818800.181582, 36.947000]: close_approach_max_depth_jump = 0.50 m
+[INFO] [1773818800.182226, 36.948000]: face_target = True
+[INFO] [1773818800.182938, 36.949000]: trash_action_topic = /trash_action
+[INFO] [1773818800.183513, 36.949000]: action_wait_timeout = 45.0 s
+[INFO] [1773818800.184294, 36.950000]: post_accept_cooldown = 15.0 s
+[INFO] [1773818800.184827, 36.950000]: retreat_distance = 1.50 m
+[INFO] [1773818800.185541, 36.951000]: retreat_turn_angle = 100.0 deg
+[INFO] [1773818800.186217, 36.952000]: retreat_reverse_enabled = True
+[INFO] [1773818800.186966, 36.953000]: retreat_reverse_distance = 0.50 m
+[INFO] [1773818800.187654, 36.953000]: enable_auto_explore = True
+[INFO] [1773818800.188423, 36.954000]: explore_target_confirm = 0.8 s
+[INFO] [1773818800.189435, 36.955000]: explore_target_max_gap = 1.0 s
+[INFO] [1773818800.190318, 36.956000]: explore_stuck_timeout = 8.0 s
+[INFO] [1773818800.190962, 36.957000]: explore_min_progress = 0.20 m
+[INFO] [1773818800.191588, 36.957000]: explore_zero_cmd_vel_timeout = 2.0 s
+[INFO] [1773818800.192218, 36.958000]: explore_revisit_window = 120.0 s
+[INFO] [1773818800.192986, 36.959000]: explore_revisit_radius = 1.50 m
+[INFO] [1773818800.193512, 36.959000]: explore_map_topic = /map
+[INFO] [1773818800.194330, 36.960000]: explore_costmap_topic = /move_base/global_costmap/costmap
+[INFO] [1773818800.195219, 36.961000]: explore_scan_topic = /unitree/scan
+[INFO] [1773818800.196160, 36.962000]: explore_short_horizon = 2.20 m
+[INFO] [1773818800.197011, 36.963000]: explore_goal_max_dist = 6.00 m
+[INFO] [1773818800.197752, 36.964000]: explore_require_make_plan = False
+[INFO] [1773818800.198407, 36.964000]: Result topic: /target_follower/result (std_msgs/Bool)
+[INFO] [1773818800.199210, 36.965000]: Status topic: /target_follower/status (std_msgs/String)
+[INFO] [1773818800.202422, 36.968000]: [TargetFollower] Exploration waiting: waiting scan
+Traceback (most recent call last):
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/target_follower.py", line 1853, in <module>
+    node.spin()
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/target_follower.py", line 1815, in spin
+    self.maybe_send_goal()
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/target_follower.py", line 1670, in maybe_send_goal
+    if self._is_recent_dialogue_area(tx, ty):
+  File "/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/target_follower.py", line 649, in _is_recent_dialogue_area
+    cutoff = now - rospy.Duration(window_s)
+  File "/opt/ros/noetic/lib/python3/dist-packages/genpy/rostime.py", line 257, in __sub__
+    return self.__class__(self.secs - other.secs, self.nsecs - other.nsecs)
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/rostime.py", line 138, in __init__
+    super(Time, self).__init__(secs, nsecs)
+  File "/opt/ros/noetic/lib/python3/dist-packages/genpy/rostime.py", line 211, in __init__
+    raise TypeError('time values must be positive')
+TypeError: time values must be positive
+[INFO] [1773818799.847238, 36.611000]: udp_target_bridge listening on 0.0.0.0:16031 -> /trash_detection/target_point
+[INFO] [1773818799.854582, 36.618000]: Relaying PointStamped /trash_detection/target_point -> PoseStamped /target_pose
+[31m[target_follower-3] process has died [pid 16865, exit code 1, cmd /home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/scripts/target_follower.py __name:=target_follower __log:=/home/yuchen/.ros/log/b5e6cf88-229b-11f1-9b57-00155d28b090/target_follower-3.log].
+log file: /home/yuchen/.ros/log/b5e6cf88-229b-11f1-9b57-00155d28b090/target_follower-3*.log[0m
+... logging to /home/yuchen/.ros/log/b5e6cf88-229b-11f1-9b57-00155d28b090/roslaunch-LYCMIA03DELL-16830.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/launch/target_follow_real.launch
+[1mstarted roslaunch server http://127.0.0.1:44937/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /point_to_target_pose/in_point_topic: /trash_detection/...
+ * /point_to_target_pose/out_target_topic: /target_pose
+ * /point_to_target_pose/stamp_now: True
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /target_follower/action_wait_timeout_s: 45.0
+ * /target_follower/camera_frame: camera_link
+ * /target_follower/enable_auto_explore: True
+ * /target_follower/explore_costmap_topic: /move_base/global...
+ * /target_follower/explore_goal_distance: 2.2
+ * /target_follower/explore_goal_max_dist: 6.0
+ * /target_follower/explore_goal_scan_duration_s: 1.0
+ * /target_follower/explore_goal_timeout_s: 30.0
+ * /target_follower/explore_initial_scan_duration_s: 1.0
+ * /target_follower/explore_map_clearance_m: 0.05
+ * /target_follower/explore_map_topic: /map
+ * /target_follower/explore_min_frontier_size: 8
+ * /target_follower/explore_min_progress_dist: 0.2
+ * /target_follower/explore_require_make_plan: False
+ * /target_follower/explore_revisit_radius: 1.5
+ * /target_follower/explore_revisit_window_s: 120.0
+ * /target_follower/explore_scan_topic: /unitree/scan
+ * /target_follower/explore_short_horizon_m: 2.2
+ * /target_follower/explore_stuck_timeout_s: 8.0
+ * /target_follower/explore_target_confirm_s: 0.8
+ * /target_follower/explore_target_max_gap_s: 1.0
+ * /target_follower/explore_zero_cmd_vel_timeout_s: 2.0
+ * /target_follower/face_target: True
+ * /target_follower/global_frame: map
+ * /target_follower/min_update_dist: 0.2
+ * /target_follower/post_accept_cooldown_s: 15.0
+ * /target_follower/retreat_distance: 1.5
+ * /target_follower/retreat_reverse_distance: 0.5
+ * /target_follower/retreat_reverse_enabled: True
+ * /target_follower/retreat_reverse_rear_sector_deg: 35.0
+ * /target_follower/retreat_reverse_safety_margin: 0.2
+ * /target_follower/retreat_reverse_scan_stale_s: 0.8
+ * /target_follower/retreat_reverse_speed: 0.1
+ * /target_follower/retreat_timeout_s: 20.0
+ * /target_follower/retreat_turn_angle_deg: 100.0
+ * /target_follower/robot_frame: base_link
+ * /target_follower/send_rate_hz: 2.0
+ * /target_follower/standoff_distance: 0.6
+ * /target_follower/target_reacquire_block_s: 120.0
+ * /target_follower/target_reacquire_duration_s: 4.0
+ * /target_follower/target_reacquire_radius: 1.6
+ * /target_follower/target_timeout_s: 5.0
+ * /target_follower/target_topic: /target_pose
+ * /target_follower/trash_action_topic: /trash_action
+ * /target_follower/use_target_orientation: False
+ * /udp_target_bridge/bind_host: 0.0.0.0
+ * /udp_target_bridge/bind_port: 16031
+ * /udp_target_bridge/default_frame: camera_link
+ * /udp_target_bridge/out_topic: /trash_detection/...
+ * /udp_target_bridge/stamp_now: True
+
+NODES
+  /
+    point_to_target_pose (target_follower/point_to_target_pose.py)
+    target_follower (target_follower/target_follower.py)
+    udp_target_bridge (target_follower/udp_target_bridge.py)
+
+[1mROS_MASTER_URI=http://127.0.0.1:11311[0m
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/launch/target_follow_real.launch http://127.0.0.1:11311
+[1mprocess[udp_target_bridge-1]: started with pid [16863][0m
+[1mprocess[point_to_target_pose-2]: started with pid [16864][0m
+[1mprocess[target_follower-3]: started with pid [16865][0m
+[point_to_target_pose-2] killing on exit
+[udp_target_bridge-1] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

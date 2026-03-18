@@ -42,7 +42,7 @@
   <!-- Self-detection filter -->
   <node pkg="target_follower" type="scan_body_filter.py" name="scan_body_filter" output="screen">
     <!-- Use RPLIDAR mount pose from URDF (rear-underbody) -->
-    <param name="lidar_x" value="-0.202"/>
+    <param name="lidar_x" value="-0.272"/>
     <param name="lidar_y" value="0.0"/>
     <param name="body_x_min" value="-0.27"/>
     <param name="body_x_max" value="0.27"/>
@@ -54,7 +54,7 @@
 
   <!-- Robot model & TF -->
   <param name="robot_description"
-         command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_lms.urdf.xacro"/>
+         command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen"/>
 
   <!-- Map service -->
@@ -80,6 +80,7 @@
       <param name="target_topic" value="/target_pose"/>
       <param name="global_frame" value="map"/>
       <param name="robot_frame" value="base_link"/>
+      <param name="camera_frame" value="camera_link"/>
       <param name="send_rate_hz" value="2.0"/>
       <param name="min_update_dist" value="0.25"/>
       <param name="use_target_orientation" value="false"/>

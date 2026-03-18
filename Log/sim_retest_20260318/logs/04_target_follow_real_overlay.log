@@ -1,0 +1,7 @@
+[31mRLException: [/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/launch/target_follow_real.launch] requires the 'global_frame' arg to be set[0m
+[31mThe traceback for the exception was written to the log file[0m
+... logging to /home/yuchen/.ros/log/4335fab4-229a-11f1-b923-00155d28b090/roslaunch-LYCMIA03DELL-4614.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/yuchen/work/ELEC70015_Human-Centered-Robotics-2026_Imperial/catkin_ws/src/target_follower/launch/target_follow_real.launch

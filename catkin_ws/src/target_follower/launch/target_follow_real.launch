@@ -14,7 +14,7 @@
       3. udp_target_bridge        接收检测结果 (UDP JSON → /trash_detection/target_point)
       4. point_to_target_pose     PointStamped → PoseStamped (/target_pose)
       5. target_follower          /target_pose → MoveBaseGoal (带 standoff + face_target)
-      6. static TF                base_link → camera_link (+ optional laser TF in dual mode)
+      6. robot_state_publisher    发布 URDF 中的 base_link → {laser,camera_link} 外参
 
     当前策略:
       - lidar_mode:=dual    → Unitree 主传感器 + RPLIDAR 近场补充
@@ -29,6 +29,8 @@
        doc="当 launch_move_base=true 时, true=在线SLAM(map权威), false=仅本地odom规划(legacy)"/>
   <arg name="lidar_mode"             default="dual"
        doc="独立模式雷达策略: dual|unitree|rplidar"/>
+  <arg name="publish_robot_state_in_overlay" default="true"
+       doc="overlay模式下是否发布robot_description/TF，建议保持true以使用统一URDF外参"/>
   <arg name="unitree_port"           default="/dev/unitree_lidar"/>
   <arg name="rplidar_port"           default="/dev/rplidar_lidar"/>
   <arg name="rplidar_baud"           default="256000"/>
@@ -114,40 +116,16 @@
   <arg name="target_reacquire_block_s" default="120.0" doc="对话后屏蔽重复目标的时长 (s)"/>
   <arg name="target_reacquire_radius"  default="1.6" doc="对话后屏蔽重复目标的半径 (m)"/>
 
-  <!-- Approximate RPLIDAR mount for dual-lidar mode.
-       TODO: replace with measured pose / URDF once hardware layout is final. -->
-  <arg name="rplidar_tf_x" default="-0.272"/>
-  <arg name="rplidar_tf_y" default="0.0"/>
-  <arg name="rplidar_tf_z" default="0.072"/>
-  <arg name="rplidar_tf_qx" default="1.0"/>
-  <arg name="rplidar_tf_qy" default="0.0"/>
-  <arg name="rplidar_tf_qz" default="0.0"/>
-  <arg name="rplidar_tf_qw" default="0.0"/>
-  <arg name="camera_tf_x" default="0.208"/>
-  <arg name="camera_tf_y" default="0.0"/>
-  <arg name="camera_tf_z" default="0.85"/>
-  <arg name="camera_tf_qx" default="-0.5"/>
-  <arg name="camera_tf_qy" default="0.5"/>
-  <arg name="camera_tf_qz" default="-0.5"/>
-  <arg name="camera_tf_qw" default="0.5"/>
-
-  <!-- Resolve global_frame:
+  <!-- Recommended:
        - overlay: map
        - standalone + online_slam: map
-       - standalone + legacy local-only: odom -->
-  <arg name="global_frame" default="map"
-       if="$(eval (arg('launch_move_base') == 'false') or (arg('use_online_slam') == 'true'))"/>
-  <arg name="global_frame" default="odom"
-       if="$(eval (arg('launch_move_base') == 'true') and (arg('use_online_slam') == 'false'))"/>
+       - standalone + legacy local-only: pass global_frame:=odom explicitly -->
+  <arg name="global_frame" default="map"/>
 
   <!-- ============================================================ -->
   <!--  独立模式: selected LiDAR + robot_description + move_base    -->
   <!-- ============================================================ -->
   <group if="$(arg launch_move_base)">
-
-    <node if="$(eval arg('lidar_mode') != 'unitree')"
-          pkg="tf2_ros" type="static_transform_publisher" name="rplidar_laser_tf"
-          args="$(arg rplidar_tf_x) $(arg rplidar_tf_y) $(arg rplidar_tf_z) $(arg rplidar_tf_qx) $(arg rplidar_tf_qy) $(arg rplidar_tf_qz) $(arg rplidar_tf_qw) base_link laser"/>
 
     <group if="$(arg use_online_slam)">
       <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping_online" output="screen">
@@ -226,7 +204,7 @@
 
         <node pkg="target_follower" type="scan_body_filter.py"
               name="rplidar_scan_body_filter" output="screen">
-          <param name="lidar_x" value="-0.202"/>
+          <param name="lidar_x" value="-0.272"/>
           <param name="lidar_y" value="0.0"/>
           <param name="body_x_min" value="-0.27"/>
           <param name="body_x_max" value="0.27"/>
@@ -276,7 +254,7 @@
 
       <node pkg="target_follower" type="scan_body_filter.py"
             name="scan_body_filter" output="screen">
-        <param name="lidar_x" value="-0.202"/>
+        <param name="lidar_x" value="-0.272"/>
         <param name="lidar_y" value="0.0"/>
         <param name="body_x_min" value="-0.27"/>
         <param name="body_x_max" value="0.27"/>
@@ -306,11 +284,12 @@
 
   </group>
 
-  <!-- ============================================================ -->
-  <!--  Static TF: base_link → camera_link (ROS→optical)            -->
-  <!-- ============================================================ -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_tf"
-        args="$(arg camera_tf_x) $(arg camera_tf_y) $(arg camera_tf_z) $(arg camera_tf_qx) $(arg camera_tf_qy) $(arg camera_tf_qz) $(arg camera_tf_qw) base_link camera_link"/>
+  <group if="$(eval (arg('launch_move_base') == 'false') and (arg('publish_robot_state_in_overlay') == 'true'))">
+    <param name="robot_description"
+           command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
+    <node pkg="robot_state_publisher" type="robot_state_publisher"
+          name="robot_state_publisher" output="screen"/>
+  </group>
 
   <!-- ========== UDP Bridge: detection → ROS ========== -->
   <node pkg="target_follower" type="udp_target_bridge.py" name="udp_target_bridge" output="screen">
@@ -333,6 +312,7 @@
     <param name="target_topic"           value="/target_pose"/>
     <param name="global_frame"           value="$(arg global_frame)"/>
     <param name="robot_frame"            value="base_link"/>
+    <param name="camera_frame"           value="camera_link"/>
     <param name="send_rate_hz"           value="$(arg send_rate_hz)"/>
     <param name="min_update_dist"        value="$(arg min_update_dist)"/>
     <param name="use_target_orientation" value="false"/>

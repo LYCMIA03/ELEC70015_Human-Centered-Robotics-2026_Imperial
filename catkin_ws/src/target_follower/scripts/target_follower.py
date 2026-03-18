@@ -630,7 +630,11 @@ class TargetFollower:
             window_s = self.explore_revisit_window_s
         if radius_m is None:
             radius_m = self.explore_revisit_radius
-        cutoff = now - rospy.Duration(window_s)
+        # In sim-time startup, `now` can be smaller than the memory window.
+        # Clamp cutoff to epoch to avoid negative Time subtraction exceptions.
+        window_s = max(0.0, float(window_s))
+        now_s = now.to_sec()
+        cutoff = rospy.Time.from_sec(max(0.0, now_s - window_s))
 
         for stamp, px, py in reversed(self._path_history):
             if stamp < cutoff:
@@ -646,7 +650,11 @@ class TargetFollower:
             window_s = self.target_reacquire_block_s
         if radius_m is None:
             radius_m = self.target_reacquire_radius
-        cutoff = now - rospy.Duration(window_s)
+        # In sim-time startup, `now` can be smaller than the memory window.
+        # Clamp cutoff to epoch to avoid negative Time subtraction exceptions.
+        window_s = max(0.0, float(window_s))
+        now_s = now.to_sec()
+        cutoff = rospy.Time.from_sec(max(0.0, now_s - window_s))
 
         for stamp, px, py, _ in reversed(self._dialogue_points):
             if stamp < cutoff:
@@ -760,16 +768,23 @@ class TargetFollower:
 
     def _can_scan_in_place(self):
         if self._latest_scan_min_range is None:
-            return False
+            return False, "scan_unavailable"
         if self._latest_scan_min_range < self.explore_scan_min_clearance_m:
-            return False
+            return False, "scan_too_close"
         robot_info = self._get_robot_pose_in_global()
         if robot_info is None:
-            return False
+            return False, "tf_unavailable"
         rx, ry, _ = robot_info
         if self.frontier_planner.costmap_data is not None and not self.frontier_planner._is_costmap_world_safe(rx, ry):
-            return False
-        return True
+            # Do not hard-block in-place scans on costmap occupancy, because at
+            # startup/inflated map edges this frequently becomes a false negative.
+            rospy.logdebug_throttle(
+                2.0,
+                "[TargetFollower] scan allowed although costmap marks robot cell unsafe at (%.2f, %.2f)",
+                rx,
+                ry,
+            )
+        return True, "ok"
 
     def _stop_explore_scan(self):
         if self._explore_scan_end is None:
@@ -782,11 +797,13 @@ class TargetFollower:
         self._next_explore_time = rospy.Time.now() + rospy.Duration(self.explore_scan_settle_s)
 
     def _start_explore_scan(self, mode, duration_s, preferred_yaw=None):
-        if not self._can_scan_in_place():
+        can_scan, reason = self._can_scan_in_place()
+        if not can_scan:
             rospy.logwarn_throttle(
                 2.0,
-                "[TargetFollower] Skip %s scan: nearby clearance %.2fm < %.2fm",
+                "[TargetFollower] Skip %s scan (%s): nearby clearance %.2fm < %.2fm",
                 mode,
+                reason,
                 self._latest_scan_min_range if self._latest_scan_min_range is not None else -1.0,
                 self.explore_scan_min_clearance_m,
             )

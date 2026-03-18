@@ -138,23 +138,6 @@ MAP_SAVE_PREFIX="${CATKIN_WS}/src/p3at_lms_navigation/maps/task_session_${SESSIO
 NAV_PROFILE="online_slam_task"
 ENABLE_RPLIDAR_IN_NAV="true"
 NAV_READINESS_MODE="strict"
-# TODO: The RPLIDAR rear-mount transform is still an approximate carry-over
-# from temp/rplidar-a2-dev-20260314. Re-measure on the robot and move it into
-# the URDF once the dual-lidar layout is finalized.
-RPLIDAR_TF_X="-0.272"
-RPLIDAR_TF_Y="0.0"
-RPLIDAR_TF_Z="0.072"
-RPLIDAR_TF_QX="1.0"
-RPLIDAR_TF_QY="0.0"
-RPLIDAR_TF_QZ="0.0"
-RPLIDAR_TF_QW="0.0"
-CAMERA_TF_X="0.208"
-CAMERA_TF_Y="0.0"
-CAMERA_TF_Z="0.85"
-CAMERA_TF_QX="-0.5"
-CAMERA_TF_QY="0.5"
-CAMERA_TF_QZ="-0.5"
-CAMERA_TF_QW="0.5"
 
 # ---------- 解析参数 ----------
 while [[ $# -gt 0 ]]; do
@@ -1022,7 +1005,6 @@ else
 
   if [[ "${LIDAR_MODE}" != "unitree" ]]; then
     _check_serial_device_rw "RPLIDAR" "${RPLIDAR_PORT}"
-    warn "Dual/RPLIDAR mode uses an approximate rear-mount RPLIDAR transform; verify obstacle behavior on hardware."
   fi
 
   if ${SENSOR_ONLY}; then
@@ -1032,13 +1014,6 @@ else
         unitree_port:=${UNITREE_PORT} \
         rplidar_port:=${RPLIDAR_PORT} \
         rplidar_baud:=${RPLIDAR_BAUD} \
-        rplidar_tf_x:=${RPLIDAR_TF_X} \
-        rplidar_tf_y:=${RPLIDAR_TF_Y} \
-        rplidar_tf_z:=${RPLIDAR_TF_Z} \
-        rplidar_tf_qx:=${RPLIDAR_TF_QX} \
-        rplidar_tf_qy:=${RPLIDAR_TF_QY} \
-        rplidar_tf_qz:=${RPLIDAR_TF_QZ} \
-        rplidar_tf_qw:=${RPLIDAR_TF_QW} \
         rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
         rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
         rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \
@@ -1053,13 +1028,6 @@ else
         enable_rplidar:=${ENABLE_RPLIDAR_IN_NAV} \
         rplidar_port:=${RPLIDAR_PORT} \
         rplidar_baud:=${RPLIDAR_BAUD} \
-        rplidar_tf_x:=${RPLIDAR_TF_X} \
-        rplidar_tf_y:=${RPLIDAR_TF_Y} \
-        rplidar_tf_z:=${RPLIDAR_TF_Z} \
-        rplidar_tf_qx:=${RPLIDAR_TF_QX} \
-        rplidar_tf_qy:=${RPLIDAR_TF_QY} \
-        rplidar_tf_qz:=${RPLIDAR_TF_QZ} \
-        rplidar_tf_qw:=${RPLIDAR_TF_QW} \
         rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
         rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
         rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \
@@ -1069,24 +1037,11 @@ else
     _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
       exec roslaunch target_follower target_follow_real.launch \
         launch_move_base:=false \
+        global_frame:=map \
         lidar_mode:=${LIDAR_MODE} \
         unitree_port:=${UNITREE_PORT} \
         rplidar_port:=${RPLIDAR_PORT} \
         rplidar_baud:=${RPLIDAR_BAUD} \
-        rplidar_tf_x:=${RPLIDAR_TF_X} \
-        rplidar_tf_y:=${RPLIDAR_TF_Y} \
-        rplidar_tf_z:=${RPLIDAR_TF_Z} \
-        rplidar_tf_qx:=${RPLIDAR_TF_QX} \
-        rplidar_tf_qy:=${RPLIDAR_TF_QY} \
-        rplidar_tf_qz:=${RPLIDAR_TF_QZ} \
-        rplidar_tf_qw:=${RPLIDAR_TF_QW} \
-        camera_tf_x:=${CAMERA_TF_X} \
-        camera_tf_y:=${CAMERA_TF_Y} \
-        camera_tf_z:=${CAMERA_TF_Z} \
-        camera_tf_qx:=${CAMERA_TF_QX} \
-        camera_tf_qy:=${CAMERA_TF_QY} \
-        camera_tf_qz:=${CAMERA_TF_QZ} \
-        camera_tf_qw:=${CAMERA_TF_QW} \
         rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
         rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
         rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \
@@ -1118,20 +1073,6 @@ else
         unitree_port:=${UNITREE_PORT} \
         rplidar_port:=${RPLIDAR_PORT} \
         rplidar_baud:=${RPLIDAR_BAUD} \
-        rplidar_tf_x:=${RPLIDAR_TF_X} \
-        rplidar_tf_y:=${RPLIDAR_TF_Y} \
-        rplidar_tf_z:=${RPLIDAR_TF_Z} \
-        rplidar_tf_qx:=${RPLIDAR_TF_QX} \
-        rplidar_tf_qy:=${RPLIDAR_TF_QY} \
-        rplidar_tf_qz:=${RPLIDAR_TF_QZ} \
-        rplidar_tf_qw:=${RPLIDAR_TF_QW} \
-        camera_tf_x:=${CAMERA_TF_X} \
-        camera_tf_y:=${CAMERA_TF_Y} \
-        camera_tf_z:=${CAMERA_TF_Z} \
-        camera_tf_qx:=${CAMERA_TF_QX} \
-        camera_tf_qy:=${CAMERA_TF_QY} \
-        camera_tf_qz:=${CAMERA_TF_QZ} \
-        camera_tf_qw:=${CAMERA_TF_QW} \
         rplidar_pre_start_motor:=${RPLIDAR_PRE_START_MOTOR} \
         rplidar_pre_start_motor_pwm:=${RPLIDAR_PRE_START_PWM} \
         rplidar_pre_start_motor_warmup_s:=${RPLIDAR_PRE_START_WARMUP_S} \

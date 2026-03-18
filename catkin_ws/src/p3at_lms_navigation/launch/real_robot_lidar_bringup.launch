@@ -15,16 +15,6 @@
   <arg name="rplidar_pre_start_motor_warmup_s" default="2.0"/>
   <arg name="scan_startup_timeout"   default="20.0"/>
 
-  <!-- Approximate RPLIDAR mount for dual-lidar mode.
-       TODO: replace with measured pose / URDF once hardware layout is final. -->
-  <arg name="rplidar_tf_x" default="-0.272"/>
-  <arg name="rplidar_tf_y" default="0.0"/>
-  <arg name="rplidar_tf_z" default="0.072"/>
-  <arg name="rplidar_tf_qx" default="1.0"/>
-  <arg name="rplidar_tf_qy" default="0.0"/>
-  <arg name="rplidar_tf_qz" default="0.0"/>
-  <arg name="rplidar_tf_qw" default="0.0"/>
-
   <group unless="$(eval arg('lidar_mode') == 'rplidar')">
     <param name="/unitree_lidar_ros_node/port"        value="$(arg unitree_port)"/>
     <param name="/unitree_lidar_ros_node/cloud_frame" value="unitree_lidar"/>
@@ -68,9 +58,6 @@
   </group>
 
   <group if="$(eval arg('lidar_mode') == 'dual')">
-    <node pkg="tf2_ros" type="static_transform_publisher" name="rplidar_laser_tf"
-          args="$(arg rplidar_tf_x) $(arg rplidar_tf_y) $(arg rplidar_tf_z) $(arg rplidar_tf_qx) $(arg rplidar_tf_qy) $(arg rplidar_tf_qz) $(arg rplidar_tf_qw) base_link laser"/>
-
     <node pkg="target_follower" type="rplidar_health_monitor.py" name="rplidar_health_monitor"
           output="screen" required="true">
       <param name="device" value="$(arg rplidar_port)"/>
@@ -92,7 +79,7 @@
 
     <node pkg="target_follower" type="scan_body_filter.py"
           name="rplidar_scan_body_filter" output="screen">
-      <param name="lidar_x" value="-0.202"/>
+      <param name="lidar_x" value="-0.272"/>
       <param name="lidar_y" value="0.0"/>
       <param name="body_x_min" value="-0.27"/>
       <param name="body_x_max" value="0.27"/>
@@ -125,7 +112,7 @@
 
     <node pkg="target_follower" type="scan_body_filter.py"
           name="scan_body_filter" output="screen">
-      <param name="lidar_x" value="-0.202"/>
+      <param name="lidar_x" value="-0.272"/>
       <param name="lidar_y" value="0.0"/>
       <param name="body_x_min" value="-0.27"/>
       <param name="body_x_max" value="0.27"/>
@@ -136,7 +123,7 @@
     </node>
 
     <param name="robot_description"
-           command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_lms.urdf.xacro"/>
+           command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
     <node pkg="robot_state_publisher" type="robot_state_publisher"
           name="robot_state_publisher" output="screen"/>
   </group>

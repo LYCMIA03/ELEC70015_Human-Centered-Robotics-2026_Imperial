@@ -1,0 +1,40 @@
+{
+  "auto_explore_ok": true,
+  "caseA_tracking_or_reached_observed": true,
+  "caseA_waiting_action_observed": true,
+  "caseA_retreat_after_action_false": false,
+  "caseB_tracking_or_reached_observed": true,
+  "caseB_waiting_action_observed": true,
+  "caseB_post_accept_cooldown_observed": true,
+  "caseB_retreat_after_action_true": false,
+  "tf_base_to_laser": {
+    "translation": [
+      -0.272,
+      0.0,
+      0.072
+    ],
+    "quaternion": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "tf_base_to_camera_link": {
+    "translation": [
+      0.208,
+      0.0,
+      0.85
+    ],
+    "quaternion": [
+      -0.5,
+      0.5,
+      -0.5,
+      0.5
+    ]
+  },
+  "local_costmap_observation_sources": "unitree_scan_sensor",
+  "global_costmap_observation_sources": "unitree_scan_sensor",
+  "traceback_found": false,
+  "overall_pass": false
+}

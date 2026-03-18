@@ -1,11 +1,7 @@
 <?xml version="1.0"?>
 <!--
-  P3-AT robot with Unitree 4D Lidar L1 ONLY (SICK LMS200 removed).
-  - Full P3-AT chassis, wheels, and drive plugin
-  - Unitree 4D Lidar L1 mounted at z=0.366 (same position as former SICK)
-    - 2D LaserScan: /unitree/scan  (frame: unitree_lidar)  360° FOV
-    - 3D PointCloud2: /unitree/cloud (frame: unitree_lidar)
-    - IMU: /unitree/imu (frame: unitree_imu)
+  P3-AT robot with Unitree + RPLIDAR + RGBD camera extrinsics.
+  This file is the single source of truth for base_link sensor extrinsics.
 -->
 <robot name="p3at_unitree" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
@@ -332,6 +328,85 @@
 
   <xacro:p3at_drive_side side="left"  reflect="1"/>
   <xacro:p3at_drive_side side="right" reflect="-1"/>
+
+  <!-- ======================== RPLIDAR A2M12 (rear-underbody, inverted) ======================== -->
+  <!--
+    Mounting requirement:
+      - Rear-underbody, centered at y=0
+      - x is fixed to -0.272 m (latest calibrated value)
+      - z=0.072 m
+      - Sensor mounted upside-down (roll = pi)
+  -->
+  <link name="laser">
+    <inertial>
+      <mass value="0.19"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.0003" ixy="0.0" ixz="0.0"
+               iyy="0.0003" iyz="0.0"
+               izz="0.0003"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.038" length="0.05"/>
+      </geometry>
+      <material name="RplidarGrey">
+        <color rgba="0.25 0.25 0.25 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.038" length="0.05"/>
+      </geometry>
+    </collision>
+  </link>
+  <gazebo reference="laser">
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+
+  <joint name="laser_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="laser"/>
+    <origin xyz="-0.272 0.0 0.072" rpy="${PI} 0 0"/>
+  </joint>
+
+  <!-- ======================== RGBD camera + optical frame ======================== -->
+  <!--
+    camera_link is intentionally defined as the optical frame:
+      x = right, y = down, z = forward
+    so perception outputs in camera_link can be consumed directly.
+  -->
+  <link name="rgbd_camera">
+    <inertial>
+      <mass value="0.09"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.00005" ixy="0" ixz="0"
+               iyy="0.00005" iyz="0"
+               izz="0.00002"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.09 0.025 0.025"/>
+      </geometry>
+      <material name="CameraBlack">
+        <color rgba="0.08 0.08 0.08 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="rgbd_camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="rgbd_camera"/>
+    <origin xyz="0.208 0.0 0.85" rpy="0 0 0"/>
+  </joint>
+
+  <link name="camera_link"/>
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="rgbd_camera"/>
+    <child link="camera_link"/>
+    <origin xyz="0 0 0" rpy="${-PI/2} 0 ${-PI/2}"/>
+  </joint>
 
   <!-- ======================== Gazebo Skid-Steer Drive Plugin ======================== -->
   <gazebo>

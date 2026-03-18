@@ -26,16 +26,6 @@
   <arg name="sick_port"           default="/dev/ttyUSB1"/>
   <arg name="sick_baud"           default="38400"/>
 
-  <!-- Approximate RPLIDAR rear mount.
-       TODO: replace with measured transform / URDF once hardware is finalized. -->
-  <arg name="rplidar_tf_x" default="-0.272"/>
-  <arg name="rplidar_tf_y" default="0.0"/>
-  <arg name="rplidar_tf_z" default="0.072"/>
-  <arg name="rplidar_tf_qx" default="1.0"/>
-  <arg name="rplidar_tf_qy" default="0.0"/>
-  <arg name="rplidar_tf_qz" default="0.0"/>
-  <arg name="rplidar_tf_qw" default="0.0"/>
-
   <param name="/unitree_lidar_ros_node/port"        value="$(arg unitree_port)"/>
   <param name="/unitree_lidar_ros_node/cloud_frame" value="unitree_lidar"/>
   <param name="/unitree_lidar_ros_node/imu_frame"   value="unitree_lidar"/>
@@ -72,9 +62,6 @@
   </node>
 
   <group if="$(arg enable_rplidar)">
-    <node pkg="tf2_ros" type="static_transform_publisher" name="rplidar_laser_tf"
-          args="$(arg rplidar_tf_x) $(arg rplidar_tf_y) $(arg rplidar_tf_z) $(arg rplidar_tf_qx) $(arg rplidar_tf_qy) $(arg rplidar_tf_qz) $(arg rplidar_tf_qw) base_link laser"/>
-
     <node pkg="target_follower" type="rplidar_health_monitor.py" name="rplidar_health_monitor"
           output="screen" required="true">
       <param name="device" value="$(arg rplidar_port)"/>
@@ -96,7 +83,7 @@
 
     <node pkg="target_follower" type="scan_body_filter.py"
           name="rplidar_scan_body_filter" output="screen">
-      <param name="lidar_x" value="-0.202"/>
+      <param name="lidar_x" value="-0.272"/>
       <param name="lidar_y" value="0.0"/>
       <param name="body_x_min" value="-0.27"/>
       <param name="body_x_max" value="0.27"/>
@@ -138,15 +125,11 @@
   </node>
 
   <group if="$(arg use_target_follower)">
-    <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_tf"
-          args="0.208 0 1.0 -0.5 0.5 -0.5 0.5 base_link camera_link"/>
-  </group>
-
-  <group if="$(arg use_target_follower)">
     <node pkg="target_follower" type="target_follower.py" name="target_follower" output="screen">
       <param name="target_topic" value="/target_pose"/>
       <param name="global_frame" value="map"/>
       <param name="robot_frame"  value="base_link"/>
+      <param name="camera_frame" value="camera_link"/>
       <param name="send_rate_hz" value="2.0"/>
       <param name="min_update_dist" value="0.25"/>
       <param name="use_target_orientation" value="false"/>

@@ -1,0 +1,35 @@
+{
+  "auto_explore_ok": true,
+  "caseA_tracking_or_reached_observed": true,
+  "caseA_retreat_observed_after_action_false": false,
+  "caseB_tracking_or_reached_observed": true,
+  "caseB_post_accept_or_retreat_observed_after_action_true": false,
+  "caseB_retreat_observed": false,
+  "tf_base_to_laser": {
+    "translation": [
+      -0.272,
+      0.0,
+      0.072
+    ],
+    "quaternion": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "tf_base_to_camera_link": {
+    "translation": [
+      0.208,
+      0.0,
+      0.85
+    ],
+    "quaternion": [
+      -0.5,
+      0.5,
+      -0.5,
+      0.5
+    ]
+  },
+  "overall_pass": false
+}
