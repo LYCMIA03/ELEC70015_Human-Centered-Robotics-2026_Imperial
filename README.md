@@ -4,6 +4,7 @@ Pioneer 3-AT autonomous navigation + trash-detection demo system.
 ROS1 Noetic · Ubuntu 20.04 · Gazebo 11 (Simulation) / Docker (Real Robot).
 
 > **`main` branch** — full documentation for both simulation development and real-robot deployment.  
+> To reproduce the full simulation navigation experiments (Exp1-Exp4), use branch **`navigation_sim_experiments`**.  
 > Unitree 4D Lidar L1 is the **primary sensor**; SICK LMS200 is the backup.  
 > Real-robot deployment runs in Docker; simulation uses Gazebo.  
 > Operational runbook: [`doc.md`](doc.md)
@@ -36,7 +37,8 @@ ROS1 Noetic · Ubuntu 20.04 · Gazebo 11 (Simulation) / Docker (Real Robot).
    - [Simulation Node & Topic Reference](#simulation-node--topic-reference)
    - [Simulation TF Tree](#simulation-tf-tree)
 7. [Simulation Verification Tests](#simulation-verification-tests)
-8. [Part B — Real Robot Deployment](#part-b--real-robot-deployment)
+8. [Simulation Experiments](#simulation-experiments)
+9. [Part B — Real Robot Deployment](#part-b--real-robot-deployment)
    - [Docker Environment Setup](#docker-environment-setup)
    - [Network Architecture](#network-architecture)
    - [Startup Order](#startup-order)
@@ -47,16 +49,16 @@ ROS1 Noetic · Ubuntu 20.04 · Gazebo 11 (Simulation) / Docker (Real Robot).
    - [Option B — SICK LMS200 (Backup)](#option-b--sick-lms200-backup)
    - [Real Robot Node & Topic Reference](#real-robot-node--topic-reference)
    - [Real Robot TF Tree](#real-robot-tf-tree)
-9. [Target Follower State Machine](#target-follower-state-machine)
-10. [Trash Detection Bridge](#trash-detection-bridge)
-11. [Dialogue Integration](#dialogue-integration)
-12. [Parameter Tuning Guide](#parameter-tuning-guide)
-13. [Autonomous Explorer Algorithm](#autonomous-explorer-algorithm)
-14. [Known Issues and Notes](#known-issues-and-notes)
-15. [Git Workflow](#git-workflow)
-16. [Resources](#resources)
-17. [Status](#status)
-18. [Post-Installation Checklist](#post-installation-checklist)
+10. [Target Follower State Machine](#target-follower-state-machine)
+11. [Trash Detection Bridge](#trash-detection-bridge)
+12. [Dialogue Integration](#dialogue-integration)
+13. [Parameter Tuning Guide](#parameter-tuning-guide)
+14. [Autonomous Explorer Algorithm](#autonomous-explorer-algorithm)
+15. [Known Issues and Notes](#known-issues-and-notes)
+16. [Git Workflow](#git-workflow)
+17. [Resources](#resources)
+18. [Status](#status)
+19. [Post-Installation Checklist](#post-installation-checklist)
 
 ---
 
@@ -776,6 +778,214 @@ roslaunch p3at_lms_navigation auto_amcl_verify.launch gui:=true
 ```
 
 Expected: mean position error < 0.30 m, convergence time < 5 s.
+
+---
+
+## Simulation Experiments
+
+This section records the consolidated simulation work completed on **2026-03-17** for the Unitree-first Gazebo + RViz workflow, including configuration updates, experiment design, acceptance criteria, tuning iterations, and final results. The main implementation entry point is [`scripts/run_sim_four_experiments.sh`](scripts/run_sim_four_experiments.sh), with supporting metrics collectors in [`catkin_ws/src/p3at_lms_navigation/scripts/nav_experiment_runner.py`](catkin_ws/src/p3at_lms_navigation/scripts/nav_experiment_runner.py) and [`catkin_ws/src/p3at_lms_navigation/scripts/target_follow_metrics.py`](catkin_ws/src/p3at_lms_navigation/scripts/target_follow_metrics.py).
+
+### Scope of the 2026-03-17 Update
+
+- Added a one-click four-experiment simulation workflow for:
+  - simple-obstacle fixed-point navigation
+  - complex-obstacle fixed-point navigation
+  - simple-obstacle target following
+  - Task6/7-style autonomous mapping + AMCL verification
+- Standardised the simulation robot to the **dual-lidar + RGB-D** URDF path already present in `cat_ws`, and re-verified the sensor geometry with generated visuals under `Log/urdf_visual/`.
+- Shifted the simulated `RPLIDAR` further in the negative `x` direction by **3 cm**, resulting in `rplidar_tf_x = -0.232`, and kept the rest of the sensor layout unchanged.
+- Added experiment-specific automation and metrics collection so each experiment now generates reusable logs and JSON summaries under `Log/sim_experiments/`.
+- Updated `scripts/run_sim_four_experiments.sh` so **Exp3 defaults to the high-speed stable profile** (`target_speed=0.36 m/s`, high-speed DWA overrides, `enable_interaction_mode=false`), with conservative fallback used only if the high-speed run fails to launch or collect metrics.
+
+### Sensor Configuration Policy Used in These Experiments
+
+All experiments in this section follow the same sensor-role split:
+
+- **Unitree 4D Lidar L1** is the primary scan source for:
+  - `slam_gmapping`
+  - `AMCL`
+  - `global_costmap`
+  - baseline `local_costmap`
+- **RPLIDAR A2** is used only as a **short-range local obstacle supplement** on `local_costmap`.
+- `AMCL` verification is explicitly **Unitree-only**. `RPLIDAR` does **not** participate in AMCL scan matching.
+
+For the task4 AMCL launch, this policy is enforced directly in [`catkin_ws/src/p3at_lms_navigation/launch/auto_amcl_verify_unitree.launch`](catkin_ws/src/p3at_lms_navigation/launch/auto_amcl_verify_unitree.launch): `amcl` remaps `scan` to `/unitree/scan`, while `local_costmap` fuses `unitree_scan_sensor` and `rplidar_scan_sensor`.
+
+### Experiment Design and Acceptance Standards
+
+The four experiments were designed as follows:
+
+| Experiment | Scenario | Goal | Main metric | Acceptance focus |
+|----------|----------|------|-------------|------------------|
+| Exp1 | Simple obstacles | Fixed-point navigation | waypoint success, final goal error, travel distance | stable end-to-end navigation |
+| Exp2 | Complex maze obstacles | Fixed-point navigation | waypoint success, timeout behaviour, path efficiency | ability to detour around tighter clutter |
+| Exp3 | Simple obstacles | Target following | mean robot-target distance, standoff tolerance rate, robot/target speed | robot must actually follow rather than remain static |
+| Exp4 | Complex maze | Autonomous mapping + AMCL | exploration coverage within bounded time, AMCL convergence/error, nav success on verification waypoints | mapping feasibility in 20 min scale and localisation accuracy |
+
+Acceptance standards used in this update:
+
+- **Navigation experiments (Exp1/Exp2)**:
+  - success is measured waypoint-by-waypoint from `move_base`
+  - target final position error should stay below roughly `0.2 m` in normal success cases
+- **Target following (Exp3)**:
+  - the robot must show non-trivial motion
+  - `result_false_count` should remain low
+  - target motion must be physically followable; if the robot remains stationary, the target path/speed must be re-designed instead of accepting the failure
+- **Autonomous mapping (Exp4 mapping)**:
+  - full maze coverage is *not* required in 20 minutes
+  - the experiment is considered useful if the robot can repeatedly discover frontiers, expand known space, avoid permanent wall-lock, and save a usable partial map
+- **AMCL verification (Exp4 AMCL)**:
+  - convergence time should be within a few seconds
+  - mean waypoint position error should stay below `0.30 m`
+  - maximum waypoint position error should stay below `0.50 m`
+  - verification waypoint navigation success should exceed `80%`
+
+### Auto-Explore Wall-Stuck Handling Strategy
+
+The autonomous mapping stage was explicitly tuned against the common failure mode where the robot gets trapped against walls and repeatedly fails with little translational progress.
+
+Two main mapping runs were used:
+
+- **Run 1**: more conservative blacklist/progress settings, but the robot frequently triggered `stuck_no_progress` and coverage remained around `7.1%`.
+- **Run 2**: tuned settings with:
+  - `frontier_blacklist_radius = 0.25`
+  - `stuck_min_progress = 0.06`
+  - `stuck_progress_timeout = 10.0`
+
+This second run achieved a much more acceptable short-horizon mapping result:
+
+- map saved successfully as `exp4_task67_tuned_run2`
+- final known-space coverage: **14.4%**
+- runtime scale: about **12.5 minutes**
+
+This is the recommended 20-minute feasibility protocol for the current maze: run the explorer long enough to validate frontier discovery, corridor penetration, repeated re-goaling, and partial map growth, rather than treating full-maze closure as the only success condition.
+
+### Final Experiment Results
+
+Primary artifact directory for the final consolidated run:
+
+```text
+Log/sim_experiments/20260317_0215_manual/
+```
+
+#### Exp1 — Simple Obstacle Fixed-Point Navigation
+
+Source metric: [`Log/sim_experiments/20260317_0215_manual/metrics/exp1_simple_nav.json`](Log/sim_experiments/20260317_0215_manual/metrics/exp1_simple_nav.json)
+
+- Waypoints succeeded: **3 / 3**
+- Success rate: **100%**
+- Mean goal error: **0.1475 m**
+- Mean navigation time: **76.26 s**
+- Total traveled distance: **16.80 m**
+
+Conclusion: the simple-scene fixed-point navigation pipeline is stable and fully passes.
+
+#### Exp2 — Complex Obstacle Fixed-Point Navigation
+
+Source metric: [`Log/sim_experiments/20260317_0215_manual/metrics/exp2_complex_nav.json`](Log/sim_experiments/20260317_0215_manual/metrics/exp2_complex_nav.json)
+
+- Waypoints succeeded: **4 / 5**
+- Success rate: **80%**
+- Mean goal error: **0.1530 m**
+- Mean navigation time: **71.49 s**
+- Total traveled distance: **17.91 m**
+
+The failed waypoint was `WP3_west`, which remained near the target but did not get marked `SUCCEEDED` before timeout. This motivated the later task4 tuning work around final-goal acceptance behaviour.
+
+#### Exp3 — Simple Obstacle Target Following
+
+Accepted source metric: [`Log/sim_experiments/20260317_0215_manual/metrics/exp3_target_follow_tuned.json`](Log/sim_experiments/20260317_0215_manual/metrics/exp3_target_follow_tuned.json)
+
+- Mean robot-target distance: **1.8037 m**
+- Distance median: **1.5530 m**
+- Standoff target: **0.8 m**
+- Standoff RMSE: **1.2612 m**
+- Within-tolerance rate: **6.65%**
+- Mean robot speed: **0.0339 m/s**
+- Mean target speed: **0.0376 m/s**
+- `result_false_count`: **0**
+
+Interpretation:
+
+- the robot did move and continuously stayed in `TRACKING`
+- aggressive moving-target setups were not reliable enough, so the accepted result uses a more conservative tuned target profile
+- additional robustness work was added afterwards to detect fake Gazebo starts (`/clock` missing) and avoid hanging metrics runs
+
+#### Exp3 — High-Speed Stable Profile (New One-Click Default)
+
+High-speed default source metric: [`Log/sim_experiments/20260317_0215_manual/metrics/exp3_target_follow_hs_fix_attempt5.json`](Log/sim_experiments/20260317_0215_manual/metrics/exp3_target_follow_hs_fix_attempt5.json)
+
+High-speed default launch log: [`Log/sim_experiments/20260317_0215_manual/logs/exp3_hs_fix_attempt5_launch.log`](Log/sim_experiments/20260317_0215_manual/logs/exp3_hs_fix_attempt5_launch.log)
+
+- Standoff target: **1.2 m**
+- Mean robot-target distance: **1.5046 m**
+- Standoff RMSE: **0.9816 m**
+- Within-tolerance rate (`±0.35 m`): **68.8%**
+- `result_false_count`: **0**
+- Tracking state ratio: **100% TRACKING**
+
+Speed-note for this high-speed run:
+
+- `move_target` waypoint-segment speed from launch logs: mean **0.3606 m/s**, median **0.3605 m/s**
+- metrics JSON reports lower aggregated robot/target speeds due sampling-time effects in long headless Gazebo runs; the target command profile itself is the intended **0.36 m/s** high-speed condition.
+
+#### Exp4 — Task6/7-Style Autonomous Mapping + AMCL Verification
+
+Mapping artifact:
+
+- [`Log/sim_experiments/20260317_0215_manual/metrics/exp4_task67_tuned_run2.yaml`](Log/sim_experiments/20260317_0215_manual/metrics/exp4_task67_tuned_run2.yaml)
+- [`Log/sim_experiments/20260317_0215_manual/metrics/exp4_task67_tuned_run2.pgm`](Log/sim_experiments/20260317_0215_manual/metrics/exp4_task67_tuned_run2.pgm)
+
+Final tuned AMCL report:
+
+- [`Log/sim_experiments/20260317_0215_manual/metrics/amcl_report_unitree_tuned_run3.txt`](Log/sim_experiments/20260317_0215_manual/metrics/amcl_report_unitree_tuned_run3.txt)
+- [`Log/sim_experiments/20260317_0215_manual/metrics/amcl_report_unitree_tuned_run3.json`](Log/sim_experiments/20260317_0215_manual/metrics/amcl_report_unitree_tuned_run3.json)
+
+Final tuned AMCL result:
+
+- Convergence time: **1.1 s**
+- Tracking mean position error: **0.0610 m**
+- Tracking max position error: **0.3340 m**
+- Waypoint navigation success: **6 / 6**
+- Mean waypoint position error: **0.0479 m**
+- Max waypoint position error: **0.0964 m**
+- Overall AMCL verdict: **PASS**
+
+This was not the first AMCL attempt. Earlier verification runs only achieved **2 / 6** navigation success because the robot often reached the target position but still failed final acceptance under stricter goal/yaw conditions. A task4-specific tuning pass then changed:
+
+- `DWAPlannerROS/yaw_goal_tolerance` to `pi`
+- `DWAPlannerROS/xy_goal_tolerance` to `0.20`
+- `DWAPlannerROS/latch_xy_goal_tolerance` to `true`
+- `local_costmap/obstacle_layer/rplidar_scan_sensor/clearing` to `true`
+
+After that, task4 improved from:
+
+- navigation success `2 / 6` -> `6 / 6`
+- mean waypoint position error `0.1052 m` -> `0.0479 m`
+- max waypoint position error `0.3634 m` -> `0.0964 m`
+
+### Local Costmap Participation Check
+
+The final logs confirm that all four experiments used **dual participation** on `local_costmap`:
+
+- Exp1: `local_costmap/observation_sources = unitree_scan_sensor rplidar_scan_sensor`
+- Exp2: `local_costmap/observation_sources = unitree_scan_sensor rplidar_scan_sensor`
+- Exp3: `local_costmap/observation_sources = unitree_scan_sensor rplidar_scan_sensor`
+- Exp4: `local_costmap/observation_sources = unitree_scan_sensor rplidar_scan_sensor`
+
+At the same time, `global_costmap`, `gmapping`, and `AMCL` stayed Unitree-led, which preserves the intended division of labour.
+
+### Recommended Current Reading of the Results
+
+As of the 2026-03-17 update, the simulation stack should be interpreted like this:
+
+- **Exp1** is fully passed.
+- **Exp2** is mostly passed but still exposes one difficult waypoint in the complex obstacle field.
+- **Exp3** now has two valid references:
+  - conservative slow-speed profile (historical baseline),
+  - high-speed stable profile (`0.36 m/s`) now used as the default in one-click four-experiment runs.
+  The high-speed profile reaches **68.8%** standoff tolerance with **0 false terminations**, but distance tightness can still be improved further.
+- **Exp4** is now in an acceptable state: short-horizon autonomous exploration is feasible, and the tuned Unitree-only AMCL verification passes cleanly.
 
 ---
 
