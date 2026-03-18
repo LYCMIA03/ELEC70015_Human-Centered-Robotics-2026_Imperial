@@ -48,7 +48,7 @@
 
   <!-- ========== 机器人模型 & TF ========== -->
   <param name="robot_description"
-         command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_lms.urdf.xacro"/>
+         command="$(find xacro)/xacro $(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
   <node pkg="robot_state_publisher" type="robot_state_publisher"
         name="robot_state_publisher" output="screen"/>
 
@@ -74,7 +74,7 @@
   <!-- ========== Static TF: base_link → camera_link (仅在目标追踪模式需要) ========== -->
   <group if="$(arg use_target_follower)">
     <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_tf"
-          args="0.208 0 1.0 -0.5 0.5 -0.5 0.5 base_link camera_link"/>
+          args="0.208 0 0.85 -0.5 0.5 -0.5 0.5 base_link camera_link"/>
   </group>
 
   <!-- ========== 目标追踪（可选） ========== -->

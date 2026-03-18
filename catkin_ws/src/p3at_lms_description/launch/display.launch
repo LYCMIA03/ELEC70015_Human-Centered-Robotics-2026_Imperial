@@ -1,5 +1,5 @@
 <launch>
-  <arg name="model" default="$(find p3at_lms_description)/urdf/p3at_lms.urdf.xacro"/>
+  <arg name="model" default="$(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
   <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
   <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher"/>
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>

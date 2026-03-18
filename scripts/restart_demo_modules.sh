@@ -45,6 +45,7 @@ done
 
 # shellcheck disable=SC1090
 source "${RUNTIME_STATE_FILE}"
+NAV_READINESS_MODE="${NAV_READINESS_MODE:-relaxed}"
 
 ROS_SETUP="source /opt/ros/noetic/setup.bash && source ${CATKIN_WS}/devel/setup.bash"
 ROS_ENV="export ROS_MASTER_URI=${ROS_MASTER} && export ROS_IP=${JETSON_IP}"
@@ -73,6 +74,31 @@ _topic_has_message() {
     >/dev/null 2>&1
 }
 
+_set_target_follower_auto_explore() {
+  local enabled="$1"
+  ${DOCKER_EXEC} "${ROS_ENV} && ${ROS_SETUP} && rosparam set /target_follower/enable_auto_explore ${enabled}" \
+    >/dev/null 2>&1
+}
+
+_target_follower_ready() {
+  _ros_node_exists "target_follower" \
+    && _topic_has_publisher "/target_follower/status" \
+    && _topic_has_message "/target_follower/status"
+}
+
+_nav_restart_ready() {
+  case "${NAV_READINESS_MODE}" in
+    strict)
+      _ros_node_exists "move_base" \
+        && _target_follower_ready
+      ;;
+    relaxed)
+      _ros_node_exists "move_base" \
+        && _ros_node_exists "target_follower"
+      ;;
+  esac
+}
+
 _nav_restart_blockers() {
   local blockers=()
 
@@ -82,7 +108,7 @@ _nav_restart_blockers() {
 
   if ! _ros_node_exists "target_follower"; then
     blockers+=("/target_follower node missing")
-  else
+  elif [[ "${NAV_READINESS_MODE}" == "strict" ]]; then
     if ! _topic_has_publisher "/target_follower/status"; then
       blockers+=("/target_follower/status has no publisher")
     elif ! _topic_has_message "/target_follower/status"; then
@@ -225,7 +251,7 @@ restart_nav() {
       retreat_distance:=${RETREAT_DIST} \
       retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \
       action_wait_timeout:=${ACTION_WAIT} \
-      enable_auto_explore:=${ENABLE_AUTO_EXPLORE} \
+      enable_auto_explore:=false \
       explore_goal_distance:=${EXPLORE_STEP} \
       explore_revisit_window:=${EXPLORE_NO_REPEAT_SEC} \
       target_reacquire_block_s:=${EXPLORE_NO_REPEAT_SEC} \
@@ -237,14 +263,21 @@ restart_nav() {
     new_move_base_pid="$(_ros_node_pid "move_base")"
     new_target_follower_pid="$(_ros_node_pid "target_follower")"
 
-    if _ros_node_exists "move_base" \
-      && _ros_node_exists "target_follower" \
-      && _topic_has_publisher "/target_follower/status" \
-      && _topic_has_message "/target_follower/status" \
+    if _nav_restart_ready \
       && [[ -n "${new_move_base_pid}" ]] \
       && [[ -n "${new_target_follower_pid}" ]] \
       && [[ "${new_move_base_pid}" != "${old_move_base_pid}" || -z "${old_move_base_pid}" ]] \
       && [[ "${new_target_follower_pid}" != "${old_target_follower_pid}" || -z "${old_target_follower_pid}" ]]; then
+      if ${ENABLE_AUTO_EXPLORE}; then
+        if _set_target_follower_auto_explore true; then
+          ok "Auto-explore armed after navigation restart readiness"
+        else
+          warn "Navigation restarted, but failed to re-enable auto-explore on /target_follower"
+        fi
+      fi
+      if ! _target_follower_ready; then
+        warn "Navigation restart proceeding before /target_follower/status became live; target_follower is still finishing startup"
+      fi
       ok "Navigation restarted"
       return 0
     fi
@@ -261,6 +294,9 @@ restart_nav() {
   warn "  old target_follower pid: ${old_target_follower_pid:-none}"
   warn "  new move_base pid: ${new_move_base_pid:-none}"
   warn "  new target_follower pid: ${new_target_follower_pid:-none}"
+  if ${ENABLE_AUTO_EXPLORE}; then
+    warn "Auto-explore remains disabled because navigation restart never became ready."
+  fi
   die "Navigation failed to restart cleanly"
 }
 

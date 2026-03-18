@@ -1,0 +1,8 @@
+base_link frame coordinates (meters)
+Unitree L1 (URDF): x=0.208000, y=0.000000, z=0.299000 | source=p3at_unitree.urdf.xacro
+RPLIDAR A2 (launch TF): x=-0.272000, y=0.000000, z=0.072000 | source=target_follow_real.launch
+RGB-D camera_link (launch TF): x=0.208000, y=0.000000, z=0.850000 | source=target_follow_real.launch
+
+unitree_rpy(rad)=0.000000 0.000000 0.000000
+rplidar_quat(x y z w)=1.000000 0.000000 0.000000 0.000000
+camera_quat(x y z w)=-0.500000 0.500000 -0.500000 0.500000

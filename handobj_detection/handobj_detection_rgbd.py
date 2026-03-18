@@ -102,6 +102,16 @@ class UdpTargetSender:
         return True
 
 
+def _is_cuda_allocator_error(exc):
+    msg = str(exc)
+    return (
+        "CUDACachingAllocator" in msg
+        or "NVML" in msg
+        or "NvMapMemAllocInternalTagged" in msg
+        or "cuda out of memory" in msg.lower()
+    )
+
+
 def _color_frame_to_bgr(color_frame):
     """Orbbec 彩色帧 -> BGR numpy (H, W, 3) uint8。"""
     if color_frame is None:
@@ -319,6 +329,24 @@ def main():
     names_dict = _get_class_names(model)
     print("模型类别:", names_dict)
 
+    # Jetson 上 CUDA 分配器有时会在相机和首次推理并发初始化时触发 NVML/NvMap 异常。
+    # 先做一次小图预热，尽量把显存和执行上下文提前稳定下来；若仍失败则退回 CPU。
+    if yolo_device == "cuda":
+        try:
+            dummy = np.zeros((480, 640, 3), dtype=np.uint8)
+            model.predict(dummy, conf=args.conf, imgsz=min(640, args.imgsz), verbose=False, device=yolo_device)
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            print("YOLO CUDA 预热完成")
+        except RuntimeError as e:
+            if _is_cuda_allocator_error(e):
+                print("CUDA 预热失败（显存/分配器异常），自动切换到 CPU:", e)
+                yolo_device = "cpu"
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+            else:
+                raise
+
     max_depth_mm = int((args.max_depth or MAX_DEPTH_M) * 1000)
     res_wh = COLOR_RES_MAP.get(args.color_res, (1920, 1080))
     cw, ch = res_wh[0], res_wh[1]
@@ -409,9 +437,27 @@ def main():
                 frame = color_img.copy()
 
             t_yolo_start = time.perf_counter()
-            results = model.predict(
-                frame, conf=args.conf, imgsz=args.imgsz, verbose=False, device=yolo_device
-            )[0]
+            max_yolo_retries = 3 if yolo_device == "cuda" else 1
+            for yolo_attempt in range(max_yolo_retries):
+                try:
+                    results = model.predict(
+                        frame, conf=args.conf, imgsz=args.imgsz, verbose=False, device=yolo_device
+                    )[0]
+                    break
+                except RuntimeError as e:
+                    if yolo_attempt < max_yolo_retries - 1 and yolo_device == "cuda" and _is_cuda_allocator_error(e):
+                        time.sleep(0.15 * (yolo_attempt + 1))
+                        continue
+                    if yolo_device == "cuda" and _is_cuda_allocator_error(e):
+                        print("CUDA 推理失败（显存/分配器异常），自动切换到 CPU 继续运行:", e)
+                        yolo_device = "cpu"
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
+                        results = model.predict(
+                            frame, conf=args.conf, imgsz=args.imgsz, verbose=False, device=yolo_device
+                        )[0]
+                        break
+                    raise
             yolo_time_sum += time.perf_counter() - t_yolo_start
 
             holding_list = get_holding_person_boxes_and_xyz(

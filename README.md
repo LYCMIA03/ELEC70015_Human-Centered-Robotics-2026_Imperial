@@ -194,6 +194,7 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 │   │   └── urdf/unitree_lidar_l1.urdf.xacro   (Unitree sensor macro)
 │   ├── p3at_lms_gazebo/                  # Gazebo worlds and sim launch files
 │   │   ├── launch/
+│   │   │   ├── sim.launch                (Unitree simulation)
 │   │   │   └── sim_unitree.launch        (Unitree simulation)
 │   │   └── worlds/
 │   │       └── complex_maze.world        (12.2×12.2 m test maze)
@@ -1129,6 +1130,17 @@ cd /home/frank/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
 ./scripts/start_base.sh
 ```
 
+`start_base.sh` now runs `scripts/sync_time_from_master.sh` first, so the Pi
+pulls time from the Jetson ROS master before `RosAria` starts publishing
+`/RosAria/pose`, `/odom`, and `odom -> base_link`.
+
+For boot-time protection on the Pi itself, install the companion service once:
+
+```bash
+cd /home/pi/work/ELEC70015_Human-Centered-Robotics-2026_Imperial
+./scripts/install_pi_time_sync_service.sh
+```
+
 #### Step 2 — Jetson: Ensure roscore is Running
 
 ```bash
@@ -1313,7 +1325,7 @@ Notes:
 
 #### Camera → Robot Coordinate Transform
 
-Static TF `base_link → camera_link`: xyz=`(0.208, 0, 1.0)`, quat=`(-0.5, 0.5, -0.5, 0.5)` = RPY `[-90°, 0°, -90°]`
+Static TF `base_link → camera_link`: xyz=`(0.208, 0, 0.85)`, quat=`(-0.5, 0.5, -0.5, 0.5)` = RPY `[-90°, 0°, -90°]`
 
 | Camera optical | → | Robot base_link |
 |---|---|---|
@@ -1721,7 +1733,9 @@ All scripts are located in `scripts/`:
 |--------|---------|
 | `start_demo.sh` | One-command start: roscore + target_follow_real.launch + detection |
 | `stop_demo_all.sh` | Kill all demo processes |
-| `start_base.sh` | Start rosaria on Pi |
+| `start_base.sh` | Start rosaria on Pi, with pre-launch Pi clock sync from Jetson |
+| `sync_time_from_master.sh` | Sync local clock from the ROS master HTTP Date header |
+| `install_pi_time_sync_service.sh` | Install a Pi boot-time time-sync service |
 | `start_real_mapping_unitree.sh` | Start mapping with Unitree LiDAR |
 | `start_real_nav_unitree.sh` | Start AMCL navigation with Unitree map + optional dual-lidar local avoidance |
 | `start_teleop.sh` | Keyboard teleoperation |

@@ -4,7 +4,7 @@
   <arg name="world" default="$(find p3at_lms_gazebo)/worlds/p3at_lms.world"/>
 
   <!-- Robot description -->
-  <arg name="model" default="$(find p3at_lms_description)/urdf/p3at_lms.urdf.xacro"/>
+  <arg name="model" default="$(find p3at_lms_description)/urdf/p3at_unitree.urdf.xacro"/>
   <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
 
   <!-- Gazebo -->
