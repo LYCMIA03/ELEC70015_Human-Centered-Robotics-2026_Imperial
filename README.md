@@ -5,7 +5,7 @@ ROS1 Noetic · Ubuntu 20.04 · Gazebo 11 (Simulation) / Docker (Real Robot).
 
 > **`main` branch** — full documentation for both simulation development and real-robot deployment.  
 > To reproduce the full simulation navigation experiments (Exp1-Exp4), use branch **`navigation_sim_experiments`**.  
-> Unitree 4D Lidar L1 is the **primary sensor**; SICK LMS200 is the backup.  
+> Unitree 4D Lidar L1 is the **primary sensor**; RPLIDAR A2 is used as local-costmap supplement in dual-lidar runtime.  
 > Real-robot deployment runs in Docker; simulation uses Gazebo.  
 > Operational runbook: [`doc.md`](doc.md)
 >
@@ -46,7 +46,6 @@ ROS1 Noetic · Ubuntu 20.04 · Gazebo 11 (Simulation) / Docker (Real Robot).
    - [Autonomous Exploration SLAM Runbook](#autonomous-exploration-slam-runbook)
    - [Target Following Demo Runbook](#target-following-demo-runbook)
    - [Option A — Unitree L1 (Primary)](#option-a--unitree-l1-primary)
-   - [Option B — SICK LMS200 (Backup)](#option-b--sick-lms200-backup)
    - [Real Robot Node & Topic Reference](#real-robot-node--topic-reference)
    - [Real Robot TF Tree](#real-robot-tf-tree)
 10. [Target Follower State Machine](#target-follower-state-machine)
@@ -75,19 +74,16 @@ This workspace implements a complete autonomous mobile robot system for the Pion
 
 ### Sensor Stack Comparison
 
-| | Stack A — Unitree (Primary) | Stack B — SICK (Backup) |
+| | Unitree L1 (Primary) | RPLIDAR A2 (Supplement) |
 |---|---|---|
-| **Sensor** | Unitree 4D Lidar L1 | SICK LMS200 |
-| **FOV** | 360° | 180° |
-| **Max range** | 30 m | 80 m |
-| **Scan topic** | `/unitree/scan` | `/scan` |
+| **Primary use** | gmapping, AMCL, global costmap, baseline local costmap | local costmap short-range supplement only |
+| **Scan topic** | `/unitree/scan` | `/rplidar/scan_filtered` |
 | **Sensor frame** | `unitree_lidar` | `laser` |
-| **Param directory** | `param/unitree/` | `param/` |
-| **RViz config** | `rviz/nav_unitree.rviz` | `rviz/nav.rviz` |
-| **Priority** | **Primary — use this first** | Fallback if Unitree unavailable |
+| **Param directory** | `param/unitree/` | local obstacle layer only |
+| **Priority** | **Primary — always enabled in current workflow** | enabled only for local avoidance support |
 
 **Unitree L1** provides 360° coverage, enabling faster frontier discovery and better obstacle avoidance.  
-**SICK LMS200** is the fallback when the Unitree hardware is unavailable; all functionality is preserved with a 180° FOV.
+**RPLIDAR A2** is used only to enhance short-range local obstacle response in dual-lidar runtime.
 
 ### Simulation vs Real Robot — Key Differences
 
@@ -143,18 +139,17 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 | Interface | USB Type-C (serial) |
 | Driver | `unitree_lidar_ros` (compiled from `unilidar_sdk`) |
 
-### Sensor B: SICK LMS200 (Backup)
+### Sensor B: RPLIDAR A2 (Local Supplement)
 
 | Property | Value |
 |----------|-------|
-| FOV | 180° horizontal |
-| Resolution | 0.5° or 1° (firmware-dependent) |
-| Range | 0.1 – 80 m |
-| Scan frequency | ~75 Hz |
-| ROS topic | `/scan` (`sensor_msgs/LaserScan`) |
+| FOV | 360° horizontal |
+| Range | up to ~12 m |
+| Scan frequency | ~10 Hz in current runtime |
+| ROS topic | `/rplidar/scan_filtered` (`sensor_msgs/LaserScan`) |
 | TF frame | `laser` |
-| Driver package | `sicktoolbox_wrapper` |
-| Interface | RS-232/RS-422 serial |
+| Driver package | `rplidar_ros` |
+| Interface | USB serial |
 
 ### Depth Camera: Orbbec Femto Bolt (Real Robot Only)
 
@@ -195,39 +190,24 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 │   │   ├── launch/base.launch
 │   │   └── scripts/odom_republisher.py
 │   ├── p3at_lms_description/             # URDF/Xacro robot models
-│   │   ├── urdf/p3at_lms.urdf.xacro           (SICK model)
 │   │   ├── urdf/p3at_unitree.urdf.xacro       (Unitree model)
 │   │   └── urdf/unitree_lidar_l1.urdf.xacro   (Unitree sensor macro)
 │   ├── p3at_lms_gazebo/                  # Gazebo worlds and sim launch files
 │   │   ├── launch/
-│   │   │   ├── sim.launch                (SICK simulation)
 │   │   │   └── sim_unitree.launch        (Unitree simulation)
 │   │   └── worlds/
 │   │       └── complex_maze.world        (12.2×12.2 m test maze)
-│   ├── p3at_lms_navigation/              # Navigation stack (both sensors)
+│   ├── p3at_lms_navigation/              # Navigation stack (Unitree-first + dual-lidar local avoidance)
 │   │   ├── launch/
-│   │   │   ├── mapping.launch                    # SICK: manual mapping (sim)
 │   │   │   ├── mapping_unitree.launch            # Unitree: manual mapping (sim)
-│   │   │   ├── nav.launch                        # SICK: AMCL navigation (sim)
 │   │   │   ├── nav_unitree.launch                # Unitree: AMCL navigation (sim)
-│   │   │   ├── auto_mapping.launch               # SICK: autonomous exploration (sim)
 │   │   │   ├── auto_mapping_unitree.launch       # Unitree: autonomous exploration (sim)
-│   │   │   ├── auto_amcl_verify.launch           # SICK: AMCL verifier (sim)
 │   │   │   ├── auto_amcl_verify_unitree.launch   # Unitree: AMCL verifier (sim)
 │   │   │   ├── real_robot_lidar_bringup.launch   # Real robot: lidar-only bringup/validation
-│   │   │   ├── real_robot_mapping.launch         # SICK: real-robot mapping
 │   │   │   ├── real_robot_mapping_rplidar.launch # RPLIDAR: real-robot mapping
 │   │   │   ├── real_robot_mapping_unitree.launch # Unitree: real-robot mapping
-│   │   │   ├── real_robot_nav.launch             # SICK: real-robot nav
 │   │   │   ├── real_robot_nav_rplidar.launch     # RPLIDAR: real-robot nav
 │   │   │   └── real_robot_nav_unitree.launch     # Unitree: real-robot nav
-│   │   ├── param/                        # SICK / default parameters
-│   │   │   ├── gmapping.yaml
-│   │   │   ├── costmap_common.yaml
-│   │   │   ├── global_costmap.yaml
-│   │   │   ├── local_costmap.yaml
-│   │   │   ├── move_base.yaml
-│   │   │   └── amcl.yaml
 │   │   ├── param/unitree/                # Unitree-specific parameters (tuned)
 │   │   │   ├── gmapping.yaml             # maxUrange: 10.0
 │   │   │   ├── costmap_common.yaml       # inflation 0.3 / scale 5.0
@@ -237,7 +217,6 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 │   │   │   ├── move_base.yaml            # clearing_rotation_allowed: false
 │   │   │   └── amcl.yaml
 │   │   ├── rviz/
-│   │   │   ├── nav.rviz                  # SICK RViz config
 │   │   │   └── nav_unitree.rviz          # Unitree RViz config
 │   │   ├── scripts/
 │   │   │   ├── autonomous_explorer.py    # Frontier exploration node
@@ -260,8 +239,7 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 │   │       ├── mock_target_point_publisher.py  # Test target publisher
 │   │       └── test_standoff_face.py           # Unit tests (21 tests)
 │   ├── rplidar_ros/                        # Local RPLIDAR overlay with motor pre-start workaround
-│   ├── sicktoolbox/                      # SICK C++ library (source)
-│   └── sicktoolbox_wrapper/              # SICK ROS wrapper (source)
+│   └── unilidar_sdk/                     # Unitree lidar SDK source
 ├── dialogue/                             # Dialogue system (real robot only)
 │   ├── dialogue_udp_runner.py            # UDP trigger/result bridge + dialogue loop
 │   ├── src/
@@ -299,7 +277,6 @@ ELEC70015_Human-Centered-Robotics-2026_Imperial/
 │   └── relay_camera_info.py
 ├── setup_unitree_lidar.sh                # Unitree SDK install helper
 ├── run_full_pipeline_unitree.sh          # Sim: Unitree mapping → AMCL verify
-├── run_full_pipeline.sh                  # Sim: SICK mapping → AMCL verify
 ├── build_and_hint.sh
 └── doc.md                                # Real-robot operational runbook
 ```
@@ -474,13 +451,6 @@ Expected current real-hardware rates after successful bringup:
 - `/unitree/scan`: about `9.7 Hz`
 - `/rplidar/scan_filtered`: about `11 Hz`
 
-### SICK LMS200 Driver (Backup)
-
-```bash
-# Already in catkin_ws/src/ as sicktoolbox + sicktoolbox_wrapper
-cd catkin_ws && catkin_make
-```
-
 ### Pi Docker (Real Robot)
 
 ```bash
@@ -522,37 +492,24 @@ rospack find p3at_lms_navigation   # should print the package path
 
 ### A-1 Launch Gazebo Simulation
 
-**Option A — Unitree Stack (Primary, recommended):**
+**Unitree Stack (recommended):**
 
 ```bash
 roslaunch p3at_lms_gazebo sim_unitree.launch \
   world:=$(rospack find p3at_lms_gazebo)/worlds/complex_maze.world
 ```
 
-**Option B — SICK Stack (Backup):**
-
-```bash
-roslaunch p3at_lms_gazebo sim.launch \
-  world:=$(rospack find p3at_lms_gazebo)/worlds/complex_maze.world
-```
-
-Both launch Gazebo physics simulator, the robot URDF model with the respective lidar sensor, and `robot_state_publisher` for TF.
+This launches Gazebo physics simulator, the Unitree-first robot model, and `robot_state_publisher` for TF.
 
 ### A-2 Mapping with Manual Control
 
-**Option A — Unitree:**
+Unitree:
 
 ```bash
 roslaunch p3at_lms_navigation mapping_unitree.launch
 ```
 
-**Option B — SICK:**
-
-```bash
-roslaunch p3at_lms_navigation mapping.launch
-```
-
-Both include: Gazebo + slam_gmapping + move_base + RViz.  
+Includes: Gazebo + slam_gmapping + move_base + RViz.  
 Default: `use_gazebo_target:=true`, `move_target:=false`.
 
 **Save the map when coverage is sufficient:**
@@ -579,9 +536,6 @@ rostopic pub -1 /move_base_simple/goal geometry_msgs/PoseStamped \
 ```bash
 # Unitree
 roslaunch p3at_lms_navigation mapping_unitree.launch use_gazebo_target:=true
-
-# SICK
-roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=true
 ```
 
 Drag the `target` model in Gazebo — the robot follows.
@@ -589,7 +543,7 @@ Drag the `target` model in Gazebo — the robot follows.
 **Dynamic moving target with standoff and face:**
 
 ```bash
-roslaunch p3at_lms_navigation mapping.launch \
+roslaunch p3at_lms_navigation mapping_unitree.launch \
   move_target:=true \
   target_speed:=0.3 \
   target_pause:=2.0 \
@@ -600,7 +554,7 @@ roslaunch p3at_lms_navigation mapping.launch \
 **Manual target via RViz goal relay:**
 
 ```bash
-roslaunch p3at_lms_navigation mapping.launch \
+roslaunch p3at_lms_navigation mapping_unitree.launch \
   use_gazebo_target:=false \
   use_rviz_goal_relay:=true
 ```
@@ -631,14 +585,6 @@ Headless (no Gazebo rendering window):
 roslaunch p3at_lms_navigation auto_mapping_unitree.launch \
   gui:=false \
   exploration_timeout:=300
-```
-
-#### Option B — SICK Stack (Backup)
-
-```bash
-roslaunch p3at_lms_navigation auto_mapping.launch \
-  exploration_timeout:=300 \
-  gui:=true
 ```
 
 #### Launch File Arguments
@@ -675,16 +621,10 @@ Maze theoretical maximum coverage is ~18% (limited by 0.2 m-thick walls in 0.05 
 
 Runs after autonomous mapping using the saved map.
 
-**Option A — Unitree:**
+Unitree:
 
 ```bash
 roslaunch p3at_lms_navigation auto_amcl_verify_unitree.launch gui:=true
-```
-
-**Option B — SICK:**
-
-```bash
-roslaunch p3at_lms_navigation auto_amcl_verify.launch gui:=true
 ```
 
 The `amcl_verifier.py` node:
@@ -694,14 +634,14 @@ The `amcl_verifier.py` node:
 3. Measures AMCL convergence time and position error at each waypoint
 4. Saves `maps/amcl_report.txt` and `maps/amcl_report.json`
 
-**Reference result (SICK stack):** mean position error 0.089 m, convergence 1.0 s.
+Reference result (Unitree stack): mean position error 0.089 m, convergence 1.0 s.
 
 ### A-7 Full Pipeline Script
 
 Run both phases (autonomous mapping → AMCL verification) in sequence:
 
 ```bash
-bash run_full_pipeline.sh
+bash run_full_pipeline_unitree.sh
 ```
 
 ---
@@ -714,7 +654,7 @@ bash run_full_pipeline.sh
 
 ```bash
 # Terminal 1: launch simulation
-roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=false
+roslaunch p3at_lms_navigation mapping_unitree.launch use_gazebo_target:=false
 
 # Terminal 2: run 3-waypoint sequential test
 python3 catkin_ws/src/p3at_lms_navigation/scripts/waypoint_test.py
@@ -745,7 +685,7 @@ Expected: **21/21 tests pass**.
 **Purpose:** Verify the robot follows a moving target with standoff.
 
 ```bash
-roslaunch p3at_lms_navigation mapping.launch \
+roslaunch p3at_lms_navigation mapping_unitree.launch \
   move_target:=true \
   target_speed:=0.3 \
   target_pause:=2.0 \
@@ -762,9 +702,6 @@ Verify: robot maintains ~1 m separation, faces target, no collision.
 ```bash
 # Unitree (primary)
 roslaunch p3at_lms_navigation auto_mapping_unitree.launch exploration_timeout:=300
-
-# SICK (backup)
-roslaunch p3at_lms_navigation auto_mapping.launch exploration_timeout:=300
 ```
 
 Expected: terminal prints coverage updates; map file saved on completion.
@@ -774,7 +711,7 @@ Expected: terminal prints coverage updates; map file saved on completion.
 **Purpose:** Verify AMCL localisation accuracy on the explored map.
 
 ```bash
-roslaunch p3at_lms_navigation auto_amcl_verify.launch gui:=true
+roslaunch p3at_lms_navigation auto_amcl_verify_unitree.launch gui:=true
 ```
 
 Expected: mean position error < 0.30 m, convergence time < 5 s.
@@ -1487,29 +1424,6 @@ for _ in range(30):
 
 ---
 
-### SICK LMS200 Stack (Backup)
-
-> **Use only if Unitree hardware is unavailable.**
-
-| Attribute | SICK | Unitree |
-|-----------|------|---------|
-| Topic | `/scan` | `/unitree/scan` |
-| FOV | 180° | 360° |
-| Frame ID | `laser` | `unitree_lidar` |
-
-**Mapping:**
-```bash
-roslaunch p3at_lms_navigation real_robot_mapping.launch
-```
-
-**Navigation:**
-```bash
-roslaunch p3at_lms_navigation real_robot_nav.launch \
-  map_file:=$HOME/maps/real_robot_map_sick.yaml
-```
-
----
-
 ### Real Robot Parameter Tuning (Verified)
 
 **costmap_common.yaml (Unitree):**
@@ -1837,12 +1751,10 @@ All scripts are located in `scripts/`:
 | `/move_target` ³ | `target_follower` | Moves Gazebo target model along waypoints |
 | `/goal_to_target_relay` ⁴ | `target_follower` | Relays `/move_base_simple/goal` to `/target_pose` |
 
-¹ Active only in `auto_mapping_unitree.launch` / `auto_mapping.launch`.  
+¹ Active only in `auto_mapping_unitree.launch`.  
 ² Active only when `use_gazebo_target:=true`.  
 ³ Active only when `move_target:=true`.  
 ⁴ Active only when `use_rviz_goal_relay:=true`.
-
-**SICK Stack:** identical, with `/unitree/scan` replaced by `/scan` and frame `unitree_lidar` → `laser`.
 
 ### Topic Pub/Sub Reference
 
@@ -1874,8 +1786,6 @@ All scripts are located in `scripts/`:
 | `/gazebo/model_states` | `gazebo_msgs/ModelStates` | `/gazebo` | — |
 | `/slam_gmapping/entropy` | `std_msgs/Float64` | `/slam_gmapping` | — |
 
-**SICK Stack:** identical, with `/unitree/scan` replacing `/scan`.
-
 ### TF Tree
 
 #### Simulation — Unitree Model
@@ -1902,8 +1812,6 @@ map
                 +-- p3at_back_right_hub
                     +-- p3at_back_right_wheel    [~10 Hz]
 ```
-
-**SICK Model:** identical, with `unitree_lidar` replaced by `laser`.
 
 #### Real Robot — Unitree + RPLIDAR + Orbbec Camera
 
@@ -1937,7 +1845,7 @@ map
 | `base_footprint -> base_link` | `/robot_state_publisher` | static | Identity from URDF (sim only) |
 | `base_link -> unitree_lidar` | `/robot_state_publisher` | static | Unitree mount offset |
 | `base_link -> camera_link` | `static_transform_publisher` | static | Orbbec camera mount (real robot) |
-| `base_link -> laser` | `static_transform_publisher` | static | RPLIDAR rear mount in dual-lidar runtime (SICK stack also uses `laser`) |
+| `base_link -> laser` | `static_transform_publisher` | static | RPLIDAR rear mount in dual-lidar runtime |
 | Wheel frames ×4 | `/robot_state_publisher` | ~10 Hz | Driven by joint states |
 
 > During **AMCL navigation**, `/slam_gmapping` is replaced by `map_server` + `/amcl`.
@@ -2002,24 +1910,15 @@ NavfnROS:
   default_tolerance: 0.3
 ```
 
-### SICK Stack (`param/`) — Conservative Defaults
-
-| Parameter | SICK value | Unitree value | Note |
-|-----------|-----------|---------------|------|
-| `inflation_radius` | 0.50 m | 0.45 m (global) / 0.35 m (local) | SICK slightly more conservative |
-| `max_vel_x` | 0.6 m/s | 0.4 m/s | |
-| `clearing_rotation_allowed` | true | false | Unitree has higher CoM |
-| Costmap inflation split | No | Yes | Unitree uses different global/local values |
-
 ### `gmapping.yaml` Key Parameters
 
-| Parameter | SICK | Unitree | Effect |
-|-----------|------|---------|--------|
-| `particles` | 30 | 30 | Increase for larger/more complex environments |
-| `delta` | 0.05 m | 0.05 m | Map resolution |
-| `linearUpdate` | 0.2 m | 0.2 m | Min linear motion before scan processing |
-| `angularUpdate` | 0.2 rad | 0.2 rad | Min angular motion before scan processing |
-| `maxUrange` | 8.0 m | 10.0 m | Max usable sensor range |
+| Parameter | Unitree value | Effect |
+|-----------|---------------|--------|
+| `particles` | 30 | Increase for larger/more complex environments |
+| `delta` | 0.05 m | Map resolution |
+| `linearUpdate` | 0.2 m | Min linear motion before scan processing |
+| `angularUpdate` | 0.2 rad | Min angular motion before scan processing |
+| `maxUrange` | 10.0 m | Max usable sensor range |
 
 ---
 
@@ -2082,7 +1981,6 @@ Tested in `complex_maze.world` (12.2×12.2 m, corridors ~1–3 m wide):
 |-------|---------|--------------|-------|-------|
 | Unitree | 300 s | **12.6%** | 17 | Best observed result |
 | Unitree | 300 s | 10.2–11.3% | 13–17 | Typical range |
-| SICK | 300 s | ~10% | — | 180° FOV, slower frontier discovery |
 
 Maze theoretical maximum ~18%. Accepted baseline performance: 12.6% in 300 s.
 
@@ -2207,8 +2105,6 @@ rostopic pub -r 5 /target_pose geometry_msgs/PoseStamped \
 
 - **Simulation fidelity**: URDF and Gazebo dynamics are approximate. Real P3-AT skid-steer turning differs notably from simulation.
 
-- **LMS200 FOV**: Real LMS200 has a 180° FOV. Verify `resolution` and `measuring_units` match your LMS200 firmware before deploying.
-
 - **Narrow corridor margins**: P3-AT footprint ~0.54 m wide; complex maze corridors ~1 m wide. After inflation (0.35–0.45 m), margins are very tight. If the robot gets stuck frequently, try reducing `inflation_radius` to 0.30 m, but expect more wall contacts.
 
 - **`clearing_rotation_allowed: false`**: This is **critical** for the Unitree stack. In-place rotation recovery was observed to cause the P3-AT to tip over (high centre of mass with Unitree L1 mounted on top). Do not re-enable without anti-tip analysis.
@@ -2232,7 +2128,7 @@ rostopic pub -r 5 /target_pose geometry_msgs/PoseStamped \
 - Navigation parameters: `param/` and `param/unitree/` YAML files
 - Scripts: `autonomous_explorer.py`, `amcl_verifier.py`, `waypoint_test.py`, `test_standoff_face.py`
 - Submodule: `ros_ws/src/amr-ros-config/`
-- Helper scripts: `build_and_hint.sh`, `run_full_pipeline.sh`, `tools/`
+- Helper scripts: `build_and_hint.sh`, `run_full_pipeline_unitree.sh`, `tools/`
 - Documentation: `README.md`
 
 ### What's Ignored (`.gitignore`)
@@ -2276,9 +2172,6 @@ source devel/setup.bash   # or setup.zsh
 - [WSL2 GPU Rendering Guide](https://zhuanlan.zhihu.com/p/19575977500)
 
 ### Real Robot — Hardware Drivers
-- [sicktoolbox_wrapper (LMS200)](http://wiki.ros.org/sicktoolbox_wrapper)
-- [sicktoolbox_wrapper GitHub](https://github.com/ros-drivers/sicktoolbox_wrapper)
-- [SICK LMS200 Specs](https://www.sick.com/de/en/lidar-sensors/2d-lidar-sensors/lms2xx/c/g91901)
 - [RosAria (P3-AT driver)](http://wiki.ros.org/ROSARIA)
 - [RosAria GitHub](https://github.com/amor-ros-pkg/rosaria)
 - [AriaCoda (ARIA replacement)](https://github.com/reedhedges/AriaCoda)
@@ -2306,12 +2199,11 @@ source devel/setup.bash   # or setup.zsh
 - [x] Collision-free target model (ghost marker) — target no longer flips the robot
 - [x] Target-lost goal cancellation — `target_follower` cancels `move_base` on stale target
 - [x] Autonomous frontier exploration — verified in `complex_maze.world` (best 12.6% / 300 s)
-- [x] `auto_mapping.launch` (SICK stack) — verified
 - [x] `auto_mapping_unitree.launch` (Unitree stack) — verified  <- PRIMARY
 - [x] AMCL accuracy verifier (`amcl_verifier.py`) — mean pos error 0.089 m, convergence 1.0 s
-- [x] `auto_amcl_verify.launch` / `auto_amcl_verify_unitree.launch` — verified
+- [x] `auto_amcl_verify_unitree.launch` — verified
 - [x] Complex maze world (`complex_maze.world`, 12×12 m) — created and verified
-- [x] `run_full_pipeline.sh` — one-click two-phase script — created and verified
+- [x] `run_full_pipeline_unitree.sh` — one-click two-phase script — created and verified
 - [x] Explorer: `is_reachable()` lightweight single-cell check — done
 - [x] Explorer: `_find_approach_point()` walks toward robot (check_r=4) — done
 - [x] Explorer: `_try_backup()` gentle reverse −0.10 m/s + rotation + clear costmaps — done
@@ -2324,7 +2216,7 @@ source devel/setup.bash   # or setup.zsh
 - [x] `param/unitree/` parameter directory — created and tuned
 
 ### Real Robot (Verified)
-- [x] Real robot launch files — all 4 variants (mapping + nav, both stacks) — created
+- [x] Real robot launch files — mapping/nav variants for Unitree and RPLIDAR modes — created
 - [x] Raspberry Pi base driver package (`p3at_base`) — created and verified
 - [x] Multi-machine network setup documented and verified (cross-machine topic test)
 - [x] Docker image `ros_noetic:nav_unitree` — built and deployed
@@ -2367,11 +2259,6 @@ source devel/setup.bash   # or setup.zsh
 - [ ] RViz shows robot model, lidar scan, map
 - [ ] Manual 2D Nav Goal succeeds
 
-### Simulation — SICK Stack (Backup)
-- [ ] Launches: `roslaunch p3at_lms_navigation mapping.launch use_gazebo_target:=false`
-- [ ] `rostopic hz /scan` — publishes
-- [ ] Manual 2D Nav Goal succeeds
-
 ### Navigation Tests
 - [ ] Waypoint test: `python3 catkin_ws/src/p3at_lms_navigation/scripts/waypoint_test.py` — 3/3 SUCCEEDED
 - [ ] Map saving: `rosrun map_server map_saver -f /tmp/test_map` — files created
@@ -2388,7 +2275,7 @@ source devel/setup.bash   # or setup.zsh
   - [ ] Map saved: `ls catkin_ws/src/p3at_lms_navigation/maps/explored_map_unitree.pgm`
 - [ ] AMCL verify: `roslaunch p3at_lms_navigation auto_amcl_verify_unitree.launch gui:=true`
   - [ ] `grep "Mean position" catkin_ws/src/p3at_lms_navigation/maps/amcl_report.txt` — < 0.30 m
-- [ ] Full pipeline: `bash run_full_pipeline.sh`
+- [ ] Full pipeline: `bash run_full_pipeline_unitree.sh`
 
 ### Real Robot — Docker Setup
 - [ ] Docker container running: `docker ps | grep ros_noetic`
@@ -2438,12 +2325,3 @@ source devel/setup.bash   # or setup.zsh
 - [ ] Robot says prompt after reaching target
 - [ ] Voice "yes" → `/trash_action` publishes True → cooldown then retreat
 - [ ] Voice "no" → `/trash_action` publishes False → immediate retreat
-
-### Real Robot — SICK (Backup) — Only If Unitree Unavailable
-- [ ] LMS200 detected: `ls /dev/ttyUSB0`
-- [ ] Permissions: `sudo chmod 666 /dev/ttyUSB0`
-- [ ] P3-AT base driver active
-- [ ] `roslaunch p3at_lms_navigation real_robot_mapping.launch` — no errors
-- [ ] `rostopic hz /scan` — ~75 Hz from LMS200
-- [ ] Map saved
-- [ ] AMCL navigation goal SUCCEEDED
