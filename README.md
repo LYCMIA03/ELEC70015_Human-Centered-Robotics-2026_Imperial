@@ -41,6 +41,7 @@ ROS1 Noetic · Ubuntu 20.04 · Gazebo 11 (Simulation) / Docker (Real Robot).
 9. [Part B — Real Robot Deployment](#part-b--real-robot-deployment)
    - [Docker Environment Setup](#docker-environment-setup)
    - [Network Architecture](#network-architecture)
+  - [Technical Report — Real-Robot Navigation Stack](#technical-report--real-robot-navigation-stack)
    - [Startup Order](#startup-order)
    - [Keyboard Teleoperation + Unitree Mapping Runbook](#keyboard-teleoperation--unitree-mapping-runbook)
    - [Autonomous Exploration SLAM Runbook](#autonomous-exploration-slam-runbook)
@@ -1054,6 +1055,208 @@ TRASH_UDP_PORT=16031
 ```
 
 > Both Docker containers must use `--net=host`.
+
+---
+
+### Technical Report — Real-Robot Navigation Stack
+
+This section is a code-grounded technical report for the current branch (`full_system_tmp`, commit `b379d0a`).
+It explains how real-robot mapping, localization, navigation, target following, and dialogue/state-machine logic are integrated end-to-end.
+
+#### 1) Runtime Architecture and Process Boundaries
+
+The real stack is deliberately split into three runtime domains:
+
+- **Jetson host (Ubuntu 22.04, non-ROS app layer)**
+  - Runs RGB-D detection and dialogue services.
+  - Main processes: [`handobj_detection/handobj_detection_rgbd.py`](handobj_detection/handobj_detection_rgbd.py), [`dialogue/dialogue_udp_runner.py`](dialogue/dialogue_udp_runner.py).
+- **Jetson Docker (`ros_noetic`, ROS1 control layer)**
+  - Runs ROS core, LiDAR drivers, SLAM/AMCL, move_base, target follower, and UDP bridge nodes.
+  - Main orchestration entry: [`scripts/start_demo.sh`](scripts/start_demo.sh).
+- **Raspberry Pi (base driver layer)**
+  - Runs RosAria and publishes chassis odometry/TF.
+  - Entry: [`catkin_ws/src/p3at_base/launch/base.launch`](catkin_ws/src/p3at_base/launch/base.launch).
+
+This separation keeps camera/AI dependencies off ROS Docker while preserving deterministic ROS control/TF behavior.
+
+#### 2) Control-Plane Entry and Operational Profiles
+
+The top-level supervisor is [`scripts/start_demo.sh`](scripts/start_demo.sh), which selects one of three real-robot operational profiles:
+
+1. **`--sensor-only`**
+   - Launches LiDAR chain only via [`real_robot_lidar_bringup.launch`](catkin_ws/src/p3at_lms_navigation/launch/real_robot_lidar_bringup.launch).
+   - No move_base, no target follower motion, no dialogue.
+
+2. **Default task mode (`online_slam_task`)**
+   - Launches [`target_follow_real.launch`](catkin_ws/src/target_follower/launch/target_follow_real.launch) with:
+     - `launch_move_base:=true`
+     - `use_online_slam:=true`
+   - This creates a self-contained task stack: LiDAR + SLAM + move_base + follower + bridge chain.
+
+3. **Map-assisted overlay mode (`--assist-map`)**
+   - Starts nav backbone from [`real_robot_nav_unitree.launch`](catkin_ws/src/p3at_lms_navigation/launch/real_robot_nav_unitree.launch) (map_server + AMCL + move_base).
+   - Starts follower overlay via [`target_follow_real.launch`](catkin_ws/src/target_follower/launch/target_follow_real.launch) with `launch_move_base:=false` and `global_frame:=map`.
+
+In all profiles, `start_demo.sh` performs readiness checks on `/target_follower/status`, `/map`, TF freshness, and scan topics before continuing.
+
+#### 3) Sensor and TF Ingestion Pipeline (Real Robot)
+
+For Unitree-first runtime (default):
+
+1. `unitree_lidar_ros_node` publishes `/unilidar/cloud`.
+2. `pointcloud_to_laserscan` converts cloud to `/unitree/scan_raw`.
+3. [`scan_body_filter.py`](catkin_ws/src/target_follower/scripts/scan_body_filter.py) removes chassis self-hits and republishes `/unitree/scan`.
+
+For dual-lidar runtime:
+
+- `rplidarNode` publishes `/scan`.
+- `rplidar_health_monitor.py` supervises startup and stream freshness.
+- Another `scan_body_filter.py` instance republishes `/rplidar/scan_filtered`.
+
+Robot TF/description are unified by:
+
+- URDF: [`p3at_unitree.urdf.xacro`](catkin_ws/src/p3at_lms_description/urdf/p3at_unitree.urdf.xacro)
+- `robot_state_publisher` for static sensor extrinsics.
+
+Base odometry chain:
+
+- RosAria publishes `/RosAria/pose` and `odom -> base_link`.
+- [`odom_republisher.py`](catkin_ws/src/p3at_base/scripts/odom_republisher.py) standardizes `/odom` topic semantics.
+
+#### 4) Mapping Stack (SLAM)
+
+Online SLAM uses `slam_gmapping` with Unitree parameters from:
+
+- [`param/unitree/gmapping.yaml`](catkin_ws/src/p3at_lms_navigation/param/unitree/gmapping.yaml)
+
+Key technical points:
+
+- `map_frame=map`, `odom_frame=odom`, `base_frame=base_link`.
+- 360° LiDAR configuration with `maxRange=30.0`, `maxUrange=12.0`.
+- Higher particle count (`particles=50`) and stricter `minimumScore=50` for robust loop closure.
+
+Two SLAM map usages coexist in task workflow:
+
+- **Primary online nav map**: `/map` (from `slam_gmapping_online` inside `target_follow_real.launch` when `use_online_slam=true`).
+- **Work-map channel**: `/work_map` via [`passive_mapping_unitree.launch`](catkin_ws/src/p3at_lms_navigation/launch/passive_mapping_unitree.launch), used for background learning during tasks.
+
+Persistent map saving/merging is handled by [`continuous_map_manager.py`](catkin_ws/src/p3at_lms_navigation/scripts/continuous_map_manager.py):
+
+- Periodically serializes live map to `*.yaml/*.pgm`.
+- Can merge live observations into an imported base map using TF-based frame alignment.
+
+#### 5) Localization Stack (AMCL)
+
+In map-assisted mode, localization is switched to AMCL via [`real_robot_nav_unitree.launch`](catkin_ws/src/p3at_lms_navigation/launch/real_robot_nav_unitree.launch):
+
+- `map_server` provides static map.
+- `amcl` consumes `/unitree/scan` and publishes `map -> odom`.
+- AMCL parameters from [`param/unitree/amcl.yaml`](catkin_ws/src/p3at_lms_navigation/param/unitree/amcl.yaml).
+
+This creates a clear authority swap:
+
+- **Online SLAM mode**: `slam_gmapping` owns `map -> odom`.
+- **Map-assisted mode**: `amcl` owns `map -> odom`.
+
+The follower remains compatible in both modes because its `global_frame` is explicitly configured (`map` in overlay mode).
+
+#### 6) Navigation Stack (move_base + Costmaps)
+
+Core planner/controller config is loaded from:
+
+- [`param/unitree/move_base.yaml`](catkin_ws/src/p3at_lms_navigation/param/unitree/move_base.yaml)
+
+Current branch characteristics:
+
+- Global planner: `NavfnROS`.
+- Local planner: `DWAPlannerROS`.
+- `clearing_rotation_allowed: true` in Unitree profile (note: RPLIDAR profile uses `false`).
+- DWA tuned for real robot with moderate velocities and extended simulation horizon (`sim_time: 3.0`).
+
+Costmap structure:
+
+- Common inflation/footprint: [`param/unitree/costmap_common.yaml`](catkin_ws/src/p3at_lms_navigation/param/unitree/costmap_common.yaml).
+- Global costmap (map frame): [`param/unitree/global_costmap.yaml`](catkin_ws/src/p3at_lms_navigation/param/unitree/global_costmap.yaml).
+- Local costmap (odom rolling window): [`param/unitree/local_costmap.yaml`](catkin_ws/src/p3at_lms_navigation/param/unitree/local_costmap.yaml).
+- Standalone no-map global rolling window: [`param/unitree/global_costmap_local_only.yaml`](catkin_ws/src/p3at_lms_navigation/param/unitree/global_costmap_local_only.yaml).
+
+Dual-lidar policy is explicitly local-costmap-biased:
+
+- Global planning remains Unitree-centric.
+- Local obstacle layer can be switched to `unitree_scan_sensor + rplidar_scan_sensor`.
+
+#### 7) Perception-to-Goal Transformation Chain
+
+Target input path is intentionally staged and frame-safe:
+
+1. Host detection sends UDP JSON (`x,y,z,frame_id`) to Docker.
+2. [`udp_target_bridge.py`](catkin_ws/src/target_follower/scripts/udp_target_bridge.py): UDP -> `/trash_detection/target_point` (`PointStamped`).
+3. [`point_to_target_pose.py`](catkin_ws/src/target_follower/scripts/point_to_target_pose.py): `PointStamped` -> `/target_pose` (`PoseStamped`).
+4. [`target_follower.py`](catkin_ws/src/target_follower/scripts/target_follower.py) transforms target into `global_frame` and produces move_base goals.
+
+This decomposition isolates transport, message conversion, and control logic, simplifying diagnosis of frame or latency faults.
+
+#### 8) Target Following Controller and Goal Policy
+
+`target_follower.py` is the **single goal owner** for tracking behavior.
+
+Core policies:
+
+- Goal resend rate limit (`send_rate_hz`) and displacement gate (`min_update_dist`) reduce excessive preemption.
+- Standoff control computes an offset goal rather than commanding exact target position.
+- Optional `face_target` sets terminal orientation toward target.
+- Target freshness guard (`target_timeout_s`) cancels stale pursuits.
+
+Important branch-specific behavior:
+
+- This branch includes **CLOSE_APPROACH** logic (direct `/cmd_vel` fallback near target) in addition to move_base tracking.
+- Trigger condition is distance-based (`reach_dist < close_approach_threshold`), not a global enable switch in this revision.
+
+#### 9) State Machine and Dialogue Coupling
+
+Implemented states in [`target_follower.py`](catkin_ws/src/target_follower/scripts/target_follower.py):
+
+- `STARTING`, `IDLE`, `EXPLORING`, `TRACKING`, `CLOSE_APPROACH`, `REACHED`,
+  `WAITING_ACTION`, `POST_ACCEPT_COOLDOWN`, `RETREATING`, `REACQUIRE_TARGET`, `LOST`, `FAILED`.
+
+High-level transition logic:
+
+- `IDLE/EXPLORING -> TRACKING`: target stream becomes fresh and confirmed.
+- `TRACKING -> REACHED`: camera depth reaches standoff threshold.
+- `TRACKING -> CLOSE_APPROACH`: near-target zone where move_base may struggle.
+- `REACHED -> WAITING_ACTION`: publish success and wait for dialogue result.
+- `WAITING_ACTION -> POST_ACCEPT_COOLDOWN` on `trash_action=True`.
+- `WAITING_ACTION -> RETREATING` on `trash_action=False`.
+- `RETREATING -> IDLE`: retreat complete or interrupted by valid new target.
+
+Dialogue closed-loop is bridged by:
+
+- [`navigation_success_udp_bridge.py`](catkin_ws/src/target_follower/scripts/navigation_success_udp_bridge.py): `/target_follower/result` -> UDP trigger.
+- [`udp_trash_action_bridge.py`](catkin_ws/src/target_follower/scripts/udp_trash_action_bridge.py): UDP decision -> `/trash_action`.
+
+The success bridge supports rising-edge triggering and optional WAITING_ACTION retrigger for robustness against packet loss.
+
+#### 10) Autonomous Exploration as Tracking Fallback
+
+When stable targets are absent, the follower invokes map-driven exploration:
+
+- Frontier detection and scoring are handled by [`frontier_planner.py`](catkin_ws/src/target_follower/scripts/frontier_planner.py).
+- Candidate goals are filtered by map safety, costmap safety, blacklist memory, and optional `make_plan` reachability.
+- Follower monitors stuck conditions using odometry progress and near-zero `/cmd_vel` windows, then replans/backs off.
+
+This means exploration and tracking are not separate nodes competing for move_base; they are coordinated inside one behavior owner (`target_follower`).
+
+#### 11) Why This Stack Is Operationally Cohesive
+
+The current branch forms a layered but internally consistent navigation stack:
+
+- **Transport layer**: UDP bridges isolate host AI services from ROS action/control.
+- **State/control layer**: `target_follower` owns both tracking and exploration arbitration.
+- **Navigation layer**: move_base remains the primary avoidance/planning engine.
+- **Localization/mapping layer**: switchable SLAM or AMCL authority for `map -> odom`.
+- **Persistence layer**: continuous map manager keeps runtime mapping artifacts usable.
+
+This architecture is what enables one-command demo startup while still supporting mode fallback (`sensor-only`, `online_slam_task`, `map_assisted`, `rplidar-only`).
 
 ---
 
