@@ -65,6 +65,9 @@ def dist_xy(a, b):
     dy = a.pose.position.y - b.pose.position.y
     return math.hypot(dx, dy)
 
+def dist_xy_pts(ax, ay, bx, by):
+    return math.hypot(ax - bx, ay - by)
+
 def transform_pose_stamped(pose_in, tf_stamped, target_frame):
     """
     Apply a TransformStamped to a PoseStamped, returning PoseStamped in target_frame.
@@ -111,6 +114,19 @@ class TargetFollower:
         self.send_rate_hz      = float(rospy.get_param("~send_rate_hz", 2.0))
         self.min_update_dist   = float(rospy.get_param("~min_update_dist", 0.3))
         self.target_timeout_s  = float(rospy.get_param("~target_timeout_s", 5.0))
+        # Keep obstacle avoidance always on by default: near-target updates are
+        # made more aggressive, but still through move_base.
+        self.tracking_near_target_window_m = float(
+            rospy.get_param("~tracking_near_target_window_m", 1.8))
+        self.tracking_near_send_rate_hz = float(
+            rospy.get_param("~tracking_near_send_rate_hz", 3.2))
+        self.tracking_near_min_update_dist = float(
+            rospy.get_param("~tracking_near_min_update_dist", 0.08))
+        # In near-target zone with close-approach disabled, send goals to the
+        # raw target point (still through move_base) so local-goal tolerance
+        # does not terminate too early before camera-depth REACHED.
+        self.tracking_near_goal_to_target = bool(
+            rospy.get_param("~tracking_near_goal_to_target", True))
         self.use_target_orientation = bool(
             rospy.get_param("~use_target_orientation", False))
 
@@ -216,7 +232,9 @@ class TargetFollower:
         self.path_sample_min_dist = float(rospy.get_param("~path_sample_min_dist", 0.25))
         self.max_path_points = int(rospy.get_param("~max_path_points", 2000))
 
-        # ── Close-approach params (bypass move_base for last-metre approach) ──
+        # ── Close-approach params (optional direct cmd_vel fallback) ──
+        self.enable_close_approach = bool(
+            rospy.get_param("~enable_close_approach", False))
         # When d_cam_z < this threshold, switch from move_base to direct cmd_vel.
         # Must be > standoff_distance.  Default: 2× standoff.
         self.close_approach_threshold = float(
@@ -348,10 +366,18 @@ class TargetFollower:
         self.dialogue_points_pub = rospy.Publisher("~dialogue_points", Path, queue_size=1)
 
         rospy.loginfo("standoff_distance = %.2f m", self.standoff_distance)
+        rospy.loginfo("enable_close_approach = %s", self.enable_close_approach)
         rospy.loginfo("close_approach_threshold = %.2f m", self.close_approach_threshold)
         rospy.loginfo("close_approach_speed = %.2f m/s", self.close_approach_speed)
         rospy.loginfo("close_approach_steer_gain = %.2f", self.close_approach_steer_gain)
         rospy.loginfo("close_approach_max_depth_jump = %.2f m", self.close_approach_max_depth_jump)
+        rospy.loginfo(
+            "tracking_near_target window=%.2fm send_rate=%.2fHz min_update=%.2fm goal_to_target=%s",
+            self.tracking_near_target_window_m,
+            self.tracking_near_send_rate_hz,
+            self.tracking_near_min_update_dist,
+            self.tracking_near_goal_to_target,
+        )
         rospy.loginfo("face_target = %s", self.face_target)
         rospy.loginfo("trash_action_topic = %s", self.trash_action_topic)
         rospy.loginfo("action_wait_timeout = %.1f s", self.action_wait_timeout_s)
@@ -561,6 +587,16 @@ class TargetFollower:
         self.face_target       = bool(rospy.get_param("~face_target",         self.face_target))
         self.send_rate_hz      = float(rospy.get_param("~send_rate_hz",       self.send_rate_hz))
         self.min_update_dist   = float(rospy.get_param("~min_update_dist",    self.min_update_dist))
+        self.tracking_near_target_window_m = float(
+            rospy.get_param("~tracking_near_target_window_m", self.tracking_near_target_window_m))
+        self.tracking_near_send_rate_hz = float(
+            rospy.get_param("~tracking_near_send_rate_hz", self.tracking_near_send_rate_hz))
+        self.tracking_near_min_update_dist = float(
+            rospy.get_param("~tracking_near_min_update_dist", self.tracking_near_min_update_dist))
+        self.tracking_near_goal_to_target = bool(
+            rospy.get_param("~tracking_near_goal_to_target", self.tracking_near_goal_to_target))
+        self.enable_close_approach = bool(
+            rospy.get_param("~enable_close_approach", self.enable_close_approach))
         self.retreat_distance  = float(rospy.get_param("~retreat_distance",   self.retreat_distance))
 
     def _append_path_point_if_needed(self):
@@ -1692,15 +1728,9 @@ class TargetFollower:
             )
             return
 
-        # Rate limiter — but allow immediate re-send after FAILED/LOST/IDLE
-        if self._state == "TRACKING":
-            if (now - self.last_send_time).to_sec() < (1.0 / max(self.send_rate_hz, 0.1)):
-                return
-
-        # Skip if target hasn't moved enough (only while actively tracking)
-        if self.last_sent_goal is not None and self._state == "TRACKING":
-            if dist_xy(target_g, self.last_sent_goal) < self.min_update_dist:
-                return
+        active_send_rate_hz = self.send_rate_hz
+        active_min_update_dist = self.min_update_dist
+        force_goal_to_target = False
 
         # ── Standoff computation ──────────────────────────────────────────
         goal_x, goal_y = tx, ty
@@ -1756,30 +1786,55 @@ class TargetFollower:
                         self._on_reached()
                     return
 
-                # ── Close approach: bypass move_base for last-metre ────
-                # When target is within close_approach_threshold but
-                # beyond standoff, switch to direct cmd_vel drive.
-                # This avoids DWA failure when the human is an obstacle.
-                if reach_dist < self.close_approach_threshold:
-                    rospy.loginfo(
-                        "[TargetFollower] Target within close-approach zone "
-                        "(d=%.3f < %.2f) — switching to CLOSE_APPROACH",
-                        reach_dist, self.close_approach_threshold,
+                if reach_dist <= self.tracking_near_target_window_m:
+                    active_send_rate_hz = max(self.send_rate_hz, self.tracking_near_send_rate_hz)
+                    active_min_update_dist = min(
+                        self.min_update_dist,
+                        self.tracking_near_min_update_dist,
                     )
-                    self._start_close_approach()
-                    return
+                    if (not self.enable_close_approach) and self.tracking_near_goal_to_target:
+                        force_goal_to_target = True
 
-                # Goal waypoint: offset from base_link so that *camera*
-                # depth ends up at standoff.  Camera is roughly
-                # (d - d_cam_xy) metres closer to target along the
-                # robot→target line.
-                cam_ahead = d - d_cam_xy  # positive when camera is ahead
-                base_standoff = self.standoff_distance + cam_ahead
-                if base_standoff >= d:
-                    base_standoff = d * 0.9  # safety: don't send goal behind robot
-                ratio  = (d - base_standoff) / d
-                goal_x = rx + dx * ratio
-                goal_y = ry + dy * ratio
+                # Keep obstacle avoidance on unless explicitly enabled.
+                if reach_dist < self.close_approach_threshold:
+                    if self.enable_close_approach:
+                        rospy.loginfo(
+                            "[TargetFollower] Target within close-approach zone "
+                            "(d=%.3f < %.2f) — switching to CLOSE_APPROACH",
+                            reach_dist, self.close_approach_threshold,
+                        )
+                        self._start_close_approach()
+                        return
+                    rospy.loginfo_throttle(
+                        2.0,
+                        "[TargetFollower] close_approach disabled; keep move_base tracking in near-target zone",
+                    )
+
+                if force_goal_to_target:
+                    goal_x, goal_y = tx, ty
+                else:
+                    # Goal waypoint: offset from base_link so that *camera*
+                    # depth ends up at standoff.  Camera is roughly
+                    # (d - d_cam_xy) metres closer to target along the
+                    # robot→target line.
+                    cam_ahead = d - d_cam_xy  # positive when camera is ahead
+                    base_standoff = self.standoff_distance + cam_ahead
+                    if base_standoff >= d:
+                        base_standoff = d * 0.9  # safety: don't send goal behind robot
+                    ratio  = (d - base_standoff) / d
+                    goal_x = rx + dx * ratio
+                    goal_y = ry + dy * ratio
+
+        # Rate limiter — but allow immediate re-send after FAILED/LOST/IDLE
+        if self._state == "TRACKING":
+            if (now - self.last_send_time).to_sec() < (1.0 / max(active_send_rate_hz, 0.1)):
+                return
+
+        # While a tracking goal is active, avoid over-preempting with tiny goal
+        # shifts. Once the goal is terminal, allow immediate re-send.
+        if self.last_sent_goal is not None and self._state == "TRACKING" and self._goal_active:
+            if dist_xy_pts(goal_x, goal_y, self.last_sent_goal[0], self.last_sent_goal[1]) < active_min_update_dist:
+                return
 
         # ── Build MoveBaseGoal ────────────────────────────────────────────
         goal = MoveBaseGoal()
@@ -1810,7 +1865,7 @@ class TargetFollower:
         self.client.send_goal(goal, done_cb=self._goal_done_cb)
         self._goal_active  = True
         self._active_goal_kind = "TRACKING"
-        self.last_sent_goal = target_g
+        self.last_sent_goal = (goal_x, goal_y)
         self.last_send_time = now
         if self._state in ("FAILED", "LOST", "IDLE"):
             rospy.loginfo(

@@ -79,7 +79,7 @@ if [[ "${MODE}" == "all" || "${MODE}" == "dialogue" ]]; then
 fi
 if [[ "${MODE}" == "all" ]]; then
   pkill -f "[s]tart_demo.sh" 2>/dev/null || true
-  pkill -f "[h]andobj_detection_rgbd.py" 2>/dev/null || true
+  pkill -f "[h]andobj_detection_rgbd.py|[h]andobj_detection_rgbd_remote_15cls.py" 2>/dev/null || true
   pkill -f "[d]emo_dashboard.sh" 2>/dev/null || true
 fi
 
@@ -134,10 +134,10 @@ if [[ "${MODE}" == "all" || "${MODE}" == "dialogue" ]]; then
 fi
 
 if [[ "${MODE}" == "all" ]]; then
-  if _host_pattern_alive "handobj_detection_rgbd.py" || \
+  if _host_pattern_alive "handobj_detection_rgbd.py|handobj_detection_rgbd_remote_15cls.py" || \
      _host_pattern_alive "demo_dashboard.sh"; then
     warn "Host demo processes still alive after first pass; retrying..."
-    pkill -9 -f "[h]andobj_detection_rgbd.py" 2>/dev/null || true
+    pkill -9 -f "[h]andobj_detection_rgbd.py|[h]andobj_detection_rgbd_remote_15cls.py" 2>/dev/null || true
     pkill -9 -f "[d]emo_dashboard.sh" 2>/dev/null || true
   fi
 fi

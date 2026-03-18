@@ -46,6 +46,12 @@ done
 # shellcheck disable=SC1090
 source "${RUNTIME_STATE_FILE}"
 NAV_READINESS_MODE="${NAV_READINESS_MODE:-relaxed}"
+HANDOBJ_DETECTOR_SCRIPT="${HANDOBJ_DETECTOR_SCRIPT:-handobj_detection_rgbd_remote_15cls.py}"
+WASTE_SERVER_URL="${WASTE_SERVER_URL:-}"
+WASTE_CALL_EVERY="${WASTE_CALL_EVERY:-1.0}"
+WASTE_ASYNC="${WASTE_ASYNC:-false}"
+HANDOBJ_STREAM_ENABLE="${HANDOBJ_STREAM_ENABLE:-false}"
+HANDOBJ_STREAM_PORT="${HANDOBJ_STREAM_PORT:-8765}"
 
 ROS_SETUP="source /opt/ros/noetic/setup.bash && source ${CATKIN_WS}/devel/setup.bash"
 ROS_ENV="export ROS_MASTER_URI=${ROS_MASTER} && export ROS_IP=${JETSON_IP}"
@@ -149,22 +155,40 @@ ensure_master() {
 }
 
 restart_yolo() {
-  pkill -f "[h]andobj_detection_rgbd.py" 2>/dev/null || true
+  pkill -f "[h]andobj_detection_rgbd.py|[h]andobj_detection_rgbd_remote_15cls.py" 2>/dev/null || true
   info "Restarting yolo on UDP ${TRASH_UDP_PORT}..."
   (
     cd "${HANDOBJ_DIR}"
-    exec python3 handobj_detection_rgbd.py \
-      --udp-enable \
-      --udp-host "127.0.0.1" \
-      --udp-port "${TRASH_UDP_PORT}" \
-      --udp-frame-id "camera_link" \
-      --udp-kind "${TARGET_KIND}" \
-      --rotate-180 \
-      --headless \
+    HANDOBJ_CMD=(
+      python3 "${HANDOBJ_DETECTOR_SCRIPT}"
+      --udp-enable
+      --udp-host "127.0.0.1"
+      --udp-port "${TRASH_UDP_PORT}"
+      --udp-frame-id "camera_link"
+      --udp-kind "${TARGET_KIND}"
+      --rotate-180
+      --headless
       --print-xyz
+    )
+    if [[ -n "${WASTE_SERVER_URL}" ]]; then
+      HANDOBJ_CMD+=(
+        --waste-server "${WASTE_SERVER_URL}"
+        --waste-call-every "${WASTE_CALL_EVERY}"
+      )
+      if ${WASTE_ASYNC}; then
+        HANDOBJ_CMD+=(--waste-async)
+      fi
+    fi
+    if ${HANDOBJ_STREAM_ENABLE}; then
+      HANDOBJ_CMD+=(
+        --stream-enable
+        --stream-port "${HANDOBJ_STREAM_PORT}"
+      )
+    fi
+    exec "${HANDOBJ_CMD[@]}"
   ) > /tmp/handobj.log 2>&1 &
   sleep 4
-  pgrep -af "handobj_detection_rgbd.py" >/dev/null 2>&1 || die "YOLO failed to start"
+  pgrep -af "handobj_detection_rgbd.py|handobj_detection_rgbd_remote_15cls.py" >/dev/null 2>&1 || die "YOLO failed to start"
   ok "YOLO restarted"
 }
 
@@ -247,6 +271,11 @@ restart_nav() {
       standoff_distance:=${STANDOFF} \
       face_target:=true \
       target_timeout:=5.0 \
+      enable_close_approach:=false \
+      tracking_near_target_window_m:=1.8 \
+      tracking_near_send_rate_hz:=3.2 \
+      tracking_near_min_update_dist:=0.08 \
+      tracking_near_goal_to_target:=true \
       udp_port:=${TRASH_UDP_PORT} \
       retreat_distance:=${RETREAT_DIST} \
       retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \

@@ -59,10 +59,22 @@
        doc="到达后机器人是否朝向目标"/>
   <arg name="target_timeout"         default="5.0"
        doc="目标消失多久后取消导航 (s)"/>
+  <arg name="enable_close_approach"  default="false"
+       doc="是否启用近距离直驱（默认关闭，保持move_base避障始终在线）"/>
+  <arg name="close_approach_threshold" default="1.5"
+       doc="若启用直驱，进入直驱的距离阈值 (m)"/>
   <arg name="send_rate_hz"           default="2.0"
        doc="向 move_base 发送新目标的最大频率 (Hz)"/>
   <arg name="min_update_dist"        default="0.2"
        doc="目标移动多远才重发目标 (m)"/>
+  <arg name="tracking_near_target_window_m" default="1.8"
+       doc="近距离激进跟随窗口 (m): 在该范围内提高重发频率并降低位移门限"/>
+  <arg name="tracking_near_send_rate_hz" default="3.2"
+       doc="近距离窗口下的目标重发频率上限 (Hz)"/>
+  <arg name="tracking_near_min_update_dist" default="0.08"
+       doc="近距离窗口下触发重发的最小目标位移 (m)"/>
+  <arg name="tracking_near_goal_to_target" default="true"
+       doc="近距离且禁用直驱时，是否将move_base目标直接设为目标点以避免提前判定到位"/>
 
   <!-- Dialogue integration params -->
   <arg name="trash_action_topic"     default="/trash_action"
@@ -315,8 +327,14 @@
     <param name="camera_frame"           value="camera_link"/>
     <param name="send_rate_hz"           value="$(arg send_rate_hz)"/>
     <param name="min_update_dist"        value="$(arg min_update_dist)"/>
+     <param name="tracking_near_target_window_m" value="$(arg tracking_near_target_window_m)"/>
+     <param name="tracking_near_send_rate_hz" value="$(arg tracking_near_send_rate_hz)"/>
+     <param name="tracking_near_min_update_dist" value="$(arg tracking_near_min_update_dist)"/>
+     <param name="tracking_near_goal_to_target" value="$(arg tracking_near_goal_to_target)"/>
     <param name="use_target_orientation" value="false"/>
     <param name="target_timeout_s"       value="$(arg target_timeout)"/>
+     <param name="enable_close_approach"  value="$(arg enable_close_approach)"/>
+     <param name="close_approach_threshold" value="$(arg close_approach_threshold)"/>
     <param name="standoff_distance"      value="$(arg standoff_distance)"/>
     <param name="face_target"            value="$(arg face_target)"/>
     <param name="trash_action_topic"     value="$(arg trash_action_topic)"/>

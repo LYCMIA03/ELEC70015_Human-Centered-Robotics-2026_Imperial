@@ -11,7 +11,7 @@ single_instance::activate "$(basename "$0")"
 # 启动内容：
 #   1. Jetson Docker — roscore (if not running)
 #   2. Jetson Docker — navigation + target_follow_real
-#   3. Jetson Host   — Hand-Object 检测 (handobj_detection_rgbd.py)
+#   3. Jetson Host   — Hand-Object 检测 (handobj_detection_rgbd_remote_15cls.py)
 #   4. Jetson Host   — Dialogue UDP bridges (nav_success → UDP:16041 → dialogue → /trash_action)
 #
 # 任务主逻辑：
@@ -64,7 +64,12 @@ single_instance::activate "$(basename "$0")"
 #   --explore-step M  auto explore 单步距离 (m), 默认 2.4
 #   --explore-no-repeat-sec S 2分钟区域去重窗口(秒), 默认 120
 #   --no-explore      关闭 auto explore（仅调试用）
-#   --target TYPE     检测目标类型 holding|person|waste, 默认 holding
+#   --target TYPE     检测目标类型标签 holding|person|waste, 默认 holding
+#   --waste-server URL 启用远程 15cls server (例如 http://172.26.183.130:8765)
+#   --waste-call-every N 远程 15cls 调用频率；>=1 按每 N 帧，<1 按每 N 秒
+#   --waste-async     远程 15cls 异步调用，避免阻塞主检测循环
+#   --stream-enable   开启 detector MJPEG 流
+#   --stream-port N   detector MJPEG 端口，默认 8765
 #   --dialogue-device N 对话麦克风设备号, 默认 24
 #   --only LIST       仅启动模块(逗号分隔): master,nav,yolo,dialogue,dashboard
 #   --no-nav          不启动 target_follow_real (仅联调 dialogue 等)
@@ -93,6 +98,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CATKIN_WS="${REPO_ROOT}/catkin_ws"
 HANDOBJ_DIR="${REPO_ROOT}/handobj_detection"
 RUNTIME_STATE_FILE="${XDG_RUNTIME_DIR:-/tmp}/hcr_demo_runtime.env"
+HANDOBJ_DETECTOR_SCRIPT="handobj_detection_rgbd_remote_15cls.py"
 
 # ---------- 默认参数 ----------
 STANDOFF="0.8"
@@ -120,9 +126,15 @@ EXPLORE_STEP="2.4"
 EXPLORE_NO_REPEAT_SEC="120.0"
 EXPLORE_SCAN_TOPIC="/unitree/scan"
 WORK_MAPPING=true
+MAP_PERSISTENCE_RUNNING=false
 ASSIST_MAP_FILE=""
 MAP_SAVE_INTERVAL="45.0"
 TARGET_KIND="holding"
+WASTE_SERVER_URL=""
+WASTE_CALL_EVERY="1.0"
+WASTE_ASYNC=false
+HANDOBJ_STREAM_ENABLE=false
+HANDOBJ_STREAM_PORT="8765"
 DIALOGUE_DEVICE="24"
 LAUNCH_YOLO=true
 LAUNCH_DIALOGUE=true
@@ -165,6 +177,11 @@ while [[ $# -gt 0 ]]; do
     --explore-no-repeat-sec) EXPLORE_NO_REPEAT_SEC="$2"; shift 2 ;;
     --no-explore)      ENABLE_AUTO_EXPLORE=false; shift ;;
     --target)          TARGET_KIND="$2";    shift 2 ;;
+    --waste-server)    WASTE_SERVER_URL="$2"; shift 2 ;;
+    --waste-call-every) WASTE_CALL_EVERY="$2"; shift 2 ;;
+    --waste-async)     WASTE_ASYNC=true; shift ;;
+    --stream-enable)   HANDOBJ_STREAM_ENABLE=true; shift ;;
+    --stream-port)     HANDOBJ_STREAM_PORT="$2"; shift 2 ;;
     --dialogue-device) DIALOGUE_DEVICE="$2"; shift 2 ;;
     --only)            ONLY_MODULES="$2";   shift 2 ;;
     --no-nav)          LAUNCH_NAV=false;    shift   ;;
@@ -352,6 +369,7 @@ _write_runtime_state() {
 REPO_ROOT='${REPO_ROOT}'
 CATKIN_WS='${CATKIN_WS}'
 HANDOBJ_DIR='${HANDOBJ_DIR}'
+HANDOBJ_DETECTOR_SCRIPT='${HANDOBJ_DETECTOR_SCRIPT}'
 DOCKER_NAME='${DOCKER_NAME}'
 JETSON_IP='${JETSON_IP}'
 ROS_MASTER='${ROS_MASTER}'
@@ -382,6 +400,11 @@ EXPLORE_NO_REPEAT_SEC='${EXPLORE_NO_REPEAT_SEC}'
 EXPLORE_SCAN_TOPIC='${EXPLORE_SCAN_TOPIC}'
 NAV_READINESS_MODE='${NAV_READINESS_MODE}'
 TARGET_KIND='${TARGET_KIND}'
+WASTE_SERVER_URL='${WASTE_SERVER_URL}'
+WASTE_CALL_EVERY='${WASTE_CALL_EVERY}'
+WASTE_ASYNC='${WASTE_ASYNC}'
+HANDOBJ_STREAM_ENABLE='${HANDOBJ_STREAM_ENABLE}'
+HANDOBJ_STREAM_PORT='${HANDOBJ_STREAM_PORT}'
 DIALOGUE_DEVICE='${DIALOGUE_DEVICE}'
 RUNNER_READY_TIMEOUT='${RUNNER_READY_TIMEOUT}'
 EOF
@@ -731,6 +754,13 @@ echo -e "  Explore no-repeat: ${EXPLORE_NO_REPEAT_SEC} s"
 echo -e "  Nav ready:  ${NAV_READINESS_MODE}"
 echo -e "  Sensor only:$(${SENSOR_ONLY} && echo enabled || echo disabled)"
 echo -e "  Target:     ${TARGET_KIND}"
+echo -e "  Detector:   ${HANDOBJ_DETECTOR_SCRIPT}"
+if [[ -n "${WASTE_SERVER_URL}" ]]; then
+  echo -e "  Waste srv:  ${WASTE_SERVER_URL}  (every ${WASTE_CALL_EVERY}, async=$(${WASTE_ASYNC} && echo on || echo off))"
+fi
+if ${HANDOBJ_STREAM_ENABLE}; then
+  echo -e "  MJPEG:      http://<jetson-ip>:${HANDOBJ_STREAM_PORT}/"
+fi
 echo -e "  UDP detect: ${TRASH_UDP_PORT}  (trash_detection -> ROS)"
 echo -e "  UDP trig:   ${DIALOGUE_TRIGGER_UDP_PORT}  (nav_success -> dialogue)"
 echo -e "  UDP action: ${DIALOGUE_ACTION_UDP_PORT}  (dialogue -> /trash_action)"
@@ -793,8 +823,8 @@ if ${LAUNCH_YOLO}; then
   if ! command -v python3 &>/dev/null; then
     warn "python3 not found on host — detection will be skipped"
     LAUNCH_YOLO=false
-  elif [[ ! -f "${HANDOBJ_DIR}/handobj_detection_rgbd.py" ]]; then
-    warn "handobj_detection_rgbd.py not found — detection will be skipped"
+  elif [[ ! -f "${HANDOBJ_DIR}/${HANDOBJ_DETECTOR_SCRIPT}" ]]; then
+    warn "${HANDOBJ_DETECTOR_SCRIPT} not found — detection will be skipped"
     LAUNCH_YOLO=false
   else
     ok "Hand-Object detection script found"
@@ -850,19 +880,36 @@ fi
 step "STEP 2 — Start Hand-Object detection (host)"
 
 if ${LAUNCH_YOLO}; then
-  pkill -f "handobj_detection_rgbd.py" 2>/dev/null || true
-  info "Starting handobj_detection_rgbd.py (UDP → 127.0.0.1:${TRASH_UDP_PORT})..."
+  pkill -f "handobj_detection_rgbd.py|handobj_detection_rgbd_remote_15cls.py" 2>/dev/null || true
+  info "Starting ${HANDOBJ_DETECTOR_SCRIPT} (UDP → 127.0.0.1:${TRASH_UDP_PORT})..."
   cd "${HANDOBJ_DIR}"
-  python3 handobj_detection_rgbd.py \
-    --udp-enable \
-    --udp-host "127.0.0.1" \
-    --udp-port "${TRASH_UDP_PORT}" \
-    --udp-frame-id "camera_link" \
-    --udp-kind "${TARGET_KIND}" \
-    --rotate-180 \
-    --headless \
-    --print-xyz \
-    > /tmp/handobj.log 2>&1 &
+  HANDOBJ_CMD=(
+    python3 "${HANDOBJ_DETECTOR_SCRIPT}"
+    --udp-enable
+    --udp-host "127.0.0.1"
+    --udp-port "${TRASH_UDP_PORT}"
+    --udp-frame-id "camera_link"
+    --udp-kind "${TARGET_KIND}"
+    --rotate-180
+    --headless
+    --print-xyz
+  )
+  if [[ -n "${WASTE_SERVER_URL}" ]]; then
+    HANDOBJ_CMD+=(
+      --waste-server "${WASTE_SERVER_URL}"
+      --waste-call-every "${WASTE_CALL_EVERY}"
+    )
+    if ${WASTE_ASYNC}; then
+      HANDOBJ_CMD+=(--waste-async)
+    fi
+  fi
+  if ${HANDOBJ_STREAM_ENABLE}; then
+    HANDOBJ_CMD+=(
+      --stream-enable
+      --stream-port "${HANDOBJ_STREAM_PORT}"
+    )
+  fi
+  "${HANDOBJ_CMD[@]}" > /tmp/handobj.log 2>&1 &
   YOLO_PID=$!
   sleep 4
   if kill -0 "${YOLO_PID}" 2>/dev/null; then
@@ -1048,6 +1095,11 @@ else
         standoff_distance:=${STANDOFF} \
         face_target:=true \
         target_timeout:=5.0 \
+        enable_close_approach:=false \
+        tracking_near_target_window_m:=1.8 \
+        tracking_near_send_rate_hz:=3.2 \
+        tracking_near_min_update_dist:=0.08 \
+        tracking_near_goal_to_target:=true \
         udp_port:=${TRASH_UDP_PORT} \
         retreat_distance:=${RETREAT_DIST} \
         retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \
@@ -1079,6 +1131,11 @@ else
         standoff_distance:=${STANDOFF} \
         face_target:=true \
         target_timeout:=5.0 \
+        enable_close_approach:=false \
+        tracking_near_target_window_m:=1.8 \
+        tracking_near_send_rate_hz:=3.2 \
+        tracking_near_min_update_dist:=0.08 \
+        tracking_near_goal_to_target:=true \
         udp_port:=${TRASH_UDP_PORT} \
         retreat_distance:=${RETREAT_DIST} \
         retreat_turn_angle_deg:=${RETREAT_TURN_DEG} \
@@ -1227,14 +1284,24 @@ else
       step "STEP 4.5 — Start map persistence"
 
       MAP_MANAGER_BASE_ARG="_base_map_yaml:="
+      MAP_MANAGER_BASE_DESC="<none>"
       if [[ -n "${ASSIST_MAP_FILE}" ]]; then
-        MAP_MANAGER_BASE_ARG="_base_map_yaml:=${ASSIST_MAP_FILE}"
+        if [[ -f "${ASSIST_MAP_FILE}" ]]; then
+          MAP_MANAGER_BASE_ARG="_base_map_yaml:=${ASSIST_MAP_FILE}"
+          MAP_MANAGER_BASE_DESC="${ASSIST_MAP_FILE}"
+        else
+          warn "Assist map for map persistence is missing: ${ASSIST_MAP_FILE}"
+          warn "Starting map persistence without base-map merge so current navigation stack can keep running."
+        fi
       fi
 
       if [[ "${NAV_PROFILE}" == "online_slam_task" ]]; then
         info "Using online SLAM map (/map) as navigation + exploration authority."
         ${DOCKER_EXEC} "pkill -f '[c]ontinuous_map_manager.py' 2>/dev/null; sleep 1" 2>/dev/null || true
         info "Starting continuous map manager on /map (save every ${MAP_SAVE_INTERVAL}s)..."
+        if [[ "${MAP_MANAGER_BASE_DESC}" != "<none>" ]]; then
+          info "Map persistence base map: ${MAP_MANAGER_BASE_DESC}"
+        fi
         _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
           exec rosrun p3at_lms_navigation continuous_map_manager.py \
             _map_topic:=/map \
@@ -1244,18 +1311,26 @@ else
             ${MAP_MANAGER_BASE_ARG} \
           > /tmp/map_manager.log 2>&1"
 
-        MAP_LEARN_READY=0
+        ONLINE_SLAM_READY=0
+        MAP_MANAGER_READY=0
         for i in $(seq 1 20); do
-          if _ros_node_exists "slam_gmapping_online" && _ros_node_exists "continuous_map_manager"; then
-            MAP_LEARN_READY=1
+          _ros_node_exists "slam_gmapping_online" && ONLINE_SLAM_READY=1
+          _ros_node_exists "continuous_map_manager" && MAP_MANAGER_READY=1
+          if [[ "${ONLINE_SLAM_READY}" -eq 1 && "${MAP_MANAGER_READY}" -eq 1 ]]; then
             break
           fi
           sleep 1
         done
-        if [[ "${MAP_LEARN_READY}" -ne 1 ]]; then
-          die "Online SLAM/map-manager stack failed to start. Check: tail -80 /tmp/target_follow.log and /tmp/map_manager.log"
+        if [[ "${ONLINE_SLAM_READY}" -ne 1 ]]; then
+          die "Online SLAM stack failed to start. Check: tail -80 /tmp/target_follow.log"
         fi
-        ok "Online SLAM + map persistence is running"
+        if [[ "${MAP_MANAGER_READY}" -ne 1 ]]; then
+          warn "Map persistence did not start, but online SLAM/navigation is alive. Continuing with live /map only."
+          warn "Check: tail -80 /tmp/map_manager.log"
+        else
+          MAP_PERSISTENCE_RUNNING=true
+          ok "Online SLAM + map persistence is running"
+        fi
       else
         MAP_LEARN_SCAN_TOPIC="/unitree/scan"
         if [[ "${LIDAR_MODE}" == "rplidar" ]]; then
@@ -1278,6 +1353,9 @@ else
           > /tmp/passive_mapping.log 2>&1"
 
         info "Starting continuous map manager (save every ${MAP_SAVE_INTERVAL}s)..."
+        if [[ "${MAP_MANAGER_BASE_DESC}" != "<none>" ]]; then
+          info "Map persistence base map: ${MAP_MANAGER_BASE_DESC}"
+        fi
         _docker_exec_detached "${ROS_ENV} && ${ROS_SETUP} && \
           exec rosrun p3at_lms_navigation continuous_map_manager.py \
             _map_topic:=/work_map \
@@ -1287,20 +1365,32 @@ else
             ${MAP_MANAGER_BASE_ARG} \
           > /tmp/map_manager.log 2>&1"
 
-        MAP_LEARN_READY=0
+        PASSIVE_MAPPING_READY=0
+        MAP_MANAGER_READY=0
         for i in $(seq 1 20); do
-          if _ros_node_exists "slam_gmapping_task" && _ros_node_exists "continuous_map_manager"; then
-            MAP_LEARN_READY=1
+          _ros_node_exists "slam_gmapping_task" && PASSIVE_MAPPING_READY=1
+          _ros_node_exists "continuous_map_manager" && MAP_MANAGER_READY=1
+          if [[ "${PASSIVE_MAPPING_READY}" -eq 1 && "${MAP_MANAGER_READY}" -eq 1 ]]; then
             break
           fi
           sleep 1
         done
-        if [[ "${MAP_LEARN_READY}" -ne 1 ]]; then
-          die "Passive mapping stack failed to start. Check: tail -80 /tmp/passive_mapping.log and /tmp/map_manager.log"
+        if [[ "${PASSIVE_MAPPING_READY}" -ne 1 ]]; then
+          die "Passive mapping stack failed to start. Check: tail -80 /tmp/passive_mapping.log"
         fi
-        ok "Passive map learning is running"
+        if [[ "${MAP_MANAGER_READY}" -ne 1 ]]; then
+          warn "Map persistence did not start, but passive mapping is alive. Continuing without periodic map saves."
+          warn "Check: tail -80 /tmp/map_manager.log"
+        else
+          MAP_PERSISTENCE_RUNNING=true
+          ok "Passive map learning + persistence is running"
+        fi
       fi
-      ok "Map output: ${MAP_SAVE_PREFIX}.yaml/.pgm"
+      if ${MAP_PERSISTENCE_RUNNING}; then
+        ok "Map output: ${MAP_SAVE_PREFIX}.yaml/.pgm"
+      else
+        warn "Map output files will not be refreshed until /tmp/map_manager.log is fixed."
+      fi
     else
       warn "Map persistence disabled (--no-work-mapping)."
     fi
@@ -1352,7 +1442,7 @@ else
   echo -e "    ${CYN}tail -f /tmp/handobj.log${NC}                  — detection log"
   echo -e "    ${CYN}tail -f /tmp/dialogue_bridge.log${NC}           — dialogue bridge log"
   echo -e "    ${CYN}tail -f /tmp/dialogue_runner.log${NC}           — dialogue runner log"
-  if ${WORK_MAPPING}; then
+  if ${MAP_PERSISTENCE_RUNNING}; then
     if [[ "${NAV_PROFILE}" == "online_slam_task" ]]; then
       echo -e "    ${CYN}tail -f /tmp/target_follow.log${NC}             — nav + online SLAM log"
     else
@@ -1360,6 +1450,13 @@ else
     fi
     echo -e "    ${CYN}tail -f /tmp/map_manager.log${NC}               — map merge/save log"
     echo -e "    ${CYN}ls ${MAP_SAVE_PREFIX}.yaml ${MAP_SAVE_PREFIX}.pgm${NC} — latest by-product map"
+  elif ${WORK_MAPPING}; then
+    if [[ "${NAV_PROFILE}" == "online_slam_task" ]]; then
+      echo -e "    ${CYN}tail -f /tmp/target_follow.log${NC}             — nav + online SLAM log"
+    else
+      echo -e "    ${CYN}tail -f /tmp/passive_mapping.log${NC}           — passive gmapping log"
+    fi
+    echo -e "    ${CYN}tail -f /tmp/map_manager.log${NC}               — map persistence failure log"
   fi
   echo -e "    ${CYN}tail -f /tmp/demo_dashboard.log${NC}            — dashboard log"
 fi

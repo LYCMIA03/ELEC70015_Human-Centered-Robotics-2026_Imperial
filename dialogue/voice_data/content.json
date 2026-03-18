@@ -12,10 +12,10 @@
     "b": "Okay! I will leave you to it. Goodbye!"
   },
   "robot_proceed": {
-    "c": "Wonderful! Here is the rubbish bin. Please go ahead.",
-    "d": "Of course! I will hold the bin open for you.",
-    "a": "Sure! Here is the bin. Please go ahead and throw it away.",
-    "b": "Great! I will hold the rubbish bin for you. Please go ahead."
+    "c": "Okay! Here is the bin. Please put the rubbish on the top of the bin.",
+    "d": "Of course! I will hold the bin open for you. Please put the rubbish on the top of the bin.",
+    "a": "Got it! Here is the bin. Please put the rubbish on the top of the bin.",
+    "b": "No problem! I will hold the rubbish bin for you. Please put the rubbish on the top of the bin."
   },
   "robot_repeat": {
     "a": "Sorry, I didn't quite catch that. Do you have any rubbish to throw away?",

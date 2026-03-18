@@ -82,7 +82,7 @@ case "${DETECTOR}" in
       "${PASS_ARGS[@]}"
     ;;
   handobj)
-    exec python3 handobj_detection/handobj_detection_rgbd.py \
+    exec python3 handobj_detection/handobj_detection_rgbd_remote_15cls.py \
       --print-xyz \
       --headless \
       --udp-enable \

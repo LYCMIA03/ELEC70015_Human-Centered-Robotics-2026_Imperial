@@ -18,7 +18,9 @@ import os
 import socket
 import sys
 import time
+import threading
 from pathlib import Path
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent
@@ -30,7 +32,7 @@ if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "backend:native"
 
 # 无显示器（SSH/headless）时避免 Qt/xcb 报错，须在 import cv2 之前设置
-if "--headless" in sys.argv and "QT_QPA_PLATFORM" not in os.environ:
+if (("--headless" in sys.argv) or ("--stream-enable" in sys.argv)) and "QT_QPA_PLATFORM" not in os.environ:
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 import numpy as np
@@ -100,6 +102,76 @@ class UdpTargetSender:
         self.sock.sendto(data, (self.host, self.port))
         self.last_sent_t = now
         return True
+
+
+class MjpegStreamHolder:
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._jpeg = None
+
+    def set_frame(self, bgr_frame, quality=85):
+        if bgr_frame is None or bgr_frame.size == 0:
+            return
+        ok, buf = cv2.imencode(".jpg", bgr_frame, [cv2.IMWRITE_JPEG_QUALITY, int(quality)])
+        if not ok:
+            return
+        with self._lock:
+            self._jpeg = buf.tobytes()
+
+    def get_jpeg(self):
+        with self._lock:
+            return self._jpeg
+
+
+def _make_stream_handler(stream_holder):
+    boundary = b"frame"
+
+    class StreamHandler(BaseHTTPRequestHandler):
+        def log_message(self, format, *args):
+            pass
+
+        def do_GET(self):
+            if self.path == "/" or self.path.startswith("/stream"):
+                self.send_response(200)
+                self.send_header(
+                    "Content-Type",
+                    "multipart/x-mixed-replace; boundary=%s" % boundary.decode(),
+                )
+                self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+                self.send_header("Pragma", "no-cache")
+                self.end_headers()
+                try:
+                    while True:
+                        jpeg = stream_holder.get_jpeg()
+                        if jpeg:
+                            self.wfile.write(b"--" + boundary + b"\r\n")
+                            self.wfile.write(
+                                b"Content-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n"
+                                % len(jpeg)
+                            )
+                            self.wfile.write(jpeg)
+                            self.wfile.write(b"\r\n")
+                        self.wfile.flush()
+                        time.sleep(0.033)
+                except (BrokenPipeError, ConnectionResetError, OSError):
+                    pass
+                return
+            self.send_response(404)
+            self.end_headers()
+
+    return StreamHandler
+
+
+class MjpegStreamServer:
+    def __init__(self, bind_addr="0.0.0.0", port=8765, stream_holder=None):
+        self.holder = stream_holder or MjpegStreamHolder()
+        self.port = int(port)
+        self.server = HTTPServer((bind_addr, self.port), _make_stream_handler(self.holder))
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+
+    def start(self):
+        self.thread.start()
+        return self.holder
 
 
 def _is_cuda_allocator_error(exc):
@@ -224,11 +296,30 @@ def _iou_rect(a, b):
     return inter / min(area_a, area_b)
 
 
+def _rect_intersection_area(a, b):
+    ax1, ay1, ax2, ay2 = a
+    bx1, by1, bx2, by2 = b
+    ix1 = max(ax1, bx1)
+    iy1 = max(ay1, by1)
+    ix2 = min(ax2, bx2)
+    iy2 = min(ay2, by2)
+    if ix2 <= ix1 or iy2 <= iy1:
+        return 0.0
+    return float(ix2 - ix1) * float(iy2 - iy1)
+
+
+def _rect_area(a):
+    x1, y1, x2, y2 = a
+    return max(0.0, float(x2 - x1) * float(y2 - y1))
+
+
 def get_holding_person_boxes_and_xyz(results, names_dict, depth_mm, depth_h, depth_w,
                                      conf_threshold=0.35, max_range_mm=5000,
                                      person_keywords=("person", "human"),
                                      hand_keywords=("hand", "left_hand", "right_hand"),
-                                     object_keywords=("object", "obj", "thing", "item")):
+                                     object_keywords=("object", "obj", "thing", "item"),
+                                     ignore_self_touch=True,
+                                     self_touch_inside_thr=0.85):
     """
     从 YOLO results 和深度图得到「手持物体的人」的 bbox 与 XYZ。
     返回 list of ((x1,y1,x2,y2), xyz_m, person_conf)，按 z 升序（最近在前）。
@@ -275,16 +366,198 @@ def get_holding_person_boxes_and_xyz(results, names_dict, depth_mm, depth_h, dep
         return out
 
     # person 与 hand/object 重叠则视为「手持」
+    # 但如果只是“手摸自己”（hand 大部分落在 person 框内部），则屏蔽成非 holding。
     person_boxes = [t for t in boxes_list if t[4] in person_ids]
-    hand_obj_boxes = [t for t in boxes_list if t[4] in hand_ids or t[4] in obj_ids]
+    hand_boxes = [t for t in boxes_list if t[4] in hand_ids]
+    obj_boxes = [t for t in boxes_list if t[4] in obj_ids]
     holding = []
     for (x1, y1, x2, y2, _, conf, d_mm, xyz) in person_boxes:
         person_rect = (x1, y1, x2, y2)
-        for h in hand_obj_boxes:
-            h_rect = (h[0], h[1], h[2], h[3])
-            if _iou_rect(person_rect, h_rect) > 0.05 or _box_center_inside(person_rect, h_rect):
+        found_holding = False
+
+        # 优先：检测到 object 才算“拿着东西”
+        for o in obj_boxes:
+            o_rect = (o[0], o[1], o[2], o[3])
+            if _iou_rect(person_rect, o_rect) > 0.05 or _box_center_inside(person_rect, o_rect):
+                holding.append(((x1, y1, x2, y2), xyz, conf))
+                found_holding = True
+                break
+        if found_holding:
+            continue
+
+        # 次要：hand 与 person 重叠时，若 hand 基本都在 person 框内，则视为 self-touch
+        if ignore_self_touch:
+            for h in hand_boxes:
+                h_rect = (h[0], h[1], h[2], h[3])
+                if not (_iou_rect(person_rect, h_rect) > 0.05 or _box_center_inside(person_rect, h_rect)):
+                    continue
+                if self_touch_inside_thr is not None:
+                    inter_area = _rect_intersection_area(person_rect, h_rect)
+                    hand_area = _rect_area(h_rect)
+                    inside_ratio = inter_area / hand_area if hand_area > 1e-6 else 1.0
+                    if inside_ratio >= float(self_touch_inside_thr):
+                        continue
                 holding.append(((x1, y1, x2, y2), xyz, conf))
                 break
+        else:
+            for h in hand_boxes:
+                h_rect = (h[0], h[1], h[2], h[3])
+                if _iou_rect(person_rect, h_rect) > 0.05 or _box_center_inside(person_rect, h_rect):
+                    holding.append(((x1, y1, x2, y2), xyz, conf))
+                    break
+    holding.sort(key=lambda x: x[1][2])
+    return holding
+
+
+def get_holding_person_boxes_and_xyz_dual(
+    person_results,
+    handobj_results,
+    handobj_names_dict,
+    depth_mm,
+    depth_h,
+    depth_w,
+    conf_threshold=0.35,
+    max_range_mm=5000,
+    person_keywords=("person", "human"),
+    hand_keywords=("hand", "left_hand", "right_hand"),
+    object_keywords=("object", "obj", "thing", "item"),
+    ignore_self_touch=True,
+    self_touch_inside_thr=0.85,
+    ignore_self_touch_objects=True,
+    self_touch_object_inside_thr=0.92,
+    self_touch_object_same_size_area_thr=0.9,
+    self_touch_object_same_size_iou_thr=0.6,
+    hand_object_overlap_iou_thr=0.05,
+    hand_object_center_inside=True,
+    person_class_id=COCO_PERSON_CLASS_ID,
+):
+    """
+    双模型 holding：
+    - person model：用 person_class_id 找人框
+    - hand/object model：用关键词从 handobj_names_dict 找 hand/object
+    """
+    if (
+        person_results is None
+        or handobj_results is None
+        or person_results.boxes is None
+        or len(person_results.boxes) == 0
+        or depth_mm is None
+        or depth_mm.ndim != 2
+    ):
+        return []
+
+    dh, dw = depth_mm.shape[0], depth_mm.shape[1]
+    max_range_mm = min(max_range_mm, int(MAX_DEPTH_M * 1000))
+
+    hand_ids = _find_class_ids(handobj_names_dict, *hand_keywords)
+    obj_ids = _find_class_ids(handobj_names_dict, *object_keywords)
+
+    person_boxes = []
+    for xyxy, conf, cls in zip(
+        person_results.boxes.xyxy.cpu().numpy(),
+        person_results.boxes.conf.cpu().numpy(),
+        person_results.boxes.cls.cpu().numpy(),
+    ):
+        cls_id = int(cls)
+        if cls_id != int(person_class_id):
+            continue
+        if float(conf) < conf_threshold:
+            continue
+        x1, y1, x2, y2 = float(xyxy[0]), float(xyxy[1]), float(xyxy[2]), float(xyxy[3])
+
+        d_mm = sample_depth_at_center(depth_mm, x1, y1, x2, y2, dh, dw)
+        if d_mm is None or d_mm <= 0 or d_mm > max_range_mm:
+            continue
+        cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+        xyz = depth_pixel_to_xyz_m(cx, cy, d_mm, depth_w=dw, depth_h=dh)
+        if xyz is None:
+            continue
+        person_boxes.append(((x1, y1, x2, y2), xyz, float(conf)))
+
+    if not person_boxes:
+        return []
+
+    hand_boxes = []
+    obj_boxes = []
+    if handobj_results.boxes is not None and len(handobj_results.boxes) > 0:
+        for xyxy, conf, cls in zip(
+            handobj_results.boxes.xyxy.cpu().numpy(),
+            handobj_results.boxes.conf.cpu().numpy(),
+            handobj_results.boxes.cls.cpu().numpy(),
+        ):
+            cls_id = int(cls)
+            if float(conf) < conf_threshold:
+                continue
+            x1, y1, x2, y2 = float(xyxy[0]), float(xyxy[1]), float(xyxy[2]), float(xyxy[3])
+            if cls_id in hand_ids:
+                hand_boxes.append((x1, y1, x2, y2, float(conf)))
+            elif cls_id in obj_ids:
+                obj_boxes.append((x1, y1, x2, y2, float(conf)))
+
+    holding = []
+    for (x1, y1, x2, y2), xyz, p_conf in person_boxes:
+        person_rect = (x1, y1, x2, y2)
+        touch_hands = []
+        for h in hand_boxes:
+            h_rect = (h[0], h[1], h[2], h[3])
+            if _iou_rect(person_rect, h_rect) > 0.05 or _box_center_inside(person_rect, h_rect):
+                touch_hands.append(h_rect)
+
+        if not touch_hands:
+            continue
+
+        # 是否“hand 主要在自己身上”（疑似摸自己）
+        hand_inside_any = False
+        if ignore_self_touch:
+            for h_rect in touch_hands:
+                inter_area = _rect_intersection_area(person_rect, h_rect)
+                hand_area = _rect_area(h_rect)
+                inside_ratio = inter_area / hand_area if hand_area > 1e-6 else 1.0
+                if self_touch_inside_thr is not None and inside_ratio >= float(self_touch_inside_thr):
+                    hand_inside_any = True
+                    break
+
+        # 核心判定：只用“hand 与 object 的关联”来触发 holding，
+        # 不再直接用 object 与 person 的重合来作为触发条件。
+        def hand_has_object_association(h_rect):
+            for o in obj_boxes:
+                o_rect = (o[0], o[1], o[2], o[3])
+                has_assoc = False
+                if _iou_rect(h_rect, o_rect) > float(hand_object_overlap_iou_thr):
+                    has_assoc = True
+                elif hand_object_center_inside and _box_center_inside(h_rect, o_rect):
+                    has_assoc = True
+
+                if not has_assoc:
+                    continue
+
+                # 如果是 self-touch 模式，则再额外抑制“object 其实只是人体内部误检”
+                if ignore_self_touch and hand_inside_any and ignore_self_touch_objects:
+                    person_area = _rect_area(person_rect)
+                    obj_area = _rect_area(o_rect)
+                    if person_area > 1e-6 and obj_area > 1e-6:
+                        size_similarity = min(obj_area, person_area) / max(obj_area, person_area)
+                    else:
+                        size_similarity = 0.0
+
+                    # 仅当 “object 和 person 的尺寸几乎一样大” 时抑制。
+                    # 允许 object 落在人框内/与人框有重合，但只要它“没跟 person 同尺寸”，就仍然允许 holding。
+                    if _iou_rect(person_rect, o_rect) >= float(self_touch_object_same_size_iou_thr) and size_similarity >= float(self_touch_object_same_size_area_thr):
+                        continue
+
+                return True
+
+            return False
+
+        any_hand_object = False
+        for h_rect in touch_hands:
+            if hand_has_object_association(h_rect):
+                any_hand_object = True
+                break
+
+        if any_hand_object:
+            holding.append(((x1, y1, x2, y2), xyz, p_conf))
+
     holding.sort(key=lambda x: x[1][2])
     return holding
 
@@ -292,6 +565,8 @@ def get_holding_person_boxes_and_xyz(results, names_dict, depth_mm, depth_h, dep
 def main():
     p = argparse.ArgumentParser(description="Hand-Object RGB-D：最近手持物体的人的 XYZ")
     p.add_argument("--weights", "-w", default=str(DEFAULT_WEIGHTS), help="权重路径")
+    p.add_argument("--person-weights", default=PERSON_MODEL_DEFAULT,
+                   help="人检测权重（默认 yolov8n.pt，COCO person=0）。")
     p.add_argument("--conf", type=float, default=0.35, help="置信度阈值")
     p.add_argument("--imgsz", type=int, default=640, help="YOLO 输入尺寸")
     p.add_argument("--color-res", choices=["720p", "1080p", "1440p"], default="1080p", help="彩色分辨率")
@@ -305,39 +580,64 @@ def main():
     p.add_argument("--udp-frame-id", default="camera_link", help="发送时使用的 frame_id，默认 camera_link")
     p.add_argument("--udp-rate", type=float, default=10.0, help="UDP 最大发送频率 (Hz)，默认 10")
     p.add_argument("--udp-kind", default="holding", help="UDP 目标类型标签 (holding|person|waste)，默认 holding")
-    p.add_argument("--rotate-180", action="store_true", help="将彩色图与深度图一起旋转 180 度，适用于相机上下倒装")
+    p.add_argument("--no-rotate-180", action="store_true",
+                   help="不对彩色图/深度图做 180 度翻转（默认开启；适用于相机上下倒装）")
+    p.add_argument("--no-self-touch-filter", action="store_true",
+                   help="关闭“手摸自己”屏蔽（默认开启）")
+    p.add_argument("--self-touch-inside-thr", type=float, default=0.85,
+                   help="self-touch 过滤阈值：hand 基本在 person 框内的比例 >= 该值则忽略；默认 0.85")
+    p.add_argument("--self-touch-object-inside-thr", type=float, default=0.92,
+                   help="当疑似摸自己（hand 基本在 person 框内）时：若 object 几乎完全落在 person 框内的比例 >= 该值，则忽略；默认 0.92")
+    p.add_argument("--self-touch-object-same-size-area-thr", type=float, default=0.9,
+                   help="当疑似摸自己时：若 target object 与人框(person)面积相似度 >= 该值，则忽略（抑制“像人本身”的误检）；默认 0.9")
+    p.add_argument("--self-touch-object-same-size-iou-thr", type=float, default=0.6,
+                   help="当疑似摸自己时：若 object 与 person 的 IoU >= 该值 且面积相似度 >= 上述阈值，则忽略；默认 0.6")
+    p.add_argument("--hand-object-overlap-iou-thr", type=float, default=0.05,
+                   help="hand 与 object 框的 IoU >= 该值，则认为手在拿物（默认 0.05）")
+    p.add_argument("--stream-enable", action="store_true", help="开启 MJPEG 流，把带框结果发到局域网")
+    p.add_argument("--stream-bind", default="0.0.0.0", help="MJPEG 监听地址，默认 0.0.0.0")
+    p.add_argument("--stream-port", type=int, default=8765, help="MJPEG 端口，默认 8765")
+    p.add_argument("--stream-quality", type=int, default=85, help="MJPEG JPEG 质量 1-100，默认 85")
     args = p.parse_args()
 
-    weights = Path(args.weights)
-    if not weights.is_absolute():
-        weights = ROOT / weights
-    if not weights.exists():
+    handobj_weights = Path(args.weights)
+    if not handobj_weights.is_absolute():
+        handobj_weights = ROOT / handobj_weights
+    if not handobj_weights.exists():
         alt = WEIGHT_DIR / "best.pt"
         if alt.exists():
-            weights = alt
+            handobj_weights = alt
         else:
-            print("未找到权重:", weights)
+            print("未找到权重:", handobj_weights)
             return 1
-    weights = str(weights)
+    handobj_weights = str(handobj_weights)
 
     yolo_device = "cuda" if torch.cuda.is_available() else "cpu"
     if getattr(args, "device", "auto") != "auto":
         yolo_device = args.device
     print("YOLO 推理设备:", yolo_device)
 
-    model = YOLO(weights)
-    names_dict = _get_class_names(model)
-    print("模型类别:", names_dict)
+    person_model = YOLO(args.person_weights)
+    handobj_model = YOLO(handobj_weights)
+    handobj_names_dict = _get_class_names(handobj_model)
+    print("handobj 模型类别:", handobj_names_dict)
+    hand_ids_vis = _find_class_ids(handobj_names_dict, "hand", "left_hand", "right_hand")
+    obj_ids_vis = _find_class_ids(handobj_names_dict, "object", "obj", "thing", "item")
 
     # Jetson 上 CUDA 分配器有时会在相机和首次推理并发初始化时触发 NVML/NvMap 异常。
     # 先做一次小图预热，尽量把显存和执行上下文提前稳定下来；若仍失败则退回 CPU。
     if yolo_device == "cuda":
         try:
             dummy = np.zeros((480, 640, 3), dtype=np.uint8)
-            model.predict(dummy, conf=args.conf, imgsz=min(640, args.imgsz), verbose=False, device=yolo_device)
+            person_model.predict(
+                dummy, conf=args.conf, imgsz=min(640, args.imgsz), verbose=False, device=yolo_device
+            )
+            handobj_model.predict(
+                dummy, conf=args.conf, imgsz=min(640, args.imgsz), verbose=False, device=yolo_device
+            )
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
-            print("YOLO CUDA 预热完成")
+            print("YOLO 双模型 CUDA 预热完成")
         except RuntimeError as e:
             if _is_cuda_allocator_error(e):
                 print("CUDA 预热失败（显存/分配器异常），自动切换到 CPU:", e)
@@ -375,7 +675,7 @@ def main():
     align_filter = AlignFilter(align_to_stream=OBStreamType.COLOR_STREAM)
     time.sleep(1.5)
 
-    headless = getattr(args, "headless", False)
+    headless = getattr(args, "headless", False) or getattr(args, "stream_enable", False)
     print("RGB-D 已开（彩色 %s），%s" % (args.color_res, "Ctrl+C 退出（无界面）" if headless else "按 q 退出"))
     sender = None
     if getattr(args, "udp_enable", False):
@@ -388,6 +688,26 @@ def main():
         )
         print("UDP 发送已启用: %s:%s frame_id=%s kind=%s rate<=%.1f Hz" % (
             args.udp_host, args.udp_port, args.udp_frame_id, args.udp_kind, args.udp_rate))
+
+    stream_holder = None
+    stream_server = None
+    if getattr(args, "stream_enable", False):
+        try:
+            stream_server = MjpegStreamServer(
+                bind_addr=getattr(args, "stream_bind", "0.0.0.0"),
+                port=getattr(args, "stream_port", 8765),
+            )
+            stream_holder = stream_server.start()
+            print(
+                "MJPEG 流已启动: http://%s:%d/stream  (或 http://%s:%d/)"
+                % (getattr(args, "stream_bind", "0.0.0.0"), int(getattr(args, "stream_port", 8765)),
+                   getattr(args, "stream_bind", "0.0.0.0"), int(getattr(args, "stream_port", 8765))),
+                flush=True,
+            )
+        except Exception as e:
+            stream_holder = None
+            stream_server = None
+            print("MJPEG 流启动失败，已跳过:", type(e).__name__, e, flush=True)
     if not headless:
         cv2.namedWindow("Hand-Object RGB-D", cv2.WINDOW_NORMAL)
 
@@ -422,7 +742,9 @@ def main():
                 depth_copy = (d.astype(np.float32) * scale).astype(np.uint16)
 
             color_img, depth_copy = rotate_rgbd_180(
-                color_img, depth_copy, enabled=getattr(args, "rotate_180", False)
+                color_img,
+                depth_copy,
+                enabled=not getattr(args, "no_rotate_180", False),
             )
 
             if color_img is None or depth_copy is None or depth_copy.ndim != 2:
@@ -440,12 +762,19 @@ def main():
             max_yolo_retries = 3 if yolo_device == "cuda" else 1
             for yolo_attempt in range(max_yolo_retries):
                 try:
-                    results = model.predict(
+                    person_results = person_model.predict(
+                        frame, conf=args.conf, imgsz=args.imgsz, verbose=False, device=yolo_device
+                    )[0]
+                    handobj_results = handobj_model.predict(
                         frame, conf=args.conf, imgsz=args.imgsz, verbose=False, device=yolo_device
                     )[0]
                     break
                 except RuntimeError as e:
-                    if yolo_attempt < max_yolo_retries - 1 and yolo_device == "cuda" and _is_cuda_allocator_error(e):
+                    if (
+                        yolo_attempt < max_yolo_retries - 1
+                        and yolo_device == "cuda"
+                        and _is_cuda_allocator_error(e)
+                    ):
                         time.sleep(0.15 * (yolo_attempt + 1))
                         continue
                     if yolo_device == "cuda" and _is_cuda_allocator_error(e):
@@ -453,16 +782,36 @@ def main():
                         yolo_device = "cpu"
                         if torch.cuda.is_available():
                             torch.cuda.empty_cache()
-                        results = model.predict(
+                        person_results = person_model.predict(
+                            frame, conf=args.conf, imgsz=args.imgsz, verbose=False, device=yolo_device
+                        )[0]
+                        handobj_results = handobj_model.predict(
                             frame, conf=args.conf, imgsz=args.imgsz, verbose=False, device=yolo_device
                         )[0]
                         break
                     raise
             yolo_time_sum += time.perf_counter() - t_yolo_start
 
-            holding_list = get_holding_person_boxes_and_xyz(
-                results, names_dict, depth_copy, dh, dw,
-                conf_threshold=args.conf, max_range_mm=max_depth_mm,
+            holding_list = get_holding_person_boxes_and_xyz_dual(
+                person_results,
+                handobj_results,
+                handobj_names_dict,
+                depth_copy,
+                dh,
+                dw,
+                conf_threshold=args.conf,
+                max_range_mm=max_depth_mm,
+                ignore_self_touch=not getattr(args, "no_self_touch_filter", False),
+                self_touch_inside_thr=float(getattr(args, "self_touch_inside_thr", 0.85)),
+                ignore_self_touch_objects=True,
+                self_touch_object_inside_thr=float(getattr(args, "self_touch_object_inside_thr", 0.92)),
+                self_touch_object_same_size_area_thr=float(
+                    getattr(args, "self_touch_object_same_size_area_thr", 0.9)
+                ),
+                self_touch_object_same_size_iou_thr=float(
+                    getattr(args, "self_touch_object_same_size_iou_thr", 0.6)
+                ),
+                hand_object_overlap_iou_thr=float(getattr(args, "hand_object_overlap_iou_thr", 0.05)),
             )
 
             # 最近手持物体的人
@@ -497,24 +846,62 @@ def main():
 
             # 可视化
             vis = frame.copy()
-            if results.boxes is not None:
+            # 画人框（蓝色）
+            if person_results.boxes is not None:
                 for xyxy, conf, cls in zip(
-                    results.boxes.xyxy.cpu().numpy(),
-                    results.boxes.conf.cpu().numpy(),
-                    results.boxes.cls.cpu().numpy(),
+                    person_results.boxes.xyxy.cpu().numpy(),
+                    person_results.boxes.conf.cpu().numpy(),
+                    person_results.boxes.cls.cpu().numpy(),
                 ):
                     if float(conf) < args.conf:
                         continue
+                    cls_id = int(cls)
+                    if cls_id != int(COCO_PERSON_CLASS_ID):
+                        continue
                     x1, y1, x2, y2 = map(int, xyxy)
-                    name = names_dict.get(int(cls), "cls%d" % int(cls))
+                    cv2.rectangle(vis, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                    cv2.putText(
+                        vis,
+                        "person %.2f" % float(conf),
+                        (x1, y1 - 6),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (255, 0, 0),
+                        1,
+                    )
+
+            # 画 hand/object 框（绿色）
+            if handobj_results.boxes is not None:
+                for xyxy, conf, cls in zip(
+                    handobj_results.boxes.xyxy.cpu().numpy(),
+                    handobj_results.boxes.conf.cpu().numpy(),
+                    handobj_results.boxes.cls.cpu().numpy(),
+                ):
+                    if float(conf) < args.conf:
+                        continue
+                    cls_id = int(cls)
+                    if cls_id not in hand_ids_vis and cls_id not in obj_ids_vis:
+                        continue
+                    x1, y1, x2, y2 = map(int, xyxy)
+                    name = handobj_names_dict.get(int(cls), "cls%d" % int(cls))
                     cv2.rectangle(vis, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    cv2.putText(vis, "%s %.2f" % (name, float(conf)), (x1, y1 - 6),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                    cv2.putText(
+                        vis,
+                        "%s %.2f" % (name, float(conf)),
+                        (x1, y1 - 6),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (0, 255, 0),
+                        1,
+                    )
             if nearest_box is not None and nearest_xyz is not None:
                 x1, y1, x2, y2 = map(int, nearest_box)
                 cv2.rectangle(vis, (x1, y1), (x2, y2), (0, 255, 255), 3)
                 cv2.putText(vis, "Nearest holding: (%.2f, %.2f, %.2f) m" % nearest_xyz,
                             (x1, y1 - 24), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
+            if stream_holder is not None:
+                stream_holder.set_frame(vis, quality=getattr(args, "stream_quality", 85))
 
             if not headless:
                 cv2.imshow("Hand-Object RGB-D", vis)
@@ -525,6 +912,15 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        if stream_server is not None:
+            try:
+                stream_server.server.shutdown()
+            except Exception:
+                pass
+            try:
+                stream_server.server.server_close()
+            except Exception:
+                pass
         try:
             pipeline.stop()
         except Exception:

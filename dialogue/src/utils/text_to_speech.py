@@ -103,7 +103,7 @@ def main() -> None:
         "text": "You are so stupid!",
         "output_path": "voice_data/sim_user_answer_other_b.wav",
         "volume": 1.0,
-        "speed": 1.33,
+        "speed": 1.0,
         "noise_scale": 0.667,
         "noise_w_scale": 0.8,
         "use_cuda": False,
