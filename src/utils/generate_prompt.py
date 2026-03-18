@@ -6,7 +6,7 @@ from pathlib import Path
 from src.utils.text_to_speech import generate
 
 VOICE_DIR = Path("voice_data")
-MODEL = "en_GB-southern_english_female-low"
+MODEL = "en/en_GB/vctk/medium/en_GB-vctk-medium.onnx.json"
 
 PROMPTS = {
     "robot_prompt": [
@@ -22,10 +22,10 @@ PROMPTS = {
         ("d", "That's alright. I'll be on my way. Take care!"),
     ],
     "robot_proceed": [
-        ("a", "Sure! Here is the bin. Please go ahead and throw it away."),
-        ("b", "Great! I will hold the rubbish bin for you. Please go ahead."),
-        ("c", "Wonderful! Here is the rubbish bin. Please go ahead."),
-        ("d", "Of course! I will hold the bin open for you."),
+        ("a", "Got it! Here is the bin. Please put the rubbish on the top of the bin."),
+        ("b", "No problem! I will hold the rubbish bin for you. Please put the rubbish on the top of the bin."),
+        ("c", "Okay! Here is the bin. Please put the rubbish on the top of the bin."),
+        ("d", "Of course! I will hold the bin open for you. Please put the rubbish on the top of the bin."),
     ],
     "robot_repeat": [
         ("a", "Sorry, I didn't quite catch that. Do you have any rubbish to throw away?"),
@@ -38,8 +38,8 @@ PROMPTS = {
 TTS_CONFIG = {
     "volume": 1.5,
     "speed": 1.2,
-    "noise_scale": 0.667,
-    "noise_w_scale": 0.8,
+    "noise_scale": 0.333,
+    "noise_w_scale": 0.4,
     "use_cuda": False,
 }
 

@@ -11,6 +11,7 @@ Usage:
 
 import argparse
 import sys
+import time
 from pathlib import Path
 
 # Allow running from project root without installing the package
@@ -192,7 +193,10 @@ def main():
     print(f"[Eval] Test    : {args.test}")
 
     print("[Eval] Loading model...")
+    t0 = time.perf_counter()
     classifier = load_classifier(args.backend, args.model)
+    load_time = time.perf_counter() - t0
+    print(f"[Eval] Model loaded in {load_time:.3f}s")
 
     print("[Eval] Loading test data...")
     samples = load_test_data(args.test)
@@ -201,7 +205,12 @@ def main():
           "  ".join(f"{c}={n}" for c, n in class_counts.items()))
 
     print("[Eval] Running inference...")
+    t0 = time.perf_counter()
     accuracy, per_class, results = compute_metrics(samples, classifier)
+    infer_time = time.perf_counter() - t0
+    avg_time = infer_time / len(samples) if samples else 0.0
+    print(f"[Eval] Inference done in {infer_time:.3f}s"
+          f"  ({avg_time * 1000:.2f}ms/sample, {len(samples)} samples)")
 
     print_summary(accuracy, per_class, results, verbose=args.verbose)
 

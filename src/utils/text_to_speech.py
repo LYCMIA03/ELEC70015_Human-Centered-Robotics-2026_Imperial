@@ -7,16 +7,8 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 MODELS_DIR = PROJECT_ROOT / "models"
-DEFAULT_TTS_MODEL_NAME = "en_GB-southern_english_female-low"
-DEFAULT_TTS_ONNX_PATH = MODELS_DIR / f"{DEFAULT_TTS_MODEL_NAME}.onnx"
-DEFAULT_TTS_JSON_PATH = MODELS_DIR / f"{DEFAULT_TTS_MODEL_NAME}.onnx.json"
-DEFAULT_TTS_ONNX_URL = (
+PIPER_HF_BASE = (
     "https://huggingface.co/rhasspy/piper-voices/resolve/main/"
-    "en/en_GB/southern_english_female/low/en_GB-southern_english_female-low.onnx"
-)
-DEFAULT_TTS_JSON_URL = (
-    "https://huggingface.co/rhasspy/piper-voices/resolve/main/"
-    "en/en_GB/southern_english_female/low/en_GB-southern_english_female-low.onnx.json"
 )
 
 
@@ -27,22 +19,38 @@ def _download_to(url: str, dst: Path) -> None:
 
 
 def ensure_tts_model(model_ref: str) -> Path:
-    """Ensure default TTS model files exist in models/ and return onnx path."""
-    allowed_refs = {
-        DEFAULT_TTS_MODEL_NAME,
-        DEFAULT_TTS_ONNX_PATH.name,
-        str(DEFAULT_TTS_ONNX_PATH),
-    }
-    if model_ref not in allowed_refs:
+    """Ensure Piper TTS model files (.onnx + .onnx.json) exist locally.
+
+    model_ref can be:
+      - A HuggingFace sub-path, e.g.
+        "en/en_GB/vctk/medium/en_GB-vctk-medium.onnx.json"
+      - A local .onnx file path that already exists on disk.
+    """
+    candidate = Path(model_ref)
+    if candidate.suffix == ".onnx" and candidate.exists():
+        return candidate
+
+    if not model_ref.endswith((".onnx", ".onnx.json")):
         raise ValueError(
-            f"Only '{DEFAULT_TTS_MODEL_NAME}' is supported. Got: {model_ref}"
+            f"model_ref should end with .onnx or .onnx.json, got: {model_ref}"
         )
 
-    if not DEFAULT_TTS_ONNX_PATH.exists():
-        _download_to(DEFAULT_TTS_ONNX_URL, DEFAULT_TTS_ONNX_PATH)
-    if not DEFAULT_TTS_JSON_PATH.exists():
-        _download_to(DEFAULT_TTS_JSON_URL, DEFAULT_TTS_JSON_PATH)
-    return DEFAULT_TTS_ONNX_PATH
+    hf_json_sub = model_ref if model_ref.endswith(".onnx.json") else model_ref + ".json"
+    hf_onnx_sub = hf_json_sub.removesuffix(".json")
+
+    json_name = Path(hf_json_sub).name
+    onnx_name = Path(hf_onnx_sub).name
+    onnx_path = MODELS_DIR / onnx_name
+    json_path = MODELS_DIR / json_name
+
+    if not onnx_path.exists():
+        print(f"[TTS] Downloading {onnx_name} ...")
+        _download_to(PIPER_HF_BASE + hf_onnx_sub, onnx_path)
+    if not json_path.exists():
+        print(f"[TTS] Downloading {json_name} ...")
+        _download_to(PIPER_HF_BASE + hf_json_sub, json_path)
+
+    return onnx_path
 
 
 def parse_args() -> argparse.Namespace:
@@ -99,13 +107,13 @@ def generate(
 def main() -> None:
     # You can edit these defaults directly for quick local generation.
     config = {
-        "model_path": "en_GB-southern_english_female-low",
+        "model_path": "en/en_GB/vctk/medium/en_GB-vctk-medium.onnx.json",
         "text": "You are so stupid!",
         "output_path": "voice_data/sim_user_answer_other_b.wav",
         "volume": 1.0,
-        "speed": 1.33,
-        "noise_scale": 0.667,
-        "noise_w_scale": 0.8,
+        "speed": 2.0,
+        "noise_scale": 0.333,
+        "noise_w_scale": 0.4,
         "use_cuda": False,
     }
 
