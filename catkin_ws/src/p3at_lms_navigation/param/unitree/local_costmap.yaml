@@ -29,7 +29,7 @@ local_costmap:
       data_type: LaserScan
       topic: rplidar/scan_filtered
       marking: true
-      clearing: false
+      clearing: true
       inf_is_valid: true
       obstacle_range: 2.5
       raytrace_range: 3.0

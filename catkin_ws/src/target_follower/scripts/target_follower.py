@@ -20,6 +20,7 @@ import math
 import os
 import sys
 from collections import deque
+from functools import partial
 import rospy
 import actionlib
 
@@ -109,6 +110,11 @@ class TargetFollower:
         # ── Core following params ──────────────────────────────────────────
         self.target_topic = rospy.get_param("~target_topic", "/target_pose")
         self.global_frame = rospy.get_param("~global_frame", "map")
+        self.tracking_frame = rospy.get_param("~tracking_frame", self.global_frame)
+        self.tracking_action_name = self._normalize_action_name(
+            rospy.get_param("~tracking_action_name", "move_base"))
+        self.explore_action_name = self._normalize_action_name(
+            rospy.get_param("~explore_action_name", "move_base"))
         self.robot_frame  = rospy.get_param("~robot_frame", "base_link")
         self.camera_frame = rospy.get_param("~camera_frame", "camera_link")
         self.send_rate_hz      = float(rospy.get_param("~send_rate_hz", 2.0))
@@ -330,7 +336,7 @@ class TargetFollower:
             blacklist_radius_m=self.explore_blacklist_radius_m,
         )
         self.make_plan_srv = None
-        self.clear_costmaps_srv = None
+        self.clear_costmaps_srvs = {}
 
         # Path memory and dialogue-location memory for anti-repeat behaviour.
         self._path_history = deque(maxlen=max(self.max_path_points, 100))  # (stamp, x, y)
@@ -352,10 +358,15 @@ class TargetFollower:
         self.tfbuf = tf2_ros.Buffer(cache_time=rospy.Duration(10.0))
         self.tfl   = tf2_ros.TransformListener(self.tfbuf)
 
-        self.client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
-        rospy.loginfo("Waiting for move_base action server...")
-        self.client.wait_for_server()
-        rospy.loginfo("Connected to move_base.")
+        self.tracking_client = actionlib.SimpleActionClient(
+            self.tracking_action_name, MoveBaseAction)
+        self.explore_client = self.tracking_client
+        if self.explore_action_name != self.tracking_action_name:
+            self.explore_client = actionlib.SimpleActionClient(
+                self.explore_action_name, MoveBaseAction)
+        rospy.loginfo("Waiting for %s action server...", self.tracking_action_name)
+        self.tracking_client.wait_for_server()
+        rospy.loginfo("Connected to %s.", self.tracking_action_name)
         self._set_state("IDLE")
 
         # ── Publishers ─────────────────────────────────────────────────────
@@ -369,12 +380,13 @@ class TargetFollower:
                          self.cb_trash_action, queue_size=5)
         rospy.Subscriber("/cmd_vel", Twist,
                          self.cb_cmd_vel, queue_size=20)
-        rospy.Subscriber(self.explore_map_topic, OccupancyGrid,
-                         self.cb_explore_map, queue_size=1)
-        rospy.Subscriber(self.explore_costmap_topic, OccupancyGrid,
-                         self.cb_explore_costmap, queue_size=1)
-        rospy.Subscriber(self.explore_scan_topic, LaserScan,
-                         self.cb_explore_scan, queue_size=5)
+        if self.enable_auto_explore:
+            rospy.Subscriber(self.explore_map_topic, OccupancyGrid,
+                             self.cb_explore_map, queue_size=1)
+            rospy.Subscriber(self.explore_costmap_topic, OccupancyGrid,
+                             self.cb_explore_costmap, queue_size=1)
+            rospy.Subscriber(self.explore_scan_topic, LaserScan,
+                             self.cb_explore_scan, queue_size=5)
 
         # ── Publishers ─────────────────────────────────────────────────────
         # debug: planar distance from base_link to target pose in global_frame (meters)
@@ -401,6 +413,12 @@ class TargetFollower:
             self.target_timeout_near_grace_s,
             self.target_timeout_near_dist_m,
             self.target_timeout_near_dist_fresh_s,
+        )
+        rospy.loginfo("tracking_frame = %s", self.tracking_frame)
+        rospy.loginfo(
+            "tracking_action = %s  explore_action = %s",
+            self.tracking_action_name,
+            self.explore_action_name,
         )
         rospy.loginfo(
             "dialogue_block_allow_near_dist=%.2fm reverse_costmap_check_dist=%.2fm",
@@ -525,11 +543,16 @@ class TargetFollower:
     def _cancel_goal_if_active(self):
         if self._goal_active:
             was_exploring = self._active_goal_kind == "EXPLORING"
-            state = self.client.get_state()
+            client = self._client_for_goal_kind(self._active_goal_kind)
+            state = client.get_state() if client is not None else GoalStatus.LOST
             if state in (GoalStatus.PENDING, GoalStatus.ACTIVE):
                 self._suppress_done_cb = True
-                self.client.cancel_goal()
-                rospy.loginfo("Cancelled active move_base goal")
+                client.cancel_goal()
+                rospy.loginfo(
+                    "Cancelled active %s goal on %s",
+                    str(self._active_goal_kind).lower(),
+                    self._action_name_for_goal_kind(self._active_goal_kind),
+                )
             self._goal_active = False
             self._active_goal_kind = None
             if was_exploring:
@@ -540,35 +563,77 @@ class TargetFollower:
 
     def _get_robot_pose_in_global(self):
         """Return (x, y, tf_stamped) of robot in global_frame, or None."""
+        return self._get_robot_pose_in_frame(self.global_frame)
+
+    def _get_robot_pose_in_frame(self, frame_id):
+        """Return (x, y, tf_stamped) of robot in frame_id, or None."""
         try:
             tf_robot = self.tfbuf.lookup_transform(
-                self.global_frame, self.robot_frame,
+                frame_id, self.robot_frame,
                 rospy.Time(0), rospy.Duration(0.2),
             )
             rx = tf_robot.transform.translation.x
             ry = tf_robot.transform.translation.y
             return rx, ry, tf_robot
         except Exception as e:
-            rospy.logwarn_throttle(2.0, "TF not ready for robot pose: %s", str(e))
+            rospy.logwarn_throttle(2.0, "TF not ready for robot pose in %s: %s", frame_id, str(e))
             return None
 
     def _get_camera_pose_in_global(self):
         """Return (cx, cy) of camera_link in global_frame, or None."""
+        return self._get_camera_pose_in_frame(self.global_frame)
+
+    def _get_camera_pose_in_frame(self, frame_id):
+        """Return (cx, cy) of camera_link in frame_id, or None."""
         try:
             tf_cam = self.tfbuf.lookup_transform(
-                self.global_frame, self.camera_frame,
+                frame_id, self.camera_frame,
                 rospy.Time(0), rospy.Duration(0.2),
             )
             cx = tf_cam.transform.translation.x
             cy = tf_cam.transform.translation.y
             return cx, cy
         except Exception as e:
-            rospy.logwarn_throttle(2.0, "TF not ready for camera pose: %s", str(e))
+            rospy.logwarn_throttle(2.0, "TF not ready for camera pose in %s: %s", frame_id, str(e))
             return None
 
     @staticmethod
     def _yaw_to_quaternion(yaw):
         return Quaternion(0.0, 0.0, math.sin(yaw / 2.0), math.cos(yaw / 2.0))
+
+    @staticmethod
+    def _normalize_action_name(name):
+        name = str(name).strip()
+        if not name:
+            return "move_base"
+        return name[1:] if name.startswith("/") else name
+
+    def _action_name_for_goal_kind(self, goal_kind):
+        if goal_kind == "TRACKING":
+            return self.tracking_action_name
+        return self.explore_action_name
+
+    def _client_for_goal_kind(self, goal_kind):
+        if goal_kind == "TRACKING":
+            return self.tracking_client
+        if goal_kind == "EXPLORING":
+            return self.explore_client
+        return None
+
+    def _service_name_for_goal_kind(self, goal_kind, service_leaf):
+        action_name = self._action_name_for_goal_kind(goal_kind)
+        return "/%s/%s" % (self._normalize_action_name(action_name), service_leaf)
+
+    def _transform_pose_to_frame(self, pose_in, target_frame):
+        if pose_in.header.frame_id == target_frame:
+            return pose_in
+        tfm = self.tfbuf.lookup_transform(
+            target_frame,
+            pose_in.header.frame_id,
+            rospy.Time(0),
+            rospy.Duration(0.2),
+        )
+        return transform_pose_stamped(pose_in, tfm, target_frame)
 
     def _get_target_depth_in_camera(self):
         """Return the z-distance (depth) of the current target in camera_link frame.
@@ -799,9 +864,10 @@ class TargetFollower:
     def _ensure_make_plan_service(self):
         if self.make_plan_srv is not None:
             return True
+        service_name = self._service_name_for_goal_kind("EXPLORING", "make_plan")
         try:
-            rospy.wait_for_service("/move_base/make_plan", timeout=0.6)
-            self.make_plan_srv = rospy.ServiceProxy("/move_base/make_plan", GetPlan)
+            rospy.wait_for_service(service_name, timeout=0.6)
+            self.make_plan_srv = rospy.ServiceProxy(service_name, GetPlan)
             return True
         except Exception:
             return False
@@ -834,28 +900,32 @@ class TargetFollower:
             rospy.logwarn_throttle(2.0, "[TargetFollower] make_plan failed: %s", str(e))
             return False
 
-    def _ensure_clear_costmaps_service(self):
-        if self.clear_costmaps_srv is not None:
+    def _ensure_clear_costmaps_service(self, goal_kind):
+        service_name = self._service_name_for_goal_kind(goal_kind, "clear_costmaps")
+        if service_name in self.clear_costmaps_srvs:
             return True
         try:
-            rospy.wait_for_service("/move_base/clear_costmaps", timeout=0.4)
-            self.clear_costmaps_srv = rospy.ServiceProxy("/move_base/clear_costmaps", Empty)
+            rospy.wait_for_service(service_name, timeout=0.4)
+            self.clear_costmaps_srvs[service_name] = rospy.ServiceProxy(service_name, Empty)
             return True
         except Exception:
             return False
 
-    def _clear_costmaps(self, reason):
+    def _clear_costmaps(self, reason, goal_kind=None):
         if not self.explore_clear_costmap_on_replan:
             return
-        if not self._ensure_clear_costmaps_service():
+        if goal_kind not in ("TRACKING", "EXPLORING"):
+            goal_kind = self._active_goal_kind if self._active_goal_kind in ("TRACKING", "EXPLORING") else "EXPLORING"
+        if not self._ensure_clear_costmaps_service(goal_kind):
             return
         now = rospy.Time.now()
         if (now - self._last_clear_costmap_try).to_sec() < 0.8:
             return
         self._last_clear_costmap_try = now
         try:
-            self.clear_costmaps_srv()
-            rospy.loginfo("[TargetFollower] Cleared costmaps (%s)", reason)
+            service_name = self._service_name_for_goal_kind(goal_kind, "clear_costmaps")
+            self.clear_costmaps_srvs[service_name]()
+            rospy.loginfo("[TargetFollower] Cleared %s costmaps (%s)", goal_kind.lower(), reason)
         except Exception as e:
             rospy.logwarn_throttle(2.0, "[TargetFollower] clear_costmaps failed: %s", str(e))
 
@@ -990,6 +1060,12 @@ class TargetFollower:
     def _start_explore_goal(self):
         if not self.enable_auto_explore or self._goal_active:
             return
+        if not self.explore_client.wait_for_server(rospy.Duration(0.05)):
+            now = rospy.Time.now()
+            if (now - self._last_explore_wait_log).to_sec() >= self.explore_dependency_wait_log_s:
+                self._last_explore_wait_log = now
+                rospy.loginfo("[TargetFollower] Exploration waiting: move_base action server")
+            return
         ready, reason = self._explore_dependencies_ready()
         if not ready:
             now = rospy.Time.now()
@@ -1029,7 +1105,10 @@ class TargetFollower:
         goal.target_pose.pose.position.z = 0.0
         goal.target_pose.pose.orientation = self._yaw_to_quaternion(heading)
 
-        self.client.send_goal(goal, done_cb=self._goal_done_cb)
+        self.explore_client.send_goal(
+            goal,
+            done_cb=partial(self._goal_done_cb, goal_kind="EXPLORING"),
+        )
         self._goal_active = True
         self._active_goal_kind = "EXPLORING"
         self._explore_goal_start = rospy.Time.now()
@@ -1161,15 +1240,24 @@ class TargetFollower:
     # move_base callbacks
     # ──────────────────────────────────────────────────────────────────────────
 
-    def _goal_done_cb(self, status, result):
+    def _goal_done_cb(self, status, result, goal_kind=None):
         """Called by actionlib when a move_base goal reaches a terminal state."""
-        self._goal_active = False
-
         # If we manually cancelled the goal, ignore this callback entirely
         if self._suppress_done_cb:
             self._suppress_done_cb = False
             rospy.loginfo("[TargetFollower] Suppressed done_cb after manual cancel (status=%d)", status)
             return
+
+        if goal_kind is not None and self._active_goal_kind not in (None, goal_kind):
+            rospy.loginfo(
+                "[TargetFollower] Ignoring stale %s done_cb (status=%d, active=%s)",
+                goal_kind,
+                status,
+                self._active_goal_kind,
+            )
+            return
+
+        self._goal_active = False
 
         # RETREATING: if any stale move_base callback arrives, finish retreat safely.
         if self._state == "RETREATING":
@@ -1178,7 +1266,7 @@ class TargetFollower:
             return
 
         # EXPLORING: continue exploration loop unless interrupted by target tracking.
-        if self._state == "EXPLORING" or self._active_goal_kind == "EXPLORING":
+        if goal_kind == "EXPLORING" and (self._state == "EXPLORING" or self._active_goal_kind == "EXPLORING"):
             self._active_goal_kind = None
             self._explore_goal_start = None
             self._explore_start_xy = None
@@ -1206,7 +1294,7 @@ class TargetFollower:
             return
 
         # TRACKING: react to goal outcome
-        if self._state == "TRACKING":
+        if (goal_kind in (None, "TRACKING")) and self._state == "TRACKING":
             if status == GoalStatus.SUCCEEDED:
                 rospy.loginfo("[TargetFollower] move_base SUCCEEDED — checking distance in next tick")
                 # Don't set REACHED here; let maybe_send_goal distance check handle it
@@ -1221,7 +1309,7 @@ class TargetFollower:
                         "[TargetFollower] move_base aborted near target (reach_dist=%.2f) — clear costmaps and retry",
                         self._last_reach_dist,
                     )
-                    self._clear_costmaps("tracking_abort_near")
+                    self._clear_costmaps("tracking_abort_near", goal_kind="TRACKING")
                     self._set_state("IDLE")
                     return
                 self._set_state("FAILED")
@@ -1738,6 +1826,14 @@ class TargetFollower:
         if self.last_target is None:
             return
 
+        if not self.tracking_client.wait_for_server(rospy.Duration(0.05)):
+            rospy.logwarn_throttle(
+                2.0,
+                "[TargetFollower] waiting for tracking action server %s",
+                self.tracking_action_name,
+            )
+            return
+
         now = rospy.Time.now()
         if self.last_target.header.stamp != rospy.Time(0):
             age = (now - self.last_target.header.stamp).to_sec()
@@ -1797,30 +1893,28 @@ class TargetFollower:
             self._stop_explore_scan()
 
         try:
-            if self.last_target.header.frame_id != self.global_frame:
-                tfm = self.tfbuf.lookup_transform(
-                    self.global_frame,
-                    self.last_target.header.frame_id,
-                    rospy.Time(0),
-                    rospy.Duration(0.2),
-                )
-                target_g = transform_pose_stamped(self.last_target, tfm, self.global_frame)
-            else:
-                target_g = self.last_target
+            target_t = self._transform_pose_to_frame(self.last_target, self.tracking_frame)
         except Exception as e:
             rospy.logwarn_throttle(1.0, "TF not ready for target transform: %s", str(e))
             return
 
-        tx = target_g.pose.position.x
-        ty = target_g.pose.position.y
+        tx = target_t.pose.position.x
+        ty = target_t.pose.position.y
 
         # If this target is near a recent dialogue point, skip it for a while
         # to avoid repeatedly asking the same person/object.
-        if self._should_block_dialogue_area_target(tx, ty):
+        target_g = None
+        try:
+            target_g = self._transform_pose_to_frame(self.last_target, self.global_frame)
+        except Exception:
+            pass
+        block_tx = target_g.pose.position.x if target_g is not None else tx
+        block_ty = target_g.pose.position.y if target_g is not None else ty
+        if self._should_block_dialogue_area_target(block_tx, block_ty):
             rospy.loginfo_throttle(
                 2.0,
                 "[TargetFollower] Ignoring target near recent dialogue area (%.2f, %.2f)",
-                tx, ty,
+                block_tx, block_ty,
             )
             return
 
@@ -1832,12 +1926,12 @@ class TargetFollower:
         goal_x, goal_y = tx, ty
 
         if self.standoff_distance > 0 or self.face_target:
-            robot_info = self._get_robot_pose_in_global()
+            robot_info = self._get_robot_pose_in_frame(self.tracking_frame)
             if robot_info is None:
                 return
             rx, ry, tf_robot = robot_info
 
-            # Distance from base_link to target in global frame (for goal waypoint)
+            # Distance from base_link to target in tracking_frame (odom for local-only tracking).
             dx = tx - rx
             dy = ty - ry
             d  = math.hypot(dx, dy)
@@ -1848,8 +1942,8 @@ class TargetFollower:
             # This is the most direct and reliable distance metric.
             d_cam_z = self._get_target_depth_in_camera()
 
-            # Also compute 2D global-frame camera distance for goal offset
-            cam_pos = self._get_camera_pose_in_global()
+            # Also compute 2D tracking-frame camera distance for goal offset.
+            cam_pos = self._get_camera_pose_in_frame(self.tracking_frame)
             if cam_pos is not None:
                 cx, cy = cam_pos
                 d_cam_xy = math.hypot(tx - cx, ty - cy)
@@ -1915,13 +2009,14 @@ class TargetFollower:
                     # depth ends up at standoff.  Camera is roughly
                     # (d - d_cam_xy) metres closer to target along the
                     # robot→target line.
-                    cam_ahead = d - d_cam_xy  # positive when camera is ahead
-                    base_standoff = self.standoff_distance + cam_ahead
-                    if base_standoff >= d:
-                        base_standoff = d * 0.9  # safety: don't send goal behind robot
-                    ratio  = (d - base_standoff) / d
-                    goal_x = rx + dx * ratio
-                    goal_y = ry + dy * ratio
+                    if d > 1e-6:
+                        cam_ahead = d - d_cam_xy  # positive when camera is ahead
+                        base_standoff = self.standoff_distance + cam_ahead
+                        if base_standoff >= d:
+                            base_standoff = d * 0.9  # safety: don't send goal behind robot
+                        ratio  = (d - base_standoff) / d
+                        goal_x = rx + dx * ratio
+                        goal_y = ry + dy * ratio
 
         # Rate limiter — but allow immediate re-send after FAILED/LOST/IDLE
         if self._state == "TRACKING":
@@ -1937,7 +2032,7 @@ class TargetFollower:
         # ── Build MoveBaseGoal ────────────────────────────────────────────
         goal = MoveBaseGoal()
         goal.target_pose.header.stamp    = rospy.Time.now()
-        goal.target_pose.header.frame_id = self.global_frame
+        goal.target_pose.header.frame_id = self.tracking_frame
         goal.target_pose.pose.position.x = goal_x
         goal.target_pose.pose.position.y = goal_y
         goal.target_pose.pose.position.z = 0.0
@@ -1948,19 +2043,22 @@ class TargetFollower:
             if math.hypot(face_dx, face_dy) > 0.01:
                 yaw = math.atan2(face_dy, face_dx)
             else:
-                robot_info = self._get_robot_pose_in_global()
+                robot_info = self._get_robot_pose_in_frame(self.tracking_frame)
                 yaw = math.atan2(ty - robot_info[1], tx - robot_info[0]) if robot_info else 0.0
             goal.target_pose.pose.orientation = self._yaw_to_quaternion(yaw)
         elif self.use_target_orientation:
-            goal.target_pose.pose.orientation = target_g.pose.orientation
+            goal.target_pose.pose.orientation = target_t.pose.orientation
         else:
-            robot_info = self._get_robot_pose_in_global()
+            robot_info = self._get_robot_pose_in_frame(self.tracking_frame)
             if robot_info is not None:
                 goal.target_pose.pose.orientation = robot_info[2].transform.rotation
             else:
                 goal.target_pose.pose.orientation = Quaternion(0.0, 0.0, 0.0, 1.0)
 
-        self.client.send_goal(goal, done_cb=self._goal_done_cb)
+        self.tracking_client.send_goal(
+            goal,
+            done_cb=partial(self._goal_done_cb, goal_kind="TRACKING"),
+        )
         self._goal_active  = True
         self._active_goal_kind = "TRACKING"
         self.last_sent_goal = (goal_x, goal_y)

@@ -3,10 +3,9 @@
 obstacle_range: 6.0
 raytrace_range: 8.0
 
-# Increase side clearance for real robot attachments that can occlude
-# left/right lidar visibility during in-place turns.
-footprint: [[0.32, 0.32], [0.32, -0.32], [-0.32, -0.32], [-0.32, 0.32]]
-footprint_padding: 0.08
+# P3-AT footprint (same as c2449ce local-only tracking baseline)
+footprint: [[0.32, 0.27], [0.32, -0.27], [-0.32, -0.27], [-0.32, 0.27]]
+footprint_padding: 0.05
 inflation_radius: 0.3
 cost_scaling_factor: 5.0
 
