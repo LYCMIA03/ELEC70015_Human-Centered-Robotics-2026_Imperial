@@ -101,6 +101,8 @@
        doc="用于倒车安全判断的scan最大允许延迟 (s)"/>
   <arg name="retreat_reverse_rear_sector_deg" default="35.0"
        doc="倒车方向后扇区半角 (deg)"/>
+  <arg name="retreat_reverse_costmap_topic" default="/move_base/local_costmap/costmap"
+       doc="倒车安全判定专用costmap topic（仅使用local costmap）"/>
 
   <!-- Auto-explore params -->
     <arg name="enable_auto_explore"      default="true" doc="无目标时自动探索"/>
@@ -387,6 +389,7 @@
     <param name="retreat_reverse_safety_margin" value="$(arg retreat_reverse_safety_margin)"/>
     <param name="retreat_reverse_scan_stale_s" value="$(arg retreat_reverse_scan_stale)"/>
     <param name="retreat_reverse_rear_sector_deg" value="$(arg retreat_reverse_rear_sector_deg)"/>
+     <param name="retreat_reverse_costmap_topic" value="$(arg retreat_reverse_costmap_topic)"/>
     <param name="enable_auto_explore"    value="$(arg auto_explore_enabled_effective)"/>
     <param name="explore_goal_distance"  value="$(arg explore_goal_distance)"/>
     <param name="explore_short_horizon_m" value="$(arg explore_short_horizon)"/>

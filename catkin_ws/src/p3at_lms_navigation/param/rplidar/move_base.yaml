@@ -2,11 +2,11 @@
 base_global_planner: "navfn/NavfnROS"
 base_local_planner: "dwa_local_planner/DWAPlannerROS"
 
-planner_frequency: 1.0
-controller_frequency: 10.0
-planner_patience: 15.0
-controller_patience: 20.0
-max_planning_retries: 5
+planner_frequency: 3.0
+controller_frequency: 15.0
+planner_patience: 6.0
+controller_patience: 8.0
+max_planning_retries: 3
 
 recovery_behavior_enabled: true
 clearing_rotation_allowed: false
@@ -24,17 +24,17 @@ DWAPlannerROS:
   min_vel_y: 0.0
   max_vel_trans: 0.22
   min_vel_trans: 0.02
-  max_vel_theta: 0.35
+  max_vel_theta: 0.55
   min_vel_theta: 0.0
 
   acc_lim_x: 0.3
   acc_lim_y: 0.0
-  acc_lim_theta: 0.6
+  acc_lim_theta: 0.9
 
-  vx_samples: 20
+  vx_samples: 12
   vy_samples: 1
-  vtheta_samples: 40
-  sim_time: 2.5
+  vtheta_samples: 24
+  sim_time: 1.5
   sim_granularity: 0.025
 
   path_distance_bias: 32.0
@@ -46,5 +46,5 @@ DWAPlannerROS:
   yaw_goal_tolerance: 0.3
   latch_xy_goal_tolerance: true
 
-  stop_time_buffer: 0.4
+  stop_time_buffer: 0.25
   oscillation_reset_dist: 0.10

@@ -185,6 +185,9 @@ class TargetFollower:
         # checks are often over-conservative around inflated cells.
         self.retreat_reverse_costmap_check_dist = float(
             rospy.get_param("~retreat_reverse_costmap_check_dist", 0.30))
+        # Reverse-retreat safety is decided solely by this local costmap.
+        self.retreat_reverse_costmap_topic = rospy.get_param(
+            "~retreat_reverse_costmap_topic", "/move_base/local_costmap/costmap")
 
         # ── Auto explore params (active when no target is being tracked) ─────
         self.enable_auto_explore = bool(rospy.get_param("~enable_auto_explore", True))
@@ -316,6 +319,7 @@ class TargetFollower:
         self._last_scan_msg_time = None
         self._latest_scan_min_range = None
         self._latest_scan_rear_min_range = None
+        self._retreat_reverse_costmap = None
         self._last_seen_target_xy = None
         self._reacquire_start = None
         self._reacquire_turn_dir = 1.0
@@ -380,6 +384,8 @@ class TargetFollower:
                          self.cb_trash_action, queue_size=5)
         rospy.Subscriber("/cmd_vel", Twist,
                          self.cb_cmd_vel, queue_size=20)
+        rospy.Subscriber(self.retreat_reverse_costmap_topic, OccupancyGrid,
+                         self.cb_retreat_reverse_costmap, queue_size=1)
         if self.enable_auto_explore:
             rospy.Subscriber(self.explore_map_topic, OccupancyGrid,
                              self.cb_explore_map, queue_size=1)
@@ -433,6 +439,7 @@ class TargetFollower:
         rospy.loginfo("retreat_turn_angle = %.1f deg", self.retreat_turn_angle_deg)
         rospy.loginfo("retreat_reverse_enabled = %s", self.retreat_reverse_enabled)
         rospy.loginfo("retreat_reverse_distance = %.2f m", self.retreat_reverse_distance)
+        rospy.loginfo("retreat_reverse_costmap_topic = %s", self.retreat_reverse_costmap_topic)
         rospy.loginfo("enable_auto_explore = %s", self.enable_auto_explore)
         rospy.loginfo("explore_target_confirm = %.1f s", self.explore_target_confirm_s)
         rospy.loginfo("explore_target_max_gap = %.1f s", self.explore_target_max_gap_s)
@@ -513,6 +520,9 @@ class TargetFollower:
 
     def cb_explore_costmap(self, msg):
         self.frontier_planner.update_costmap(msg)
+    
+    def cb_retreat_reverse_costmap(self, msg):
+        self._retreat_reverse_costmap = msg
 
     def cb_explore_scan(self, msg):
         self._last_scan_msg_time = rospy.Time.now()
@@ -1462,29 +1472,54 @@ class TargetFollower:
             return False, "reverse disabled"
         if check_distance <= 0.0:
             return False, "reverse distance <= 0"
-        if self._last_scan_msg_time is None:
-            return False, "no scan data"
-        if (rospy.Time.now() - self._last_scan_msg_time).to_sec() > self.retreat_reverse_scan_stale_s:
-            return False, "scan stale"
-        if self._latest_scan_rear_min_range is None:
-            return False, "no rear scan coverage"
-        required_clearance = max(0.0, check_distance) + max(0.0, self.retreat_reverse_safety_margin)
-        if self._latest_scan_rear_min_range < required_clearance:
-            return False, "rear clearance %.2f < %.2f" % (
-                self._latest_scan_rear_min_range, required_clearance)
+        if self._retreat_reverse_costmap is None:
+            return False, "no local costmap"
 
-        if self.frontier_planner.costmap_data is not None:
-            costmap_check_dist = min(check_distance, max(0.0, self.retreat_reverse_costmap_check_dist))
-            if costmap_check_dist <= 0.0:
-                return True, "ok"
-            check_scales = (1.0, 0.5)
-            for scale in check_scales:
-                dist = costmap_check_dist * scale
-                wx = rx - dist * math.cos(current_yaw)
-                wy = ry - dist * math.sin(current_yaw)
-                if not self.frontier_planner._is_costmap_world_safe(wx, wy):
-                    return False, "costmap blocks reverse path"
+        costmap_check_dist = min(check_distance, max(0.0, self.retreat_reverse_costmap_check_dist))
+        if costmap_check_dist <= 0.0:
+            return True, "ok"
+
+        check_scales = (1.0, 0.75, 0.5, 0.25)
+        for scale in check_scales:
+            dist = costmap_check_dist * scale
+            wx = rx - dist * math.cos(current_yaw)
+            wy = ry - dist * math.sin(current_yaw)
+            if not self._is_local_costmap_world_safe(wx, wy):
+                return False, "local costmap blocks reverse path"
         return True, "ok"
+
+    def _is_local_costmap_world_safe(self, wx, wy):
+        msg = self._retreat_reverse_costmap
+        if msg is None:
+            return False
+
+        info = msg.info
+        res = info.resolution
+        if res <= 0.0:
+            return False
+
+        gx = int((wx - info.origin.position.x) / res)
+        gy = int((wy - info.origin.position.y) / res)
+        h = int(info.height)
+        w = int(info.width)
+        if gx < 0 or gy < 0 or gx >= w or gy >= h:
+            return False
+
+        clearance_cells = max(1, int(self.explore_map_clearance_m / res))
+        data = msg.data
+        for ddy in range(-clearance_cells, clearance_cells + 1):
+            for ddx in range(-clearance_cells, clearance_cells + 1):
+                nx = gx + ddx
+                ny = gy + ddy
+                if nx < 0 or ny < 0 or nx >= w or ny >= h:
+                    continue
+                idx = ny * w + nx
+                cell = int(data[idx])
+                if cell < 0:
+                    continue
+                if cell >= self.explore_costmap_lethal_threshold:
+                    return False
+        return True
 
     def _trackable_target_available(self):
         if not self._target_fresh():
