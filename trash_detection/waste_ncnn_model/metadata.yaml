@@ -1,0 +1,25 @@
+task: detect
+batch: 1
+imgsz:
+  - 640
+  - 640
+stride: 32
+names:
+  0: Can
+  1: Cardboard
+  2: Carton
+  3: Glass
+  4: Paper
+  5: Plastic
+  6: Tetra
+  7: Apple
+  8: Apple-core
+  9: Apple-peel
+  10: Bone
+  11: Bread
+  12: Egg-shell
+  13: Orange
+  14: Orange-peel
+  15: Pear
+  16: Vegetable
+  17: Human
