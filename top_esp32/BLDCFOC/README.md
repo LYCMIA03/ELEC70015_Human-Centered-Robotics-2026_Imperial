@@ -1,6 +1,6 @@
 # ESP32 BLDCMotor & Servo Control
 
-This folder contains the firmware and python test script for controlling a BLDC motor and a servo via MQTT on an ESP32.
+This folder contains the firmware and python test script for controlling the smart sorting bin via MQTT on an ESP32.
 
 ## MQTT Configuration
 
