@@ -32,7 +32,6 @@ Remote branch status below reflects the current fetched state (updated on 2026-0
 | `origin/chore/deploy-prep-multimachine` | Behind only (`81 behind / 0 ahead`) | `04f9ab7` (2026-02-21) | Multi-machine deployment preparation branch (launcher/deployment hardening and environment bringup adjustments). |
 | `origin/full_system_tmp` | Behind only (`9 behind / 0 ahead`) | `e34c0cc` (2026-03-18) | Full-system staging branch used for temporary integration/tuning snapshots before consolidation into `main`. |
 | `origin/toppi` | Diverged (`26 behind / 4 ahead`) | `2c3c905` (2026-03-19) | Experimental integration branch for calibration and perception/navigation variants (e.g., ArUco calibration gating and alternative detection pipelines). |
-| `origin/wednesday-night-brief-success` | Behind only (`6 behind / 0 ahead`) | `e259fd0` (2026-03-19) | Short-lived checkpoint/hotfix branch used for rapid snapshot-style updates. |
 
 <a id="runbook"></a>
 ## Runbook
