@@ -112,7 +112,7 @@ RPLIDAR_PRE_START_WARMUP_S="2.0"
 RETREAT_DIST="1.5"
 ACTION_WAIT="45.0"
 RUNNER_READY_TIMEOUT="45"
-POST_ACCEPT_COOLDOWN="15.0"
+POST_ACCEPT_COOLDOWN="25.0"
 POST_ACCEPT_COOLDOWN_SET=false
 # A moderate retreat turn helps the robot leave the interaction area without
 # rotating so aggressively that it traps itself near nearby obstacles.

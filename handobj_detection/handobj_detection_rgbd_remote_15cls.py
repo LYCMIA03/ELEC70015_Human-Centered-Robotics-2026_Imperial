@@ -32,6 +32,10 @@ import cv2
 import numpy as np
 import torch
 try:
+    import websockets
+except ImportError:  # websocket 版本为可选
+    websockets = None
+try:
     import onnxruntime as ort
 except ImportError:
     ort = None
@@ -862,6 +866,121 @@ def _remote_waste_predict(
         return []
 
 
+def _to_ws_uri(server_url: str) -> str:
+    """把 http(s)://host:port 转成 ws(s)://host:port，并确保末尾是 /ws。"""
+    u = (server_url or "").strip()
+    if u.startswith("http://"):
+        u = "ws://" + u[len("http://") :]
+    elif u.startswith("https://"):
+        u = "wss://" + u[len("https://") :]
+    elif u.startswith("ws://") or u.startswith("wss://"):
+        pass
+    else:
+        u = "ws://" + u
+    if not u.rstrip("/").endswith("/ws"):
+        u = u.rstrip("/") + "/ws"
+    return u
+
+
+def _to_http_uri(server_url: str) -> str:
+    """把 ws(s)://host:port 转成 http(s)://host:port（用于 HTTP fallback）。"""
+    u = (server_url or "").strip()
+    if u.startswith("ws://"):
+        u = "http://" + u[len("ws://") :]
+    elif u.startswith("wss://"):
+        u = "https://" + u[len("wss://") :]
+    return u
+
+
+def _remote_waste_predict_ws(
+    server_url,
+    bgr,
+    *,
+    timeout_s=2.0,
+    jpeg_quality=40,
+    waste_jpeg_max_dim=None,
+):
+    """WebSocket 方式（对齐 waste client：发送 JPEG bytes，接收 JSON 文本）。"""
+    if websockets is None:
+        raise RuntimeError("websockets 未安装，无法使用 ws 方式")
+    if not server_url:
+        return []
+
+    img = bgr
+    if waste_jpeg_max_dim is not None:
+        h, w = img.shape[:2]
+        scale = min(waste_jpeg_max_dim / float(w), waste_jpeg_max_dim / float(h), 1.0)
+        if scale < 1.0:
+            img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_LINEAR)
+
+    ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, int(jpeg_quality)])
+    if not ok:
+        return []
+    jpeg_bytes = buf.tobytes()
+
+    ws_uri = _to_ws_uri(server_url)
+
+    async def _call():
+        async with websockets.connect(ws_uri, max_size=16 * 1024 * 1024) as ws:
+            await ws.send(jpeg_bytes)
+            raw = await ws.recv()
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode("utf-8", errors="ignore")
+            obj = json.loads(raw)
+            return obj.get("detections", []) or []
+
+    # 该脚本主循环是同步的，所以在当前线程内用 asyncio.run 做一次性 ws 调用
+    import asyncio
+
+    return asyncio.run(asyncio.wait_for(_call(), timeout=timeout_s))
+
+
+def _remote_waste_predict_dispatch(
+    server_url,
+    bgr,
+    *,
+    conf,
+    imgsz,
+    hide_human=True,
+    timeout_s=2.0,
+    jpeg_quality=40,
+    waste_jpeg_max_dim=None,
+):
+    """
+    优先 WebSocket（和你的 waste client 对齐），失败则回退 HTTP `/predict`。
+    注意：ws 方式的 conf/imgsz/hide_human 由 server 启动参数决定（客户端不再传 query）。
+    """
+    if not server_url:
+        return []
+
+    # 1) WS 优先
+    if websockets is not None:
+        try:
+            return _remote_waste_predict_ws(
+                server_url,
+                bgr,
+                timeout_s=timeout_s,
+                jpeg_quality=jpeg_quality,
+                waste_jpeg_max_dim=waste_jpeg_max_dim,
+            )
+        except Exception:
+            # WS 失败就尝试 HTTP fallback（更稳）
+            pass
+
+    # 2) HTTP fallback
+    http_url = _to_http_uri(server_url)
+    return _remote_waste_predict(
+        http_url,
+        bgr,
+        conf=conf,
+        imgsz=imgsz,
+        hide_human=hide_human,
+        timeout_s=timeout_s,
+        jpeg_quality=jpeg_quality,
+        waste_jpeg_max_dim=waste_jpeg_max_dim,
+    )
+
+
 def main():
     p = argparse.ArgumentParser(description="Hand-Object RGB-D + remote 15cls")
     p.add_argument("--weights", "-w", default=str(DEFAULT_WEIGHTS), help="handobj weight .pt")
@@ -929,6 +1048,20 @@ def main():
                    help="self-touch 时 object 与 person 面积相似度阈值（默认 0.9）")
     p.add_argument("--self-touch-object-same-size-iou-thr", type=float, default=0.6,
                    help="self-touch 时 object 与 person IoU 阈值（默认 0.6）")
+
+    p.add_argument(
+        "--xyz-hold-sec",
+        type=float,
+        default=1.0,
+        help="当 holding bbox/xyz 在某帧消失时，最多继续沿用上一帧 xyz 的时间（秒）。",
+    )
+
+    p.add_argument(
+        "--remote-box-hold-sec",
+        type=float,
+        default=1.0,
+        help="当 waste server 端检测到的 waste/person bbox 过旧时，多久后在本端画面中自动消失（秒）。",
+    )
 
     # 两个 YOLO 分别指定 device，避免 CUDA OOM
     p.add_argument(
@@ -1120,6 +1253,7 @@ def main():
     fps_interval_start = time.perf_counter()
     fps_frame_count = 0
     yolo_time_sum = 0.0
+    yolo_frame_count = 0
 
     frame_idx = 0
     last_remote_person_xyz = None
@@ -1136,6 +1270,32 @@ def main():
     target_box = None
     target_kind = None
 
+    # holding bbox/xyz 消失时的鲁棒性：在 1s 内沿用上一帧 xyz
+    xyz_hold_sec = float(getattr(args, "xyz_hold_sec", 1.0))
+    remote_box_hold_sec = float(getattr(args, "remote_box_hold_sec", xyz_hold_sec))
+    last_holding_xyz = None
+    last_holding_xyz_ts = 0.0
+    last_seen_holding_seq = -1
+
+    last_remote_result_ts = 0.0
+
+    hold_lock = threading.Lock()
+    yolo_stats_lock = threading.Lock()
+
+    # yolo worker 的输入/版本号（主线程只负责采集与推流，不做推理）
+    capture_lock = threading.Lock()
+    new_capture_event = threading.Event()
+    stop_event = threading.Event()
+    latest_frame = None
+    latest_depth_copy = None
+    latest_dh = None
+    latest_dw = None
+    latest_frame_idx = 0
+    latest_version = 0
+
+    holding_seq = 0
+    holding_seq_ts = 0.0
+
     def remote_worker(
         request_id,
         frame_snapshot,
@@ -1144,10 +1304,11 @@ def main():
         dw_snapshot,
         person_results_snapshot,
     ):
-        nonlocal last_remote_person_xyz, last_remote_person_box, last_remote_waste_box
+        nonlocal last_remote_person_xyz, last_remote_person_box, last_remote_waste_box, last_remote_result_ts
+        call_ts = time.perf_counter()
         try:
             t_remote_start = time.perf_counter()
-            dets = _remote_waste_predict(
+            dets = _remote_waste_predict_dispatch(
                 waste_server_url,
                 frame_snapshot,
                 conf=args.waste_conf,
@@ -1215,6 +1376,174 @@ def main():
             pass
         finally:
             remote_inflight.clear()
+            with remote_lock:
+                # 不论成功/失败，只要发起过一次请求，就刷新“上次远程检测时间”
+                # 用于在主线程端对远程 bbox/xyz 做过期处理
+                last_remote_result_ts = call_ts
+
+    def yolo_worker():
+        """
+        后台 YOLO 推理线程：
+        - 主线程只负责采集/推流（保证视频流不会因推理阻塞）
+        - 以“处理最新帧”为策略，跳过中间帧，从而实现各自 fps
+        """
+        nonlocal person_device, handobj_device, last_waste_call_ts, remote_request_id_latest
+        nonlocal holding_xyz, holding_box, holding_seq, holding_seq_ts
+        nonlocal yolo_time_sum, yolo_frame_count
+
+        processed_version = -1
+        while not stop_event.is_set():
+            # 等待主线程提交新帧
+            new_capture_event.wait(timeout=0.2)
+            if stop_event.is_set():
+                break
+
+            with capture_lock:
+                if latest_version == processed_version:
+                    new_capture_event.clear()
+                    continue
+                frame_in = latest_frame
+                depth_in = latest_depth_copy
+                dh_in = latest_dh
+                dw_in = latest_dw
+                frame_idx_in = latest_frame_idx
+                version_in = latest_version
+                processed_version = version_in
+
+            if frame_in is None or depth_in is None:
+                continue
+
+            t_yolo_start = time.perf_counter()
+            person_results = None
+            try:
+                person_results, person_device_local = _predict_yolo_with_fallback(
+                    person_model,
+                    frame_in,
+                    conf=args.conf,
+                    imgsz=min(args.imgsz, 640),
+                    device=person_device,
+                    label="person",
+                )
+                person_device = person_device_local
+
+                if handobj_onnx_sess is not None:
+                    orig_h, orig_w = frame_in.shape[:2]
+                    padded, scale, (pad_left, pad_top, nw, nh) = letterbox(
+                        frame_in, (onnx_imgsz, onnx_imgsz), stride=32
+                    )
+                    blob = preprocess_bgr_to_onnx(padded)
+                    out_hand = run_onnx_detect(
+                        handobj_onnx_sess, blob, hand_input_name, hand_output_name
+                    )
+                    xyxy, conf, cls = decode_yolo_output(
+                        out_hand, args.conf, NMS_IOU, hand_nc, class_filter=None
+                    )
+                    if xyxy.shape[0] > 0:
+                        xyxy = scale_boxes_to_original(
+                            xyxy,
+                            scale,
+                            pad_left,
+                            pad_top,
+                            orig_w,
+                            orig_h,
+                            nh,
+                            nw,
+                        )
+                    handobj_results = _OnnxResultsTorchLike(_OnnxBoxesTorchLike(xyxy, conf, cls))
+                else:
+                    handobj_results, handobj_device_local = _predict_yolo_with_fallback(
+                        handobj_model,
+                        frame_in,
+                        conf=args.conf,
+                        imgsz=min(args.imgsz, 640),
+                        device=handobj_device,
+                        label="handobj",
+                    )
+                    handobj_device = handobj_device_local
+
+                holding_list = get_holding_person_boxes_and_xyz_dual(
+                    person_results,
+                    handobj_results,
+                    handobj_names_dict,
+                    depth_in,
+                    dh_in,
+                    dw_in,
+                    conf_threshold=args.conf,
+                    max_range_mm=max_depth_mm,
+                    ignore_self_touch=not getattr(args, "no_self_touch_filter", False),
+                    self_touch_inside_thr=float(getattr(args, "self_touch_inside_thr", 0.85)),
+                    ignore_self_touch_objects=True,
+                    self_touch_object_same_size_area_thr=float(
+                        getattr(args, "self_touch_object_same_size_area_thr", 0.9)
+                    ),
+                    self_touch_object_same_size_iou_thr=float(
+                        getattr(args, "self_touch_object_same_size_iou_thr", 0.6)
+                    ),
+                    hand_object_overlap_iou_thr=float(
+                        getattr(args, "hand_object_overlap_iou_thr", 0.05)
+                    ),
+                )
+                holding_xyz_new = holding_list[0][1] if holding_list else None
+                holding_box_new = holding_list[0][0] if holding_list else None
+            except Exception:
+                holding_xyz_new = None
+                holding_box_new = None
+            dt = time.perf_counter() - t_yolo_start
+
+            with yolo_stats_lock:
+                yolo_time_sum += dt
+                yolo_frame_count += 1
+
+            with hold_lock:
+                holding_xyz = holding_xyz_new
+                holding_box = holding_box_new
+                holding_seq += 1
+                holding_seq_ts = time.perf_counter()
+
+            # 远程 waste server：放到另一个线程，避免影响主推流与本线程 fps
+            if waste_remote_enabled and person_results is not None:
+                try:
+                    now_ts = time.perf_counter()
+                    should_call_remote = False
+                    if float(args.waste_call_every) >= 1.0:
+                        N = max(1, int(args.waste_call_every))
+                        should_call_remote = (N <= 1) or (frame_idx_in % N == 0)
+                    else:
+                        should_call_remote = (now_ts - last_waste_call_ts) >= float(args.waste_call_every)
+
+                    if should_call_remote and not remote_inflight.is_set():
+                        last_waste_call_ts = now_ts
+                        remote_request_id_latest = frame_idx_in
+                        remote_inflight.set()
+                        if args.waste_async:
+                            th = threading.Thread(
+                                target=remote_worker,
+                                args=(
+                                    frame_idx_in,
+                                    frame_in,
+                                    depth_in,
+                                    dh_in,
+                                    dw_in,
+                                    person_results,
+                                ),
+                                daemon=True,
+                            )
+                            th.start()
+                        else:
+                            # 仍在后台 YOLO 线程内执行：不会影响主线程推流
+                            remote_worker(
+                                frame_idx_in,
+                                frame_in,
+                                depth_in,
+                                dh_in,
+                                dw_in,
+                                person_results,
+                            )
+                except Exception:
+                    pass
+
+    yolo_thread = threading.Thread(target=yolo_worker, daemon=True)
+    yolo_thread.start()
 
     try:
         while True:
@@ -1263,171 +1592,58 @@ def main():
             else:
                 frame = color_img.copy()
 
-            t_yolo_start = time.perf_counter()
-            person_results, person_device = _predict_yolo_with_fallback(
-                person_model,
-                frame,
-                conf=args.conf,
-                imgsz=min(args.imgsz, 640),
-                device=person_device,
-                label="person",
-            )
-            if handobj_onnx_sess is not None:
-                orig_h, orig_w = frame.shape[:2]
-                padded, scale, (pad_left, pad_top, nw, nh) = letterbox(frame, (onnx_imgsz, onnx_imgsz), stride=32)
-                blob = preprocess_bgr_to_onnx(padded)
-                out_hand = run_onnx_detect(handobj_onnx_sess, blob, hand_input_name, hand_output_name)
-                xyxy, conf, cls = decode_yolo_output(out_hand, args.conf, NMS_IOU, hand_nc, class_filter=None)
-                if xyxy.shape[0] > 0:
-                    xyxy = scale_boxes_to_original(
-                        xyxy,
-                        scale,
-                        pad_left,
-                        pad_top,
-                        orig_w,
-                        orig_h,
-                        nh,
-                        nw,
-                    )
-                handobj_results = _OnnxResultsTorchLike(_OnnxBoxesTorchLike(xyxy, conf, cls))
-            else:
-                handobj_results, handobj_device = _predict_yolo_with_fallback(
-                    handobj_model,
-                    frame,
-                    conf=args.conf,
-                    imgsz=min(args.imgsz, 640),
-                    device=handobj_device,
-                    label="handobj",
-                )
-            yolo_time_sum += time.perf_counter() - t_yolo_start
+            # 把最新帧提交给后台 YOLO 推理线程（不阻塞本线程推流）
+            with capture_lock:
+                latest_frame = frame
+                latest_depth_copy = depth_copy
+                latest_dh = dh
+                latest_dw = dw
+                latest_frame_idx = frame_idx
+                latest_version += 1
+                new_capture_event.set()
 
-            holding_list = get_holding_person_boxes_and_xyz_dual(
-                person_results,
-                handobj_results,
-                handobj_names_dict,
-                depth_copy,
-                dh,
-                dw,
-                conf_threshold=args.conf,
-                max_range_mm=max_depth_mm,
-                ignore_self_touch=not getattr(args, "no_self_touch_filter", False),
-                self_touch_inside_thr=float(getattr(args, "self_touch_inside_thr", 0.85)),
-                ignore_self_touch_objects=True,
-                self_touch_object_same_size_area_thr=float(
-                    getattr(args, "self_touch_object_same_size_area_thr", 0.9)
-                ),
-                self_touch_object_same_size_iou_thr=float(
-                    getattr(args, "self_touch_object_same_size_iou_thr", 0.6)
-                ),
-                hand_object_overlap_iou_thr=float(
-                    getattr(args, "hand_object_overlap_iou_thr", 0.05)
-                ),
-            )
-            holding_xyz = holding_list[0][1] if holding_list else None
-            holding_box = holding_list[0][0] if holding_list else None
+            # 读取最新 holding（由 yolo_worker 更新）
+            with hold_lock:
+                holding_xyz_cur = holding_xyz
+                holding_box_cur = holding_box
+                holding_seq_cur = holding_seq
+                holding_seq_ts_cur = holding_seq_ts
+
+            now_ts = time.perf_counter()
+            if holding_seq_cur != last_seen_holding_seq:
+                if holding_xyz_cur is not None:
+                    last_holding_xyz = holding_xyz_cur
+                    last_holding_xyz_ts = holding_seq_ts_cur
+                last_seen_holding_seq = holding_seq_cur
+
+            # holding bbox 消失时：最多沿用上一帧 xyz
+            if holding_xyz_cur is not None:
+                holding_xyz_eff = holding_xyz_cur
+            else:
+                if last_holding_xyz is not None and (now_ts - last_holding_xyz_ts) <= xyz_hold_sec:
+                    holding_xyz_eff = last_holding_xyz
+                else:
+                    holding_xyz_eff = None
 
             # 默认 target = holding
-            target_xyz = holding_xyz
-            target_box = holding_box
-            target_kind = "holding"
-
-            # 远程 15cls：找 waste_xyz 最近的 person candidate
-            should_call_remote = False
-            if waste_remote_enabled:
-                now_ts = time.perf_counter()
-                if float(args.waste_call_every) >= 1.0:
-                    # >=1：按“每 N 帧”
-                    N = max(1, int(args.waste_call_every))
-                    should_call_remote = (N <= 1) or (frame_idx % N == 0)
-                else:
-                    # <1：按“每 N 秒”
-                    should_call_remote = (now_ts - last_waste_call_ts) >= float(args.waste_call_every)
-
-            if should_call_remote:
-                if args.waste_async:
-                    # 后台线程跑远程预测，主循环继续更新 MJPEG，避免卡帧
-                    if not remote_inflight.is_set():
-                        last_waste_call_ts = time.perf_counter()
-                        remote_request_id_latest = frame_idx
-                        remote_inflight.set()
-                        frame_snapshot = frame.copy()
-                        depth_snapshot = depth_copy.copy()
-                        th = threading.Thread(
-                            target=remote_worker,
-                            args=(
-                                frame_idx,
-                                frame_snapshot,
-                                depth_snapshot,
-                                dh,
-                                dw,
-                                person_results,
-                            ),
-                            daemon=True,
-                        )
-                        th.start()
-                else:
-                    # 同步模式：会阻塞主循环（可能降低 MJPEG FPS）
-                    last_waste_call_ts = time.perf_counter()
-                    t_remote_start = time.perf_counter()
-                    dets = _remote_waste_predict(
-                        waste_server_url,
-                        frame,
-                        conf=args.waste_conf,
-                        imgsz=640,
-                        hide_human=True,
-                        timeout_s=args.waste_timeout,
-                        jpeg_quality=args.waste_jpeg_quality,
-                    )
-                    t_remote_ms = (time.perf_counter() - t_remote_start) * 1000.0
-                    print(
-                        "waste_server call: %.1f ms | detections=%d"
-                        % (t_remote_ms, len(dets) if dets is not None else 0),
-                        flush=True,
-                    )
-
-                    # 由 waste bbox 得 waste_xyz（最近 waste：z 小）
-                    waste_items = []
-                    for d in dets or []:
-                        try:
-                            cls_id = int(d.get("class_id", -1))
-                        except Exception:
-                            cls_id = -1
-                        if cls_id < 0 or cls_id >= 14:
-                            continue
-                        x1, y1, x2, y2 = float(d["x1"]), float(d["y1"]), float(d["x2"]), float(d["y2"])
-                        d_mm = sample_depth_at_center(depth_copy, x1, y1, x2, y2, dh, dw)
-                        if d_mm is None or d_mm <= 0 or d_mm > max_depth_mm:
-                            continue
-                        cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
-                        xyz = depth_pixel_to_xyz_m(cx, cy, d_mm, depth_w=dw, depth_h=dh)
-                        if xyz is None:
-                            continue
-                        waste_items.append((xyz, (x1, y1, x2, y2)))
-
-                    if waste_items:
-                        nearest_waste_xyz, nearest_waste_box = min(waste_items, key=lambda t: t[0][2])
-                        # 从所有 person candidates 里找离 waste_xyz 最近的那个人
-                        person_candidates = get_person_candidates_from_results(
-                            person_results,
-                            person_names_dict,
-                            depth_copy,
-                            dh,
-                            dw,
-                            conf_threshold=args.conf,
-                            max_range_mm=max_depth_mm,
-                        )
-                        if person_candidates:
-                            best = min(person_candidates, key=lambda t: _dist_sq_xyz(t[1], nearest_waste_xyz))
-                            with remote_lock:
-                                last_remote_person_box = best[0]
-                                last_remote_person_xyz = best[1]
-                                last_remote_waste_box = nearest_waste_box
+            holding_box = holding_box_cur  # bbox 不做 hold（可视化避免误导）
+            target_xyz = holding_xyz_eff
+            target_box = holding_box_cur if holding_xyz_cur is not None else None
+            target_kind = "holding" if target_xyz is not None else "holding"
 
             # 如果远程 person 可用，则与 holding 比 z 选更近
             with remote_lock:
                 remote_person_xyz = last_remote_person_xyz
                 remote_person_box = last_remote_person_box
                 remote_waste_box = last_remote_waste_box
+                remote_result_ts = last_remote_result_ts
+
+            # 垃圾离开后，上一次远程 bbox 会“过期”，避免一直残留
+            remote_valid = remote_result_ts > 0.0 and (now_ts - remote_result_ts) <= remote_box_hold_sec
+            if not remote_valid:
+                remote_person_xyz = None
+                remote_person_box = None
+                remote_waste_box = None
             if remote_person_xyz is not None:
                 if target_xyz is None or remote_person_xyz[2] < target_xyz[2]:
                     target_xyz = remote_person_xyz
@@ -1437,20 +1653,24 @@ def main():
             if sender is not None:
                 sender.send_xyz(target_xyz, target_kind)
 
-            if getattr(args, "print_xyz", False):
-                if target_xyz is not None:
-                    print(
-                        "target XYZ: X=%.3f Y=%.3f Z=%.3f kind=%s"
-                        % (target_xyz[0], target_xyz[1], target_xyz[2], target_kind),
-                        flush=True,
-                    )
+            if getattr(args, "print_xyz", False) and target_xyz is not None:
+                print(
+                    "target XYZ: X=%.3f Y=%.3f Z=%.3f kind=%s"
+                    % (target_xyz[0], target_xyz[1], target_xyz[2], target_kind),
+                    flush=True,
+                )
 
             fps_frame_count += 1
             elapsed_sec = time.perf_counter() - fps_interval_start
             if elapsed_sec >= 1.0 and fps_frame_count > 0:
                 loop_fps = fps_frame_count / elapsed_sec
-                avg_yolo_s = yolo_time_sum / fps_frame_count
-                yolo_fps = 1.0 / avg_yolo_s if avg_yolo_s > 0 else 0.0
+                with yolo_stats_lock:
+                    yolo_count = yolo_frame_count
+                    yolo_sum = yolo_time_sum
+                    yolo_time_sum = 0.0
+                    yolo_frame_count = 0
+                avg_yolo_s = (yolo_sum / yolo_count) if yolo_count > 0 else 0.0
+                yolo_fps = (1.0 / avg_yolo_s) if avg_yolo_s > 0 else 0.0
                 line = "FPS: %.1f (loop) | YOLO: %.1f fps" % (loop_fps, yolo_fps)
                 if target_xyz is not None:
                     line += " | XYZ: %.2f, %.2f, %.2f [%s]" % (
@@ -1462,7 +1682,6 @@ def main():
                 print(line, flush=True)
                 fps_interval_start = time.perf_counter()
                 fps_frame_count = 0
-                yolo_time_sum = 0.0
 
             # 画面
             if effective_headless or stream_holder is not None or not effective_headless:
@@ -1500,6 +1719,13 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        try:
+            stop_event.set()
+            new_capture_event.set()
+            if "yolo_thread" in locals():
+                yolo_thread.join(timeout=2.0)
+        except Exception:
+            pass
         try:
             pipeline.stop()
         except Exception:
