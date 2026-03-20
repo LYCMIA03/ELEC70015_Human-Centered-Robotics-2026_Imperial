@@ -4,8 +4,9 @@
 18-class NCNN trash detection on Raspberry Pi: CSI camera, MJPEG stream, MQTT.
 Zero calibration uses the same capture + EV + LAB levels as calibration/aruco_zero_calibration.py
 (only during the calib window); then exposure resets for normal trash inference.
-Main loop: Ultralytics YOLO 加载 NCNN 目录，与采集同线程对当前 bgr 推理（与 MJPEG 同一帧）。
-MQTT 仅 ArUco 遮挡且满足 --mqtt-delay 时发送。
+Main loop: Ultralytics YOLO loads the NCNN export directory and runs detection on the same thread
+as capture (same frame as MJPEG when streaming).
+MQTT publishes only when the ArUco marker is occluded (gate open) and --mqtt-delay stability is met.
 """
 import argparse
 import json
@@ -39,7 +40,7 @@ CONF_THRESHOLD = 0.35
 MQTT_BROKER = "broker.emqx.io"
 MQTT_PORT = 1883
 MQTT_TOPIC = "imperial/yh4222/esp32/test"
-MQTT_TOPIC_CALIB = "imperial/yh4222/esp32/calib"  # plate zero angle deg, 取反后发出
+MQTT_TOPIC_CALIB = "imperial/yh4222/esp32/calib"  # plate zero angle deg (negated before publish)
 MQTT_TOPIC_RES = "imperial/yh4222/esp32/res"  # app -> ESP32: motor preset 1–4 as text; 1->0, 2->-pi/2, 3->-pi, 4->+pi/2
 MQTT_CLIENT_ID_PUB = "pi_pub_trash_001"
 
@@ -203,7 +204,7 @@ def _aruco_get_dict(dict_name):
 
 
 def _build_aruco_detector(dictionary, adapt_const, min_perimeter_rate, adapt_min, adapt_max):
-    """与 calibration/aruco_zero_calibration.py 一致；默认 C=5 而非 OpenCV 默认 7。"""
+    """Match calibration/aruco_zero_calibration.py; default adaptiveThreshConstant=5 (OpenCV default is 7)."""
     dp = _aruco_module.DetectorParameters()
     dp.adaptiveThreshConstant = int(adapt_const)
     dp.minMarkerPerimeterRate = float(min_perimeter_rate)
@@ -277,7 +278,7 @@ def _aruco_draw_on_bgr_with_gray(
     aruco_detector=None,
     aruco_dp=None,
 ):
-    """Detect on gray; draw on bgr copy. 使用与 aruco_zero_calibration 相同的 detector。"""
+    """Detect on gray; draw on BGR/RGB copy. Same ArUco detector setup as aruco_zero_calibration."""
     out = bgr.copy()
     angle_deg = None
     if _aruco_module is None or dictionary is None:
@@ -412,14 +413,14 @@ def run_calibration_phase(
     if not no_mqtt and mqtt_client is not None:
         mqtt_client.publish(MQTT_TOPIC_CALIB, payload, qos=0)
         print(
-            "Calibration done: MQTT {} deg (取反后)  raw={:.2f} -> {}".format(
+            "Calibration done: MQTT {} deg (negated)  raw={:.2f} -> {}".format(
                 payload, angle_raw, MQTT_TOPIC_CALIB,
             ),
             flush=True,
         )
     else:
         print(
-            "Calibration done: raw={:.2f} deg, MQTT would send {:.2f} (取反) (MQTT off)".format(
+            "Calibration done: raw={:.2f} deg, MQTT would send {:.2f} (negated) (MQTT off)".format(
                 angle_raw, angle_mqtt,
             ),
             flush=True,
@@ -636,12 +637,12 @@ def main():
         "--aruco-preset",
         choices=("default", "sensitive"),
         default="default",
-        help="与 aruco_zero_calibration 相同；门控与标定段共用（default: C=5；sensitive: 更小码/弱对比）",
+        help="Same as aruco_zero_calibration; shared by gate and calib (default: C=5; sensitive: small markers/low contrast)",
     )
-    p.add_argument("--aruco-adapt-const", type=int, default=None, help="自适应二值化 C，默认与标定脚本一致(5)")
-    p.add_argument("--aruco-min-perimeter-rate", type=float, default=None, help="周长占画幅比下限，默认0.03")
-    p.add_argument("--aruco-adapt-min", type=int, default=None, help="自适应窗口最小边长，默认3")
-    p.add_argument("--aruco-adapt-max", type=int, default=None, help="自适应窗口最大边长，默认23")
+    p.add_argument("--aruco-adapt-const", type=int, default=None, help="Adaptive threshold C (default 5, same as calib script)")
+    p.add_argument("--aruco-min-perimeter-rate", type=float, default=None, help="Min marker perimeter / image size (default 0.03)")
+    p.add_argument("--aruco-adapt-min", type=int, default=None, help="Adaptive window min side (default 3)")
+    p.add_argument("--aruco-adapt-max", type=int, default=None, help="Adaptive window max side (default 23)")
     p.add_argument("--calib-sec", type=float, default=5.0, help="Calibration capture duration in seconds")
     p.add_argument("--calib-ev", type=float, default=-0.7, help="EV during ArUco zero calib (same as aruco_zero_calibration)")
     p.add_argument(
@@ -659,12 +660,12 @@ def main():
         "--dual-capture-settle",
         type=float,
         default=0.10,
-        help="EV 切换后等待再抓拍；门控与标定不一致时可加大到 0.12~0.2",
+        help="Sleep after EV change before capture; increase (e.g. 0.12–0.2) if gate vs calib disagree",
     )
     p.add_argument(
         "--same-frame-aruco-gate",
         action="store_true",
-        help="改回旧逻辑：Aruco gate 与视频流/YOLO 共用同一帧；默认不启用（默认固定双曝光：Aruco 用 calib_ev，YOLO/MJPEG 用 post_calib_ev）",
+        help="Legacy: ArUco gate and stream/YOLO share one frame. Default off (dual exposure: ArUco at calib_ev, YOLO/MJPEG at post_calib_ev)",
     )
     p.add_argument(
         "--no-aruco-gate",
@@ -674,18 +675,18 @@ def main():
     p.add_argument(
         "--no-print-dets",
         action="store_true",
-        help="不在终端逐帧打印垃圾分类结果",
+        help="Do not print per-frame classification lines to the terminal",
     )
     p.add_argument(
         "--include-human",
         action="store_true",
-        help="默认排除 Human 类；加此参数则 Human 也参与检测",
+        help="Include Human class in detection (default: Human is excluded)",
     )
     p.add_argument(
         "--print-empty-every",
         type=int,
         default=20,
-        help="无检出时每 N 次推理打印一行（0=从不）",
+        help="When no detections, print a line every N inferences (0 = never)",
     )
     args = p.parse_args()
 
@@ -728,23 +729,23 @@ def main():
     if not args.no_aruco_gate and aruco_dict_gate is not None:
         if args.same_frame_aruco_gate:
             print(
-                "ArUco gate: 同帧模式（与推流/YOLO 共用同一帧）| 延迟 %.1fs."
+                "ArUco gate: same-frame mode (stream/YOLO share one frame) | MQTT delay %.1fs."
                 % (args.mqtt_delay,),
                 flush=True,
             )
             print(
-                "  Gate 预处理仍使用: black=%d, white=%d, clahe=%.2f"
+                "  Gate preprocessing: black=%d, white=%d, clahe=%.2f"
                 % (args.calib_black_level, args.calib_white_level, args.calib_clahe_clip),
                 flush=True,
             )
         else:
             print(
-                "ArUco gate: 固定双曝光模式。Aruco 用 calib_ev 检测；YOLO/MJPEG 用 post_calib_ev；延迟 %.1fs."
+                "ArUco gate: dual exposure. ArUco at calib_ev; YOLO/MJPEG at post_calib_ev; MQTT delay %.1fs."
                 % (args.mqtt_delay,),
                 flush=True,
             )
             print(
-                "  ArUco visible 判断使用: calib_ev=%.2f, black=%d, white=%d, clahe=%.2f"
+                "  ArUco visibility uses: calib_ev=%.2f, black=%d, white=%d, clahe=%.2f"
                 % (
                     args.calib_ev,
                     args.calib_black_level,
@@ -754,7 +755,7 @@ def main():
                 flush=True,
             )
             print(
-                "  垃圾识别/视频流使用: post_calib_ev=%.2f" % (args.post_calib_ev,),
+                "  Trash inference / stream use: post_calib_ev=%.2f" % (args.post_calib_ev,),
                 flush=True,
             )
     elif not args.no_aruco_gate:
@@ -855,13 +856,13 @@ def main():
         print("Infer every {} frames.".format(args.infer_every), flush=True)
 
     print(
-        "Loading YOLO (NCNN dir) — 与摄像头同线程推理；YOLO 与视频流同一帧，Aruco gate 可为独立帧。",
+        "Loading YOLO (NCNN dir) — same thread as camera; YOLO matches stream frame; ArUco gate may use a separate capture.",
         flush=True,
     )
     try:
         from ultralytics import YOLO
     except ImportError as e:
-        print("需要: pip install ultralytics torch（NCNN 模型由 YOLO 加载）", e, flush=True)
+        print("Requires: pip install ultralytics torch (YOLO loads the NCNN export)", e, flush=True)
         picam2.stop()
         sys.exit(1)
     yolo_model = YOLO(model_dir, task="detect")
@@ -1022,10 +1023,10 @@ def main():
                                 )
                                 cat_id, cat_name = CLASS_TO_CATEGORY.get(name, (2, "general waste"))
                                 x1, y1, x2, y2 = map(int, xyxy[i])
-                                tag = "" if allow_mqtt else "  [不发MQTT: ArUco gate 可见]"
+                                tag = "" if allow_mqtt else "  [no MQTT: ArUco gate visible]"
                                 c_show = _boost_conf_for_output(name, c, args.conf)
                                 print(
-                                    "  · {}  conf={:.2f}  -> 类{} ({})  box=[{}, {}, {}, {}]{}".format(
+                                    "  · {}  conf={:.2f}  -> cat{} ({})  box=[{}, {}, {}, {}]{}".format(
                                         name, c_show, cat_id, cat_name, x1, y1, x2, y2, tag,
                                     ),
                                     flush=True,
@@ -1035,7 +1036,7 @@ def main():
                             empty_streak[0] += 1
                             pe = args.print_empty_every
                             if pe > 0 and (empty_streak[0] % pe == 1 or pe == 1):
-                                print("  (本帧无检出 above conf)", flush=True)
+                                print("  (no detections above conf this frame)", flush=True)
                         else:
                             empty_streak[0] = 0
 
