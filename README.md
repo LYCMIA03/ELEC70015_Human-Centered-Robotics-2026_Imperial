@@ -6,6 +6,8 @@ ROS1 Noetic · Ubuntu 20.04 · Gazebo 11 (simulation) / Docker + multi-machine R
 This README is aligned with the current `main` branch implementation.
 The default real-robot runtime is **dual lidar**: Unitree L1 is the primary sensor, and RPLIDAR A2 is used as a short-range local-costmap supplement. Historical simulation-only detail has been trimmed here; this README focuses on the current runnable system and the latest retained dual-lidar simulation results.
 
+The final research paper (report) of this project can be found in ELEC70015_Human-Centered-Robotics-2026_Imperial/HCR_Final_Research_Paper_Crazy_Thursday.pdf.
+
 ## Table of Contents
 
 1. [Branch Guide](#branch-guide)
